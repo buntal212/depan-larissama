@@ -74,7 +74,7 @@ export default defineConfig((/* ctx */) => {
     devServer: {
       // vueDevtools: true,
       // https: true,
-      open: true, // opens browser window automatically
+      open: false,
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework

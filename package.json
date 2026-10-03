@@ -1,8 +1,8 @@
 {
   "name": "depan-larissama",
   "version": "0.0.1",
-  "description": "A Quasar Project",
-  "productName": "LarisSama App",
+  "description": "Aplikasi kasir dan pengelolaan menu untuk warung makan.",
+  "productName": "Larisama",
   "author": "kentangkotak <ariezlnd69@gmail.com>",
   "type": "module",
   "private": true,
