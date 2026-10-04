@@ -2,6 +2,8 @@
 
 Frontend ini menggunakan Quasar dan Vue. Aturan ini berlaku untuk pekerjaan di repo `depan-larissama/`.
 
+Untuk fitur yang melibatkan backend, ikuti [alur kerja lintas repo](../api.larissama/DEVELOPMENT_WORKFLOW.md): kerjakan per vertical slice dan mulai UI setelah kontrak API slice tersebut stabil.
+
 ## Data dan database
 
 - Frontend berkomunikasi dengan backend melalui API. Jangan menambahkan koneksi database, query SQL, migration, atau akses kredensial database di frontend.
