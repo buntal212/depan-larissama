@@ -6,8 +6,10 @@
         <h1 class="page-title">Pesanan baru</h1>
         <p class="page-subtitle">Pilih menu untuk mulai mencatat pesanan.</p>
       </div>
-      <div class="col-auto"><q-chip class="demo-chip"><span class="status-dot"></span> Transaksi demo</q-chip></div>
+      <div class="col-auto"><q-chip class="demo-chip"><span class="status-dot"></span> Kasir tersambung</q-chip></div>
     </div>
+    <q-banner v-if="loadError" rounded class="q-mb-md bg-red-1 text-negative">{{ loadError }}</q-banner>
+    <q-banner v-else-if="catalogState.loading" rounded class="q-mb-md bg-green-1 text-primary">Memuat menu...</q-banner>
 
     <div class="pos-grid">
       <section class="pos-menu-column">
@@ -18,11 +20,11 @@
           <q-tab v-for="category in productCategories" :key="category" :name="category" :label="category" />
         </q-tabs>
         <div class="pos-product-grid">
-          <button v-for="product in filteredProducts" :key="product.id" class="pos-product" :disabled="!product.available || product.stock === 0" @click="addToCart(product)">
+          <button v-for="product in filteredProducts" :key="product.id" class="pos-product" :disabled="!product.available" @click="addToCart(product)">
             <div class="pos-product-art" :class="`art-${product.color || 'mint'}`"><q-icon :name="product.icon || 'restaurant'" /></div>
             <span class="pos-product-name">{{ product.name }}</span>
             <span class="pos-product-price">{{ formatPrice(product.price) }}</span>
-            <span v-if="!product.available || product.stock === 0" class="pos-product-sold">Habis</span>
+            <span v-if="!product.available" class="pos-product-sold">Nonaktif</span>
             <span v-else-if="cartQuantityFor(product.id)" class="pos-product-quantity">{{ cartQuantityFor(product.id) }}</span>
           </button>
           <div v-if="filteredProducts.length === 0" class="pos-empty">Menu tidak ditemukan.</div>
@@ -36,7 +38,7 @@
         :subtotal="subtotal"
         @change-quantity="changeQuantity"
         @clear="clearCart"
-        @complete="completeTransaction"
+        @checkout="checkoutOpen = true"
       />
     </div>
 
@@ -59,26 +61,49 @@
         @change-quantity="changeQuantity"
         @clear="clearCart"
         @close="cartOpen = false"
-        @complete="completeTransaction"
+        @checkout="checkoutOpen = true"
       />
     </q-dialog>
+
+    <CheckoutDialog v-model="checkoutOpen" :subtotal="subtotal" @confirm="completeTransaction" />
+    <ReceiptDialog
+      v-model="receiptOpen"
+      :sale="completedSale"
+      :warung="authSession.warung"
+      :cashier-name="authSession.user?.nama"
+    />
+    <AppAttribution />
   </q-page>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useQuasar } from 'quasar'
-import OrderCart from '@/components/OrderCart.vue'
-import { productCategories, products } from '@/stores/demo-data.js'
+import ReceiptDialog from '@/pages/Kasir/components/ReceiptDialog.vue'
+import AppAttribution from '@/components/AppAttribution.vue'
+import OrderCart from '@/pages/Kasir/components/OrderCart.vue'
+import CheckoutDialog from '@/pages/Kasir/components/CheckoutDialog.vue'
+import { authSession } from '@/stores/auth-session.js'
+import { categories, catalogState, loadCatalog, productCategories, products } from '@/stores/catalog.js'
+import { newIdempotencyKey } from '@/services/api.js'
+import { displayApiError, larisamaApi, toMoney, toQuantity } from '@/services/larisama-api.js'
 
 const $q = useQuasar()
 const search = ref('')
 const activeCategory = ref('Semua')
 const cart = ref([])
 const cartOpen = ref(false)
+const checkoutOpen = ref(false)
+const receiptOpen = ref(false)
+const completedSale = ref(null)
+const loadError = ref('')
+const submittingSale = ref(false)
+const pendingSaleAttempt = ref(null)
 const filteredProducts = computed(() => {
   const query = search.value.trim().toLocaleLowerCase('id-ID')
   return products.value.filter((product) => {
+    const category = categories.value.find((item) => item.id === product.categoryId)
+    if (!product.available || !category?.active) return false
     const matchesCategory = activeCategory.value === 'Semua' || product.category === activeCategory.value
     return matchesCategory && product.name.toLocaleLowerCase('id-ID').includes(query)
   })
@@ -89,6 +114,15 @@ const subtotal = computed(() => cart.value.reduce((total, item) => total + item.
 function formatPrice(value) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value)
 }
+
+onMounted(async () => {
+  try {
+    await loadCatalog({ force: true })
+  } catch (error) {
+    loadError.value = displayApiError(error)
+    $q.notify({ type: 'negative', message: loadError.value, position: 'top' })
+  }
+})
 
 function cartQuantityFor(productId) {
   return cart.value.find((item) => item.id === productId)?.quantity || 0
@@ -111,10 +145,34 @@ function clearCart() {
   cart.value = []
 }
 
-function completeTransaction() {
-  if (!cart.value.length) return
-  $q.notify({ type: 'positive', message: 'Transaksi demo selesai. Data tidak dikirim ke backend.', position: 'top', timeout: 2600 })
-  cart.value = []
-  cartOpen.value = false
+async function completeTransaction(payment) {
+  if (!cart.value.length || submittingSale.value) return
+  const saleInput = {
+    diskon: toMoney(payment.discount),
+    bayar: toMoney(payment.paid),
+    metode_pembayaran: payment.method,
+    catatan: payment.note?.trim() || null,
+    rincian: cart.value.map((item) => ({ menu_id: String(item.id), qty: toQuantity(item.quantity) })),
+  }
+  const fingerprint = JSON.stringify(saleInput)
+  if (pendingSaleAttempt.value?.fingerprint !== fingerprint) {
+    pendingSaleAttempt.value = { fingerprint, key: newIdempotencyKey(), tanggal: new Date().toISOString() }
+  }
+  const body = { tanggal: pendingSaleAttempt.value.tanggal, ...saleInput }
+  submittingSale.value = true
+  try {
+    completedSale.value = await larisamaApi.createSale(body, pendingSaleAttempt.value.key)
+    pendingSaleAttempt.value = null
+    $q.notify({ type: 'positive', message: 'Transaksi berhasil disimpan.', position: 'top', timeout: 2600 })
+    cart.value = []
+    cartOpen.value = false
+    checkoutOpen.value = false
+    receiptOpen.value = true
+  } catch (error) {
+    if (error.status && error.status < 500 && error.status !== 429) pendingSaleAttempt.value = null
+    $q.notify({ type: 'negative', message: displayApiError(error), position: 'top' })
+  } finally {
+    submittingSale.value = false
+  }
 }
 </script>

@@ -1,12 +1,12 @@
 # Larisama
 
-Frontend PWA untuk membantu warung makan dan angkringan mengelola menu dan mencatat transaksi. Versi awal ini memakai data demo di browser; belum terhubung ke API backend.
+Frontend PWA untuk membantu warung makan dan angkringan mengelola menu dan mencatat transaksi. Aplikasi terhubung ke API Larisama melalui `VITE_API_BASE_URL`; backend dan database dijalankan terpisah oleh tim backend.
 
 ## Teknologi
 
 - Vue 3 dan Quasar CLI dengan Vite
 - Quasar PWA mode dan Workbox
-- Data demo disimpan di `localStorage`
+- Sesi bearer token disimpan di `localStorage`; data operasional diambil dari API
 
 ## Prasyarat
 
@@ -24,7 +24,7 @@ npm.cmd --version
 
 ## Menjalankan dari clone Git bersih
 
-Tidak ada service backend atau database yang diperlukan untuk prototipe ini.
+Pastikan API PHP berjalan dan database sudah disiapkan. Konfigurasi alamat API pada `.env`:
 
 ```powershell
 cd depan-larissama
@@ -44,16 +44,21 @@ Hasil build berada di `dist/pwa`. Sajikan melalui HTTP/HTTPS untuk mencoba insta
 
 ## Fungsi prototipe
 
-- Dashboard dengan ringkasan dan grafik contoh.
-- Daftar menu dengan pencarian, kategori, status ketersediaan, dan form tambah/edit.
-- Kasir demo dengan keranjang, simulasi penyelesaian transaksi, dan tombol keranjang tetap di bagian bawah layar mobile. Tombol membuka ringkasan pesanan dalam bottom sheet sehingga daftar menu tetap bisa discroll tanpa kehilangan akses ke keranjang.
-- Produk awal serta perubahan form disimpan di browser pada `localStorage` dengan kunci `larisama-demo-products-v1`. Hapus data situs di browser untuk mengembalikan daftar awal.
+- Dashboard, katalog, kasir, riwayat penjualan, pembelian, laporan, pengguna, dan pendaftaran warung menggunakan endpoint API yang berstatus siap untuk frontend.
+- Login menggunakan username/password API; role dipakai untuk mengatur navigasi dan aksi di UI, sementara otorisasi tetap tanggung jawab backend.
+- Kasir mengirim ID menu, jumlah, pembayaran, dan `Idempotency-Key`; nama/harga serta total final berasal dari response server.
+- Pembelian mendukung bentuk nominal ringkas dan rincian qty/satuan/harga sesuai schema API.
+- Profil warung bersifat baca-saja sampai API menyediakan endpoint edit profil/upload logo.
 
-Angka dashboard dan transaksi adalah data contoh, bukan laporan penjualan sungguhan. Transaksi kasir hanya simulasi dan tidak dikirim ke backend.
+Jika API gagal, halaman menampilkan pesan kegagalan dan tidak menganggap data yang belum termuat sebagai nominal nol. Token sesi disimpan pada key `larisama-access-token-v1`.
+
+## Struktur frontend
+
+Halaman dikelompokkan berdasarkan fitur di `src/pages/<NamaFitur>/`. Komponen khusus fitur ditempatkan di subfolder `components` milik fitur tersebut. Contohnya, `src/pages/MenuKategori/` berisi halaman katalog dan komponen pengelolaan kategori. Komponen yang digunakan lintas fitur, seperti `ProductCard` dan `ProductFormDialog` yang dipakai Dashboard serta Menu & Kategori, tetap berada di `src/components/`.
 
 ## Konfigurasi
 
-Salin `.env.example` menjadi `.env` jika ingin menyiapkan alamat backend untuk integrasi berikutnya. `VITE_API_BASE_URL` belum digunakan oleh prototipe ini.
+Salin `.env.example` menjadi `.env` dan sesuaikan `VITE_API_BASE_URL` dengan host API yang berjalan pada mesin Anda. Nilai bawaan mengarah ke `http://127.0.0.1:8000/api/v1`.
 
 ## Pemeriksaan dasar
 

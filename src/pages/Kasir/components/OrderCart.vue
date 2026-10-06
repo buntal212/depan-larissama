@@ -43,12 +43,12 @@
         no-caps
         color="primary"
         icon="check"
-        label="Selesaikan transaksi demo"
+        label="Lanjut ke pembayaran"
         class="checkout-button full-width q-mt-lg"
         :disable="cart.length === 0"
-        @click="$emit('complete')"
+        @click="$emit('checkout')"
       />
-      <div class="demo-disclaimer">Transaksi ini hanya simulasi dan tidak dikirim ke backend.</div>
+      <div class="demo-disclaimer">Nama menu dan harga akan divalidasi kembali oleh server.</div>
     </q-card-section>
   </q-card>
 </template>
@@ -60,7 +60,7 @@ defineProps({
   subtotal: { type: Number, required: true },
   sheet: { type: Boolean, default: false },
 })
-defineEmits(['change-quantity', 'clear', 'close', 'complete'])
+defineEmits(['change-quantity', 'clear', 'close', 'checkout'])
 
 function formatPrice(value) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value)
