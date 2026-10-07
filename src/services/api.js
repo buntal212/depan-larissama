@@ -1,6 +1,9 @@
 import { clearSession, getAccessToken } from '@/stores/auth-session.js'
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/+$/, '')
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://api-laris.test/api/v1').replace(
+  /\/+$/,
+  '',
+)
 
 export function newIdempotencyKey() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID()
@@ -19,13 +22,21 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiRequest(path, { method = 'GET', body, headers = {}, auth = true, idempotency = false } = {}) {
+export async function apiRequest(
+  path,
+  { method = 'GET', body, headers = {}, auth = true, idempotency = false } = {},
+) {
   const requestHeaders = new Headers({ Accept: 'application/json', ...headers })
   const token = auth ? getAccessToken() : null
 
   if (token) requestHeaders.set('Authorization', `Bearer ${token}`)
-  if (body !== undefined && !requestHeaders.has('Content-Type')) requestHeaders.set('Content-Type', 'application/json')
-  if (idempotency) requestHeaders.set('Idempotency-Key', typeof idempotency === 'string' ? idempotency : newIdempotencyKey())
+  if (body !== undefined && !requestHeaders.has('Content-Type'))
+    requestHeaders.set('Content-Type', 'application/json')
+  if (idempotency)
+    requestHeaders.set(
+      'Idempotency-Key',
+      typeof idempotency === 'string' ? idempotency : newIdempotencyKey(),
+    )
 
   let response
   try {
@@ -35,7 +46,9 @@ export async function apiRequest(path, { method = 'GET', body, headers = {}, aut
       body: body === undefined ? undefined : JSON.stringify(body),
     })
   } catch (cause) {
-    throw new ApiError('Tidak dapat terhubung ke server. Periksa alamat API dan koneksi.', { payload: cause })
+    throw new ApiError('Tidak dapat terhubung ke server. Periksa alamat API dan koneksi.', {
+      payload: cause,
+    })
   }
 
   const rawBody = await response.text()
@@ -51,7 +64,8 @@ export async function apiRequest(path, { method = 'GET', body, headers = {}, aut
   if (!response.ok) {
     if (response.status === 401 && auth) {
       clearSession()
-      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('larisama:session-expired'))
+      if (typeof window !== 'undefined')
+        window.dispatchEvent(new CustomEvent('larisama:session-expired'))
     }
     throw new ApiError(payload?.message || `Permintaan gagal (${response.status}).`, {
       status: response.status,

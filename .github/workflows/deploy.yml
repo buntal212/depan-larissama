@@ -1,0 +1,94 @@
+name: Deploy Larissama PWA
+
+on:
+  push:
+    branches:
+      - master
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: larissama-pwa-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build & Deploy PWA
+    runs-on: [self-hosted, Linux, X64, frondlarisama]
+
+    timeout-minutes: 20
+
+    steps:
+      # ============================================================
+      # CHECKOUT SOURCE
+      # ============================================================
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      # ============================================================
+      # CHECK ENVIRONMENT
+      # ============================================================
+      - name: Check environment
+        run: |
+          echo "User:"
+          whoami
+
+          echo "Node:"
+          node -v
+
+          echo "NPM:"
+          npm -v
+
+      # ============================================================
+      # INSTALL DEPENDENCIES
+      # ============================================================
+      - name: Install dependencies
+        run: npm ci
+
+      # ============================================================
+      # BUILD QUASAR PWA
+      # ============================================================
+      - name: Build Quasar PWA
+        run: npx quasar build -m pwa
+
+      # ============================================================
+      # VERIFY BUILD
+      # ============================================================
+      - name: Verify PWA build
+        run: |
+          if [ ! -d "dist/pwa" ]; then
+            echo "ERROR: dist/pwa tidak ditemukan"
+            exit 1
+          fi
+
+          echo "PWA build berhasil"
+          ls -lah dist/pwa
+
+      # ============================================================
+      # DEPLOY TO AAPANEL
+      # ============================================================
+      - name: Deploy PWA
+        run: |
+          rsync -av --delete \
+            dist/pwa/ \
+            /www/wwwroot/larissama.udumbara.my.id/
+
+      # ============================================================
+      # CHECK DEPLOYMENT
+      # ============================================================
+      - name: Verify deployment
+        run: |
+          echo "Isi folder production:"
+          ls -lah /www/wwwroot/larissama.udumbara.my.id/
+
+          if [ ! -f "/www/wwwroot/larissama.udumbara.my.id/index.html" ]; then
+            echo "ERROR: index.html tidak ditemukan"
+            exit 1
+          fi
+
+          echo "=========================================="
+          echo " LARISSAMA PWA DEPLOYMENT SUCCESS"
+          echo "=========================================="
