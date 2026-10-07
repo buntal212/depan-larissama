@@ -1,6 +1,6 @@
 import { clearSession, getAccessToken } from '@/stores/auth-session.js'
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://api-laris.test/api/v1').replace(
+const API_BASE_URL = (import.meta.env.QCLI_API_BASE_URL || 'https://api-laris.test/api/v1').replace(
   /\/+$/,
   '',
 )
