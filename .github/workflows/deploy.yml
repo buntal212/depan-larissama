@@ -237,10 +237,12 @@ jobs:
           echo "=========================================="
 
           rsync \
-            -rlptv \
+            -rlv \
             --delete \
             --no-owner \
             --no-group \
+            --no-perms \
+            --omit-dir-times \
             --exclude=".user.ini" \
             --exclude=".htaccess" \
             --exclude=".well-known/" \
