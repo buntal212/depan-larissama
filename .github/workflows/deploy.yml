@@ -1,19 +1,23 @@
 name: Deploy Larissama PWA
 
+# ============================================================
+# TRIGGER
+# ============================================================
 on:
   push:
     branches:
       - master
 
+  # Bisa dijalankan manual dari GitHub Actions
   workflow_dispatch:
 
 # ============================================================
-# PERMISSIONS
+# GITHUB PERMISSIONS
 # ============================================================
 permissions:
   contents: read
 
-# Jangan jalankan dua deployment production bersamaan
+# Hindari dua deployment production berjalan bersamaan
 concurrency:
   group: larissama-pwa-production
   cancel-in-progress: true
@@ -22,8 +26,14 @@ jobs:
   deploy:
     name: Build & Deploy Quasar PWA
 
-    # Runner HOMELAB khusus frontend Larissama
-    runs-on: [self-hosted, Linux, X64, frondlarisama]
+    # ========================================================
+    # SELF-HOSTED RUNNER
+    # ========================================================
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
+      - frondlarisama
 
     timeout-minutes: 30
 
@@ -31,15 +41,16 @@ jobs:
     # GLOBAL ENV
     # ========================================================
     env:
+      # Folder website aaPanel
       DEPLOY_PATH: /www/wwwroot/larissama.udumbara.my.id
 
-      # Jangan gunakan cache npm global milik aaPanel.
-      # Runner berjalan sebagai user kentang.
+      # Cache npm khusus user runner.
+      # Tidak menggunakan cache global Node milik aaPanel.
       npm_config_cache: /home/kentang/.npm
 
     steps:
       # ======================================================
-      # 1. CHECKOUT SOURCE
+      # 1. CHECKOUT SOURCE CODE
       # ======================================================
       - name: Checkout source
         uses: actions/checkout@v4
@@ -47,16 +58,28 @@ jobs:
           clean: true
 
       # ======================================================
-      # 2. CHECK RUNNER ENVIRONMENT
+      # 2. SETUP NODE
+      #
+      # Node ini hanya digunakan selama job GitHub Actions.
+      # Node aaPanel/project lain TIDAK berubah.
+      # ======================================================
+      - name: Setup Node.js 22.22.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.0'
+          cache: 'npm'
+
+      # ======================================================
+      # 3. CHECK ENVIRONMENT
       # ======================================================
       - name: Check runner environment
         run: |
           echo "=========================================="
-          echo " LARISSAMA DEPLOYMENT"
+          echo " LARISSAMA PWA DEPLOYMENT"
           echo "=========================================="
 
           echo ""
-          echo "User:"
+          echo "Runner user:"
           whoami
 
           echo ""
@@ -72,11 +95,19 @@ jobs:
           npm -v
 
           echo ""
+          echo "Node location:"
+          which node
+
+          echo ""
+          echo "NPM location:"
+          which npm
+
+          echo ""
           echo "Working directory:"
           pwd
 
           echo ""
-          echo "NPM Cache:"
+          echo "NPM cache:"
           npm config get cache
 
           echo ""
@@ -84,41 +115,46 @@ jobs:
           echo "$DEPLOY_PATH"
 
       # ======================================================
-      # 3. PREPARE NPM CACHE
+      # 4. PREPARE NPM CACHE
       # ======================================================
       - name: Prepare npm cache
         run: |
           mkdir -p "$npm_config_cache"
 
-          echo "NPM cache directory:"
+          echo "NPM cache:"
           ls -ld "$npm_config_cache"
 
       # ======================================================
-      # 4. INSTALL DEPENDENCIES
+      # 5. INSTALL DEPENDENCIES
       # ======================================================
       - name: Install dependencies
         run: |
-          echo "Installing dependencies..."
+          echo "=========================================="
+          echo " Installing dependencies"
+          echo "=========================================="
+
           npm ci
 
       # ======================================================
-      # 5. BUILD QUASAR PWA
+      # 6. BUILD QUASAR PWA
       # ======================================================
       - name: Build Quasar PWA
         run: |
-          echo "Building Quasar PWA..."
+          echo "=========================================="
+          echo " Building Quasar PWA"
+          echo "=========================================="
 
           npx quasar build -m pwa
 
       # ======================================================
-      # 6. VERIFY BUILD
+      # 7. VERIFY BUILD RESULT
       # ======================================================
       - name: Verify PWA build
         run: |
           echo "Checking dist/pwa..."
 
           if [ ! -d "dist/pwa" ]; then
-            echo "ERROR: dist/pwa tidak ditemukan."
+            echo "ERROR: Folder dist/pwa tidak ditemukan."
             exit 1
           fi
 
@@ -131,34 +167,41 @@ jobs:
           echo "PWA build berhasil."
           echo ""
 
+          echo "Build size:"
           du -sh dist/pwa
 
           echo ""
-          echo "Build contents:"
+          echo "Build files:"
           ls -lah dist/pwa
 
       # ======================================================
-      # 7. CHECK DEPLOY DIRECTORY
+      # 8. CHECK DEPLOY TARGET
       # ======================================================
       - name: Check deploy directory
         run: |
+          echo "Checking:"
+          echo "$DEPLOY_PATH"
+
           if [ ! -d "$DEPLOY_PATH" ]; then
-            echo "ERROR: Folder deployment tidak ditemukan:"
+            echo ""
+            echo "ERROR: Folder website tidak ditemukan:"
             echo "$DEPLOY_PATH"
             exit 1
           fi
 
           if [ ! -w "$DEPLOY_PATH" ]; then
+            echo ""
             echo "ERROR: Runner tidak memiliki write permission:"
             echo "$DEPLOY_PATH"
             exit 1
           fi
 
+          echo ""
           echo "Deploy directory OK:"
           ls -ld "$DEPLOY_PATH"
 
       # ======================================================
-      # 8. DEPLOY TO AAPANEL
+      # 9. DEPLOY PWA TO AAPANEL
       # ======================================================
       - name: Deploy PWA to aaPanel
         run: |
@@ -175,11 +218,13 @@ jobs:
             "$DEPLOY_PATH/"
 
       # ======================================================
-      # 9. VERIFY DEPLOYMENT
+      # 10. VERIFY PRODUCTION FILES
       # ======================================================
       - name: Verify deployment
         run: |
-          echo "Checking production files..."
+          echo "=========================================="
+          echo " Verifying production"
+          echo "=========================================="
 
           if [ ! -f "$DEPLOY_PATH/index.html" ]; then
             echo "ERROR: Production index.html tidak ditemukan."
@@ -187,7 +232,7 @@ jobs:
           fi
 
           echo ""
-          echo "Production directory:"
+          echo "Production files:"
           ls -lah "$DEPLOY_PATH"
 
           echo ""
@@ -195,7 +240,7 @@ jobs:
           du -sh "$DEPLOY_PATH"
 
       # ======================================================
-      # 10. FINISH
+      # 11. DEPLOYMENT FINISHED
       # ======================================================
       - name: Deployment completed
         run: |
@@ -204,6 +249,9 @@ jobs:
           echo " LARISSAMA PWA DEPLOYMENT SUCCESS"
           echo "=========================================="
           echo ""
-          echo "Deploy path:"
+          echo "Node:"
+          node -v
+          echo ""
+          echo "Production path:"
           echo "$DEPLOY_PATH"
           echo ""
