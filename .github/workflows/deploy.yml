@@ -7,88 +7,203 @@ on:
 
   workflow_dispatch:
 
+# ============================================================
+# PERMISSIONS
+# ============================================================
 permissions:
   contents: read
 
+# Jangan jalankan dua deployment production bersamaan
 concurrency:
   group: larissama-pwa-production
   cancel-in-progress: true
 
 jobs:
   deploy:
-    name: Build & Deploy PWA
+    name: Build & Deploy Quasar PWA
+
+    # Runner HOMELAB khusus frontend Larissama
     runs-on: [self-hosted, Linux, X64, frondlarisama]
 
-    timeout-minutes: 20
+    timeout-minutes: 30
+
+    # ========================================================
+    # GLOBAL ENV
+    # ========================================================
+    env:
+      DEPLOY_PATH: /www/wwwroot/larissama.udumbara.my.id
+
+      # Jangan gunakan cache npm global milik aaPanel.
+      # Runner berjalan sebagai user kentang.
+      npm_config_cache: /home/kentang/.npm
 
     steps:
-      # ============================================================
-      # CHECKOUT SOURCE
-      # ============================================================
+      # ======================================================
+      # 1. CHECKOUT SOURCE
+      # ======================================================
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          clean: true
 
-      # ============================================================
-      # CHECK ENVIRONMENT
-      # ============================================================
-      - name: Check environment
+      # ======================================================
+      # 2. CHECK RUNNER ENVIRONMENT
+      # ======================================================
+      - name: Check runner environment
         run: |
+          echo "=========================================="
+          echo " LARISSAMA DEPLOYMENT"
+          echo "=========================================="
+
+          echo ""
           echo "User:"
           whoami
 
+          echo ""
+          echo "Hostname:"
+          hostname
+
+          echo ""
           echo "Node:"
           node -v
 
+          echo ""
           echo "NPM:"
           npm -v
 
-      # ============================================================
-      # INSTALL DEPENDENCIES
-      # ============================================================
+          echo ""
+          echo "Working directory:"
+          pwd
+
+          echo ""
+          echo "NPM Cache:"
+          npm config get cache
+
+          echo ""
+          echo "Deploy path:"
+          echo "$DEPLOY_PATH"
+
+      # ======================================================
+      # 3. PREPARE NPM CACHE
+      # ======================================================
+      - name: Prepare npm cache
+        run: |
+          mkdir -p "$npm_config_cache"
+
+          echo "NPM cache directory:"
+          ls -ld "$npm_config_cache"
+
+      # ======================================================
+      # 4. INSTALL DEPENDENCIES
+      # ======================================================
       - name: Install dependencies
-        run: npm ci
+        run: |
+          echo "Installing dependencies..."
+          npm ci
 
-      # ============================================================
-      # BUILD QUASAR PWA
-      # ============================================================
+      # ======================================================
+      # 5. BUILD QUASAR PWA
+      # ======================================================
       - name: Build Quasar PWA
-        run: npx quasar build -m pwa
+        run: |
+          echo "Building Quasar PWA..."
 
-      # ============================================================
-      # VERIFY BUILD
-      # ============================================================
+          npx quasar build -m pwa
+
+      # ======================================================
+      # 6. VERIFY BUILD
+      # ======================================================
       - name: Verify PWA build
         run: |
+          echo "Checking dist/pwa..."
+
           if [ ! -d "dist/pwa" ]; then
-            echo "ERROR: dist/pwa tidak ditemukan"
+            echo "ERROR: dist/pwa tidak ditemukan."
             exit 1
           fi
 
-          echo "PWA build berhasil"
+          if [ ! -f "dist/pwa/index.html" ]; then
+            echo "ERROR: dist/pwa/index.html tidak ditemukan."
+            exit 1
+          fi
+
+          echo ""
+          echo "PWA build berhasil."
+          echo ""
+
+          du -sh dist/pwa
+
+          echo ""
+          echo "Build contents:"
           ls -lah dist/pwa
 
-      # ============================================================
-      # DEPLOY TO AAPANEL
-      # ============================================================
-      - name: Deploy PWA
+      # ======================================================
+      # 7. CHECK DEPLOY DIRECTORY
+      # ======================================================
+      - name: Check deploy directory
         run: |
-          rsync -av --delete \
-            dist/pwa/ \
-            /www/wwwroot/larissama.udumbara.my.id/
-
-      # ============================================================
-      # CHECK DEPLOYMENT
-      # ============================================================
-      - name: Verify deployment
-        run: |
-          echo "Isi folder production:"
-          ls -lah /www/wwwroot/larissama.udumbara.my.id/
-
-          if [ ! -f "/www/wwwroot/larissama.udumbara.my.id/index.html" ]; then
-            echo "ERROR: index.html tidak ditemukan"
+          if [ ! -d "$DEPLOY_PATH" ]; then
+            echo "ERROR: Folder deployment tidak ditemukan:"
+            echo "$DEPLOY_PATH"
             exit 1
           fi
 
+          if [ ! -w "$DEPLOY_PATH" ]; then
+            echo "ERROR: Runner tidak memiliki write permission:"
+            echo "$DEPLOY_PATH"
+            exit 1
+          fi
+
+          echo "Deploy directory OK:"
+          ls -ld "$DEPLOY_PATH"
+
+      # ======================================================
+      # 8. DEPLOY TO AAPANEL
+      # ======================================================
+      - name: Deploy PWA to aaPanel
+        run: |
+          echo "=========================================="
+          echo " Deploying Larissama PWA"
+          echo "=========================================="
+
+          rsync \
+            -av \
+            --delete \
+            --exclude=".user.ini" \
+            --exclude=".htaccess" \
+            dist/pwa/ \
+            "$DEPLOY_PATH/"
+
+      # ======================================================
+      # 9. VERIFY DEPLOYMENT
+      # ======================================================
+      - name: Verify deployment
+        run: |
+          echo "Checking production files..."
+
+          if [ ! -f "$DEPLOY_PATH/index.html" ]; then
+            echo "ERROR: Production index.html tidak ditemukan."
+            exit 1
+          fi
+
+          echo ""
+          echo "Production directory:"
+          ls -lah "$DEPLOY_PATH"
+
+          echo ""
+          echo "Production size:"
+          du -sh "$DEPLOY_PATH"
+
+      # ======================================================
+      # 10. FINISH
+      # ======================================================
+      - name: Deployment completed
+        run: |
+          echo ""
           echo "=========================================="
           echo " LARISSAMA PWA DEPLOYMENT SUCCESS"
           echo "=========================================="
+          echo ""
+          echo "Deploy path:"
+          echo "$DEPLOY_PATH"
+          echo ""
