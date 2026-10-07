@@ -8,16 +8,15 @@ on:
     branches:
       - master
 
-  # Bisa dijalankan manual dari GitHub > Actions
   workflow_dispatch:
 
 # ============================================================
-# GITHUB PERMISSIONS
+# PERMISSIONS
 # ============================================================
 permissions:
   contents: read
 
-# Jangan menjalankan dua deployment production bersamaan
+# Jangan jalankan dua deployment production bersamaan
 concurrency:
   group: larissama-pwa-production
   cancel-in-progress: true
@@ -44,16 +43,18 @@ jobs:
     # GLOBAL ENVIRONMENT
     # ========================================================
     env:
-      # Folder production website aaPanel
+      # Folder production aaPanel
       DEPLOY_PATH: /www/wwwroot/larissama.udumbara.my.id
 
-      # Cache npm khusus user runner.
-      # Tidak menggunakan cache global Node milik aaPanel.
+      # Cache npm khusus runner kentang
       npm_config_cache: /home/kentang/.npm
+
+      # Environment frontend production
+      QCLI_API_BASE_URL: ${{ vars.QCLI_API_BASE_URL }}
 
     steps:
       # ======================================================
-      # 1. CHECKOUT SOURCE CODE
+      # 1. CHECKOUT SOURCE
       # ======================================================
       - name: Checkout source
         uses: actions/checkout@v4
@@ -61,10 +62,10 @@ jobs:
           clean: true
 
       # ======================================================
-      # 2. SETUP NODE.JS
+      # 2. SETUP NODE
       #
-      # Node 22.22.0 hanya digunakan oleh job GitHub Actions.
-      # Node aaPanel dan project lain tidak berubah.
+      # Hanya berlaku untuk job GitHub Actions ini.
+      # Node aaPanel/project lain tidak berubah.
       # ======================================================
       - name: Setup Node.js 22.22.0
         uses: actions/setup-node@v4
@@ -73,7 +74,7 @@ jobs:
           cache: 'npm'
 
       # ======================================================
-      # 3. CHECK RUNNER ENVIRONMENT
+      # 3. CHECK RUNNER
       # ======================================================
       - name: Check runner environment
         run: |
@@ -90,11 +91,11 @@ jobs:
           hostname
 
           echo ""
-          echo "Node version:"
+          echo "Node:"
           node -v
 
           echo ""
-          echo "NPM version:"
+          echo "NPM:"
           npm -v
 
           echo ""
@@ -118,20 +119,62 @@ jobs:
           echo "$DEPLOY_PATH"
 
       # ======================================================
-      # 4. PREPARE NPM CACHE
+      # 4. VALIDATE PRODUCTION ENV
+      # ======================================================
+      - name: Validate production environment
+        run: |
+          echo "=========================================="
+          echo " Checking production environment"
+          echo "=========================================="
+
+          if [ -z "$QCLI_API_BASE_URL" ]; then
+            echo ""
+            echo "ERROR:"
+            echo "QCLI_API_BASE_URL belum diatur."
+            echo ""
+            echo "Tambahkan GitHub Actions Variable:"
+            echo "QCLI_API_BASE_URL"
+            exit 1
+          fi
+
+          echo ""
+          echo "QCLI_API_BASE_URL tersedia."
+
+      # ======================================================
+      # 5. CREATE .ENV.PRODUCTION
+      #
+      # File ini hanya dibuat di workspace runner.
+      # Tidak di-commit ke repository.
+      # ======================================================
+      - name: Create production environment
+        run: |
+          echo "=========================================="
+          echo " Creating .env.production"
+          echo "=========================================="
+
+          cat > .env.production <<EOF
+          QCLI_API_BASE_URL=${QCLI_API_BASE_URL}
+          EOF
+
+          echo ""
+          echo ".env.production created."
+
+          echo ""
+          echo "API URL:"
+          grep '^QCLI_API_BASE_URL=' .env.production
+
+      # ======================================================
+      # 6. PREPARE NPM CACHE
       # ======================================================
       - name: Prepare npm cache
         run: |
-          echo "Preparing npm cache..."
-
           mkdir -p "$npm_config_cache"
 
-          echo ""
-          echo "NPM cache directory:"
+          echo "NPM cache:"
           ls -ld "$npm_config_cache"
 
       # ======================================================
-      # 5. INSTALL DEPENDENCIES
+      # 7. INSTALL DEPENDENCIES
       # ======================================================
       - name: Install dependencies
         run: |
@@ -142,7 +185,7 @@ jobs:
           npm ci
 
       # ======================================================
-      # 6. BUILD QUASAR PWA
+      # 8. BUILD QUASAR PWA
       # ======================================================
       - name: Build Quasar PWA
         run: |
@@ -150,10 +193,17 @@ jobs:
           echo " Building Quasar PWA"
           echo "=========================================="
 
+          echo ""
+          echo "Node:"
+          node -v
+
+          echo ""
+          echo "Building production PWA..."
+
           npx quasar build -m pwa
 
       # ======================================================
-      # 7. VERIFY PWA BUILD
+      # 9. VERIFY BUILD
       # ======================================================
       - name: Verify PWA build
         run: |
@@ -164,7 +214,7 @@ jobs:
           if [ ! -d "dist/pwa" ]; then
             echo ""
             echo "ERROR:"
-            echo "Folder dist/pwa tidak ditemukan."
+            echo "dist/pwa tidak ditemukan."
             exit 1
           fi
 
@@ -177,8 +227,8 @@ jobs:
 
           echo ""
           echo "PWA build berhasil."
-          echo ""
 
+          echo ""
           echo "Build size:"
           du -sh dist/pwa
 
@@ -187,17 +237,13 @@ jobs:
           ls -lah dist/pwa
 
       # ======================================================
-      # 8. CHECK PRODUCTION DIRECTORY
+      # 10. CHECK DEPLOY DIRECTORY
       # ======================================================
       - name: Check deploy directory
         run: |
           echo "=========================================="
           echo " Checking deployment directory"
           echo "=========================================="
-
-          echo ""
-          echo "Target:"
-          echo "$DEPLOY_PATH"
 
           if [ ! -d "$DEPLOY_PATH" ]; then
             echo ""
@@ -216,19 +262,16 @@ jobs:
           fi
 
           echo ""
-          echo "Deployment directory OK:"
+          echo "Deploy directory OK:"
           ls -ld "$DEPLOY_PATH"
 
       # ======================================================
-      # 9. DEPLOY PWA TO AAPANEL
+      # 11. DEPLOY PWA
       #
-      # --delete:
-      #   Menghapus file build lama yang sudah tidak digunakan.
+      # Tidak mempertahankan owner/group/permission/timestamp
+      # folder aaPanel.
       #
-      # --no-owner / --no-group:
-      #   Mencegah rsync mencoba chown/chgrp.
-      #
-      # File/folder milik aaPanel dan SSL dikecualikan.
+      # File aaPanel/SSL dilindungi dari --delete.
       # ======================================================
       - name: Deploy PWA to aaPanel
         run: |
@@ -252,7 +295,7 @@ jobs:
             "$DEPLOY_PATH/"
 
       # ======================================================
-      # 10. VERIFY PRODUCTION DEPLOYMENT
+      # 12. VERIFY DEPLOYMENT
       # ======================================================
       - name: Verify deployment
         run: |
@@ -267,52 +310,70 @@ jobs:
             exit 1
           fi
 
-          echo ""
-          echo "index.html ditemukan."
+          if [ ! -f "$DEPLOY_PATH/manifest.json" ]; then
+            echo ""
+            echo "ERROR:"
+            echo "Production manifest.json tidak ditemukan."
+            exit 1
+          fi
+
+          if [ ! -f "$DEPLOY_PATH/sw.js" ]; then
+            echo ""
+            echo "ERROR:"
+            echo "Production sw.js tidak ditemukan."
+            exit 1
+          fi
 
           echo ""
-          echo "Production files:"
-          ls -lah "$DEPLOY_PATH"
+          echo "index.html   : OK"
+          echo "manifest.json: OK"
+          echo "sw.js        : OK"
 
           echo ""
           echo "Production size:"
           du -sh "$DEPLOY_PATH"
 
       # ======================================================
-      # 11. CHECK IMPORTANT AAPANEL FILES
+      # 13. CHECK PROTECTED AAPANEL FILES
       # ======================================================
       - name: Check protected aaPanel files
         run: |
           echo "=========================================="
-          echo " Checking protected files"
+          echo " Checking protected aaPanel files"
           echo "=========================================="
 
           if [ -f "$DEPLOY_PATH/.user.ini" ]; then
-            echo "OK: .user.ini tetap ada"
-          else
-            echo "INFO: .user.ini tidak ditemukan"
+            echo ".user.ini   : protected"
+          fi
+
+          if [ -f "$DEPLOY_PATH/.htaccess" ]; then
+            echo ".htaccess   : protected"
           fi
 
           if [ -d "$DEPLOY_PATH/.well-known" ]; then
-            echo "OK: .well-known tetap ada"
-          else
-            echo "INFO: .well-known tidak ditemukan"
+            echo ".well-known : protected"
           fi
 
           if [ -f "$DEPLOY_PATH/404.html" ]; then
-            echo "OK: 404.html tetap ada"
-          else
-            echo "INFO: 404.html tidak ditemukan"
+            echo "404.html    : protected"
           fi
 
           if [ -f "$DEPLOY_PATH/502.html" ]; then
-            echo "OK: 502.html tetap ada"
-          else
-            echo "INFO: 502.html tidak ditemukan"
+            echo "502.html    : protected"
           fi
 
       # ======================================================
-      # 12. DEPLOYMENT COMPLETED
+      # 14. CLEAN TEMP ENV
+      # ======================================================
+      - name: Remove temporary production env
+        if: always()
+        run: |
+          rm -f .env.production
+
+          echo "Temporary .env.production removed."
+
+      # ======================================================
+      # 15. FINISH
       # ======================================================
       - name: Deployment completed
         run: |
@@ -320,13 +381,13 @@ jobs:
           echo "=========================================="
           echo " LARISSAMA PWA DEPLOYMENT SUCCESS"
           echo "=========================================="
-          echo ""
 
+          echo ""
           echo "Application:"
           echo "Larissama"
 
           echo ""
-          echo "Build mode:"
+          echo "Mode:"
           echo "Quasar PWA"
 
           echo ""
@@ -334,8 +395,12 @@ jobs:
           node -v
 
           echo ""
-          echo "Production path:"
+          echo "Production:"
           echo "$DEPLOY_PATH"
+
+          echo ""
+          echo "API:"
+          echo "$QCLI_API_BASE_URL"
 
           echo ""
           echo "Deployment completed successfully."
