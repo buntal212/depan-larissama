@@ -1,28 +1,50 @@
 <template>
   <q-page class="page-shell">
     <div class="page-heading row items-end justify-between q-col-gutter-md">
-      <div class="col"><div class="eyebrow">PLATFORM</div><h1 class="page-title">Kelola Warung</h1><p class="page-subtitle">Daftarkan warung dan akun owner awal dalam satu form.</p></div>
-      <div class="col-auto"><q-btn unelevated no-caps color="primary" icon="add_business" label="Tambah warung" @click="openForm" /></div>
+      <div class="col"><div class="eyebrow">PLATFORM</div><h1 class="page-title">Kelola Warung</h1><p class="page-subtitle">Tinjau pendaftaran owner dan kelola masa aktif warung.</p></div>
     </div>
     <q-banner v-if="error" rounded class="q-mb-lg bg-red-1 text-negative">{{ error }}</q-banner>
     <q-card flat bordered class="panel-card">
-      <q-card-section><div class="panel-title">Daftar warung</div></q-card-section>
-      <q-table flat :rows="warungs" :columns="columns" row-key="id" :loading="loading" :pagination="{ rowsPerPage: 10 }" :grid="$q.screen.lt.sm" no-data-label="Belum ada warung.">
+      <q-card-section class="warung-filter-header"><div class="panel-title">Daftar warung</div><q-tabs v-model="filter" dense no-caps align="justify" active-color="primary" class="warung-filter-tabs"><q-tab name="pending" label="Menunggu persetujuan" /><q-tab name="active" label="Aktif saja" /><q-tab name="all" label="Semua" /></q-tabs></q-card-section>
+      <q-table flat :rows="visibleWarungs" :columns="columns" row-key="id" :loading="loading" :pagination="{ rowsPerPage: 10 }" :grid="$q.screen.lt.sm" no-data-label="Belum ada warung.">
         <template #item="props">
           <div class="q-pa-xs col-12">
             <q-card flat bordered class="warung-mobile-card">
               <q-card-section>
                 <div class="row items-start justify-between q-gutter-sm">
-                  <div class="col"><div class="text-weight-bold">{{ props.row.nama }}</div><div class="panel-caption">{{ props.row.kode }}</div></div>
-                  <q-badge :color="props.row.aktif ? 'positive' : 'grey-6'">{{ props.row.aktif ? 'Aktif' : 'Nonaktif' }}</q-badge>
+                  <div class="col"><div class="text-weight-bold">{{ props.row.nama }}</div></div>
+                  <q-badge :color="statusColor(props.row)">{{ statusText(props.row) }}</q-badge>
                 </div>
-                <div class="warung-mobile-meta"><span>Zona waktu</span><strong>{{ props.row.timezone }}</strong></div>
+                <div class="warung-mobile-meta"><span>Pemilik</span><strong>{{ props.row.owner?.nama || '—' }}</strong></div>
+                <div class="warung-mobile-meta"><span>Masa aktif</span><strong>{{ dateRange(props.row) }}</strong></div>
+                <div class="row justify-end q-gutter-sm q-mt-md">
+                  <q-btn v-if="isPending(props.row)" unelevated no-caps color="primary" label="Setujui 30 hari" :loading="busyId === props.row.id" @click="approve(props.row)" />
+                  <q-btn v-else outline no-caps color="primary" label="Tambah 30 hari" :loading="busyId === props.row.id" @click="extend(props.row)" />
+                </div>
               </q-card-section>
             </q-card>
           </div>
         </template>
+        <template #body-cell-status="props"><q-td :props="props"><q-badge :color="statusColor(props.row)">{{ statusText(props.row) }}</q-badge></q-td></template>
+        <template #body-cell-actions="props"><q-td :props="props" class="text-right">
+          <q-btn v-if="isPending(props.row)" flat dense no-caps color="primary" label="Setujui 30 hari" :loading="busyId === props.row.id" @click="approve(props.row)" />
+          <q-btn v-else flat dense no-caps color="primary" label="Tambah 30 hari" :loading="busyId === props.row.id" @click="extend(props.row)" />
+        </q-td></template>
       </q-table>
     </q-card>
+
+    <q-dialog v-model="confirmationOpen" persistent>
+      <q-card class="product-form-dialog">
+        <q-card-section>
+          <div class="text-h6">{{ confirmation?.title }}</div>
+          <div class="q-mt-sm">{{ confirmation?.message }}</div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat no-caps label="Batal" :disable="Boolean(busyId)" @click="confirmationOpen = false" />
+          <q-btn unelevated no-caps color="primary" label="Ya, lanjutkan" :loading="busyId === confirmation?.row.id" @click="confirmAction" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <q-dialog v-model="formOpen">
       <q-card class="product-form-dialog">
@@ -57,7 +79,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useQuasar } from 'quasar'
 import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
 
@@ -67,21 +89,71 @@ const warungs = ref([])
 const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
+const busyId = ref(null)
+const confirmationOpen = ref(false)
+const confirmation = ref(null)
+const filter = ref('pending')
+const visibleWarungs = computed(() => {
+  if (filter.value === 'pending') return warungs.value.filter(isPending)
+  if (filter.value === 'active') return warungs.value.filter((row) => row.status_langganan === 'aktif')
+  return warungs.value
+})
 const blankForm = () => ({ name: '', timezone: 'Asia/Jakarta', address: '', phone: '', startDate: '', endDate: '', active: true, owner: { name: '', username: '', email: '', password: '' } })
 const form = reactive(blankForm())
 const columns = [
-  { name: 'code', label: 'Kode', field: 'kode', align: 'left' },
   { name: 'name', label: 'Warung', field: 'nama', align: 'left' },
-  { name: 'timezone', label: 'Zona waktu', field: 'timezone', align: 'left' },
-  { name: 'owner', label: 'Owner awal', field: (row) => row.owner?.name || '—', align: 'left' },
-  { name: 'active', label: 'Status', field: (row) => row.aktif ? 'Aktif' : 'Nonaktif', align: 'left' },
+  { name: 'owner', label: 'Pemilik', field: (row) => row.owner?.nama || '—', align: 'left' },
+  { name: 'subscription', label: 'Masa aktif', field: dateRange, align: 'left' },
+  { name: 'status', label: 'Status', field: statusText, align: 'left' },
+  { name: 'actions', label: '', field: 'id', align: 'right' },
 ]
+function isPending(row) { return row.status_langganan === 'menunggu_persetujuan' }
+function statusText(row) { return isPending(row) ? 'Menunggu persetujuan' : row.status_langganan === 'aktif' ? 'Aktif' : row.status_langganan === 'kedaluwarsa' ? 'Kedaluwarsa' : 'Nonaktif' }
+function statusColor(row) { return isPending(row) ? 'orange-8' : row.status_langganan === 'aktif' ? 'positive' : 'grey-7' }
+function dateRange(row) { return row.tanggal_mulai && row.tanggal_berakhir ? `${row.tanggal_mulai} – ${row.tanggal_berakhir}` : 'Belum aktif' }
 async function loadWarungs() { loading.value = true; error.value = ''; try { warungs.value = await larisamaApi.listWarungs() } catch (e) { error.value = displayApiError(e) } finally { loading.value = false } }
 onMounted(loadWarungs)
 
-function openForm() {
-  Object.assign(form, blankForm())
-  formOpen.value = true
+async function runAction(row, action, successMessage) {
+  busyId.value = row.id
+  try {
+    await action(row.id)
+    await loadWarungs()
+    $q.notify({ type: 'positive', message: successMessage, position: 'top' })
+    return true
+  } catch (e) {
+    $q.notify({ type: 'negative', message: displayApiError(e), position: 'top' })
+    return false
+  } finally { busyId.value = null }
+}
+
+function approve(row) {
+  confirmation.value = {
+    row,
+    action: larisamaApi.approveWarung,
+    title: 'Setujui pendaftaran?',
+    message: `${row.nama} akan aktif selama 30 hari.`,
+    successMessage: 'Pendaftaran disetujui selama 30 hari.',
+  }
+  confirmationOpen.value = true
+}
+
+function extend(row) {
+  confirmation.value = {
+    row,
+    action: larisamaApi.extendWarungSubscription,
+    title: 'Tambah masa aktif?',
+    message: `Masa aktif ${row.nama} akan ditambah 30 hari.`,
+    successMessage: 'Masa aktif ditambah 30 hari.',
+  }
+  confirmationOpen.value = true
+}
+
+async function confirmAction() {
+  if (!confirmation.value) return
+  const { row, action, successMessage } = confirmation.value
+  const succeeded = await runAction(row, action, successMessage)
+  if (succeeded) confirmationOpen.value = false
 }
 
 async function submitForm() {
@@ -99,9 +171,17 @@ async function submitForm() {
 </script>
 
 <style scoped>
+.warung-filter-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.warung-filter-tabs { min-width: 0; max-width: 100%; }
 .form-section-label { margin: 4px 0 14px; color: #176342; font-size: 12px; font-weight: 800; }
 .warung-date-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
 .warung-mobile-meta { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; color: #718078; font-size: 12px; }
 .warung-mobile-meta strong { color: #254435; text-align: right; overflow-wrap: anywhere; }
-@media (max-width: 599px) { .warung-date-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 599px) {
+  .warung-filter-header { align-items: stretch; flex-direction: column; }
+  .warung-filter-tabs { width: 100%; }
+  .warung-filter-tabs :deep(.q-tab) { flex: 1 1 0; min-width: 0; padding-inline: 4px; }
+  .warung-filter-tabs :deep(.q-tab__label) { line-height: 1.2; text-align: center; white-space: normal; }
+  .warung-date-grid { grid-template-columns: minmax(0, 1fr); }
+}
 </style>

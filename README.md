@@ -58,7 +58,7 @@ Halaman dikelompokkan berdasarkan fitur di `src/pages/<NamaFitur>/`. Komponen kh
 
 ## Konfigurasi
 
-Salin `.env.example` menjadi `.env` dan sesuaikan `VITE_API_BASE_URL` dengan host API yang berjalan pada mesin Anda. Nilai bawaan mengarah ke `http://127.0.0.1:8000/api/v1`.
+Salin `.env.example` menjadi `.env` dan sesuaikan `VITE_API_BASE_URL` dengan host API yang berjalan pada mesin Anda. Untuk backend lokal via `php artisan serve`, nilai bawaan development mengarah ke `http://localhost:8000/api/v1`.
 
 ## Pemeriksaan dasar
 

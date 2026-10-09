@@ -1,5 +1,7 @@
 <template>
   <q-page class="page-shell dashboard-page">
+    <PlatformOverview v-if="isSuperadmin" />
+    <template v-else>
     <div class="page-heading row items-end justify-between q-col-gutter-md">
       <div class="col">
         <div class="eyebrow">{{ formattedDate }}</div>
@@ -95,6 +97,7 @@
     </section>
 
     <ProductFormDialog v-if="canManageCatalog" v-model="formOpen" :product="selectedProduct" :categories="categories" :saving="savingProduct" @save="saveProduct" />
+    </template>
     <AppAttribution />
   </q-page>
 </template>
@@ -105,14 +108,16 @@ import { useQuasar } from 'quasar'
 import ProductCard from '@/components/ProductCard.vue'
 import ProductFormDialog from '@/components/ProductFormDialog.vue'
 import SummaryCard from '@/pages/Dashboard/components/SummaryCard.vue'
+import PlatformOverview from '@/pages/Dashboard/components/PlatformOverview.vue'
 import AppAttribution from '@/components/AppAttribution.vue'
 import { authSession } from '@/stores/auth-session.js'
 import { categories, loadCatalog, products, saveProduct as saveProductRecord, toggleProductAvailability } from '@/stores/catalog.js'
 import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
 
 const $q = useQuasar()
+const isSuperadmin = computed(() => authSession.user?.role === 'superadmin')
 const canManageCatalog = computed(() => ['owner', 'manager'].includes(authSession.user?.role))
-const canViewReports = computed(() => ['owner', 'manager'].includes(authSession.user?.role))
+const canViewReports = computed(() => ['owner', 'manager', 'superadmin'].includes(authSession.user?.role))
 const formOpen = ref(false)
 const savingProduct = ref(false)
 const selectedProduct = ref(null)
@@ -152,7 +157,12 @@ const salesDays = computed(() => {
   return days.map((day) => ({ ...day, height: day.amount === 0 ? 0 : Math.max(8, (day.amount / max) * 100) }))
 })
 
-const quickActions = computed(() => [
+const quickActions = computed(() => authSession.user?.role === 'superadmin' ? [
+  { title: 'Pilih warung', caption: 'Tentukan data yang ditinjau', icon: 'storefront', tone: 'green', to: '/platform/warungs' },
+  { title: 'Lihat katalog', caption: 'Baca kategori dan menu', icon: 'restaurant_menu', tone: 'orange', to: '/menu' },
+  { title: 'Lihat penjualan', caption: 'Baca transaksi warung', icon: 'receipt_long', tone: 'blue', to: '/penjualan' },
+  { title: 'Lihat laporan', caption: 'Baca ringkasan periode', icon: 'bar_chart', tone: 'purple', to: '/laporan' },
+] : [
   { title: 'Tambah menu baru', caption: 'Atur katalog warung', icon: 'add_circle', tone: 'green', to: '/menu' },
   { title: 'Buka kasir', caption: 'Catat penjualan', icon: 'point_of_sale', tone: 'orange', to: '/transaksi' },
   ...(canViewReports.value ? [{ title: 'Catat pembelian', caption: 'Tambahkan pengeluaran', icon: 'shopping_cart', tone: 'purple', to: '/pembelian' }, { title: 'Lihat laporan', caption: 'Pilih periode laporan', icon: 'bar_chart', tone: 'blue', to: '/laporan' }] : []),
@@ -169,6 +179,7 @@ function shiftDate(value, amount) { const date = new Date(`${value}T00:00:00Z`);
 function formatPrice(value) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 2 }).format(Number(value || 0)) }
 
 onMounted(async () => {
+  if (isSuperadmin.value) return
   loading.value = true
   const today = todayKey()
   try {

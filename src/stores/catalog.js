@@ -1,14 +1,17 @@
+import { defineStore, storeToRefs } from 'pinia'
 import { computed, ref } from 'vue'
+import { pinia } from '@/stores/index.js'
 import { apiRequest, getAllPages } from '@/services/api.js'
 
-export const categories = ref([])
-export const products = ref([])
-export const productCategories = computed(() => [
-  'Semua',
-  ...categories.value.filter((category) => category.active).sort((a, b) => a.order - b.order).map((category) => category.name),
-])
-export const availableProducts = computed(() => products.value.filter((product) => product.available))
-export const catalogState = ref({ loaded: false, loading: false, error: null })
+export const useCatalogStore = defineStore('catalog', () => {
+  const categories = ref([])
+  const products = ref([])
+  const productCategories = computed(() => [
+    'Semua',
+    ...categories.value.filter((category) => category.active).sort((a, b) => a.order - b.order).map((category) => category.name),
+  ])
+  const availableProducts = computed(() => products.value.filter((product) => product.available))
+  const catalogState = ref({ loaded: false, loading: false, error: null })
 
 const iconByCategory = (categoryName = '') => /minum|kopi/i.test(categoryName) ? 'local_cafe' : /snack|cemilan/i.test(categoryName) ? 'bakery_dining' : 'restaurant'
 const colorByCategory = (categoryName = '') => /minum|kopi/i.test(categoryName) ? 'mint' : /snack|cemilan/i.test(categoryName) ? 'yellow' : 'peach'
@@ -33,7 +36,7 @@ function mapProduct(record, categoryRecords = categories.value) {
   }
 }
 
-export async function loadCatalog({ force = false } = {}) {
+async function loadCatalog({ force = false } = {}) {
   if (catalogState.value.loading) return
   if (catalogState.value.loaded && !force) return
   catalogState.value = { ...catalogState.value, loading: true, error: null }
@@ -51,7 +54,7 @@ export async function loadCatalog({ force = false } = {}) {
   }
 }
 
-export async function saveCategory(category) {
+async function saveCategory(category) {
   const body = { nama: category.name.trim(), urutan: Number(category.order) || 0, aktif: Boolean(category.active) }
   const result = category.id
     ? await apiRequest(`kategori-menus/${encodeURIComponent(category.id)}`, { method: 'PATCH', body })
@@ -64,7 +67,7 @@ export async function saveCategory(category) {
   return saved
 }
 
-export async function toggleCategory(categoryId) {
+async function toggleCategory(categoryId) {
   const category = categories.value.find((item) => item.id === categoryId)
   if (!category) return
   const result = await apiRequest(`kategori-menus/${encodeURIComponent(categoryId)}`, {
@@ -76,7 +79,7 @@ export async function toggleCategory(categoryId) {
   return saved
 }
 
-export async function saveProduct(product) {
+async function saveProduct(product) {
   const body = {
     kategori_menu_id: String(product.categoryId),
     ...(product.id ? { kode: product.code.trim() } : {}),
@@ -95,7 +98,7 @@ export async function saveProduct(product) {
   return saved
 }
 
-export async function toggleProductAvailability(productId) {
+async function toggleProductAvailability(productId) {
   const product = products.value.find((item) => item.id === productId)
   if (!product) return
   const result = await apiRequest(`menus/${encodeURIComponent(productId)}`, {
@@ -106,3 +109,39 @@ export async function toggleProductAvailability(productId) {
   products.value.splice(products.value.findIndex((item) => item.id === saved.id), 1, saved)
   return saved
 }
+
+  return {
+    categories,
+    products,
+    productCategories,
+    availableProducts,
+    catalogState,
+    loadCatalog,
+    saveCategory,
+    toggleCategory,
+    saveProduct,
+    toggleProductAvailability,
+  }
+})
+
+const catalogStore = useCatalogStore(pinia)
+const {
+  categories,
+  products,
+  productCategories,
+  availableProducts,
+  catalogState,
+} = storeToRefs(catalogStore)
+
+export {
+  categories,
+  products,
+  productCategories,
+  availableProducts,
+  catalogState,
+}
+export const loadCatalog = (options) => catalogStore.loadCatalog(options)
+export const saveCategory = (...args) => catalogStore.saveCategory(...args)
+export const toggleCategory = (...args) => catalogStore.toggleCategory(...args)
+export const saveProduct = (...args) => catalogStore.saveProduct(...args)
+export const toggleProductAvailability = (...args) => catalogStore.toggleProductAvailability(...args)

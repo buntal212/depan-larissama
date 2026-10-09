@@ -1,10 +1,14 @@
 import { apiRequest, getAllPages, listQuery } from '@/services/api.js'
 
 export const larisamaApi = {
+  registerWarungOwner: async (body) => (await apiRequest('auth/register', { method: 'POST', body, auth: false })).data,
   currentWarung: async () => (await apiRequest('warung')).data,
   listWarungs: async () => getAllPages('admin/warungs'),
+  listPendingWarungs: async () => getAllPages('admin/warungs', { status_langganan: 'menunggu_persetujuan' }),
   createWarung: async (body) => (await apiRequest('admin/warungs', { method: 'POST', body })).data,
   updateWarung: async (id, body) => (await apiRequest(`admin/warungs/${encodeURIComponent(id)}`, { method: 'PATCH', body })).data,
+  approveWarung: async (id) => (await apiRequest(`admin/warungs/${encodeURIComponent(id)}/persetujuan`, { method: 'POST' })).data,
+  extendWarungSubscription: async (id) => (await apiRequest(`admin/warungs/${encodeURIComponent(id)}/langganan/perpanjangan`, { method: 'POST' })).data,
 
   listUsers: async () => getAllPages('users'),
   saveUser: async (id, body) => (await apiRequest(id ? `users/${encodeURIComponent(id)}` : 'users', { method: id ? 'PATCH' : 'POST', body })).data,
@@ -12,6 +16,7 @@ export const larisamaApi = {
   listSales: async (parameters = {}) => getAllPages('penjualans', parameters),
   getSale: async (id) => (await apiRequest(`penjualans/${encodeURIComponent(id)}`)).data,
   createSale: async (body, key) => (await apiRequest('penjualans', { method: 'POST', body, idempotency: key || true })).data,
+  paySale: async (id, body, key) => (await apiRequest(`penjualans/${encodeURIComponent(id)}/pembayaran`, { method: 'POST', body, idempotency: key || true })).data,
   correctSale: async (id, body, key) => (await apiRequest(`penjualans/${encodeURIComponent(id)}`, { method: 'PATCH', body, idempotency: key || true })).data,
   cancelSale: async (id, body, key) => (await apiRequest(`penjualans/${encodeURIComponent(id)}/pembatalan`, { method: 'POST', body, idempotency: key || true })).data,
   returnSale: async (id, body, key) => (await apiRequest(`penjualans/${encodeURIComponent(id)}/retur`, { method: 'POST', body, idempotency: key || true })).data,

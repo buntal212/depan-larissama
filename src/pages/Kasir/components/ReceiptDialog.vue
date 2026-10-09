@@ -33,14 +33,17 @@
         <div class="receipt-meta"><span>Subtotal</span><span>{{ formatPrice(sale?.subtotal) }}</span></div>
         <div class="receipt-meta"><span>Diskon</span><span>-{{ formatPrice(sale?.diskon) }}</span></div>
         <div class="receipt-meta receipt-total"><strong>Total</strong><strong>{{ formatPrice(sale?.total) }}</strong></div>
-        <div class="receipt-meta"><span>Pembayaran</span><span>{{ paymentLabel(sale?.metode_pembayaran) }}</span></div>
+        <div class="receipt-meta">
+          <span>Pembayaran</span>
+          <span>{{ sale?.status_pembayaran === 'belum_lunas' ? 'Belum lunas' : paymentLabel(sale?.metode_pembayaran) }}</span>
+        </div>
         <template v-if="sale?.metode_pembayaran === 'cash'">
           <div class="receipt-meta"><span>Dibayar</span><span>{{ formatPrice(sale?.bayar) }}</span></div>
           <div class="receipt-meta"><span>Kembalian</span><span>{{ formatPrice(sale?.kembalian) }}</span></div>
         </template>
         <div v-if="sale?.catatan" class="receipt-note">Catatan: {{ sale.catatan }}</div>
         <footer class="receipt-footer">
-          Terima kasih atas kunjungan Anda
+          {{ sale?.status_pembayaran === 'belum_lunas' ? 'Pesanan belum dibayar' : 'Terima kasih atas kunjungan Anda' }}
           <small>Dibuat oleh <strong>Udumbara Informatika</strong></small>
         </footer>
       </div>

@@ -5,14 +5,20 @@
         <div class="dialog-header-copy">
           <div class="dialog-eyebrow">KASIR</div>
           <div class="text-h6 dialog-title">Pembayaran</div>
-          <div class="dialog-subtitle">Total akhir dihitung dan divalidasi oleh server.</div>
+          <div class="dialog-subtitle">
+            {{
+              allowDefer
+                ? 'Pilih lunasi sekarang atau tunda pembayarannya ke Riwayat Penjualan.'
+                : 'Pembayaran akan melunasi pesanan ini.'
+            }}
+          </div>
         </div>
         <q-btn class="dialog-header-close" flat round dense icon="close" aria-label="Tutup" @click="$emit('update:modelValue', false)" />
       </q-card-section>
       <q-separator />
       <q-form class="q-pa-lg" @submit.prevent="submit">
         <div class="checkout-total-row"><span>Subtotal</span><strong>{{ formatPrice(subtotal) }}</strong></div>
-        <CurrencyInput v-model="form.discount" label="Diskon transaksi" min="0" :rules="[() => Number(form.discount) <= subtotal || 'Diskon tidak boleh melebihi subtotal']" />
+        <CurrencyInput v-if="allowDiscount" v-model="form.discount" label="Diskon transaksi" min="0" :rules="[() => Number(form.discount) <= subtotal || 'Diskon tidak boleh melebihi subtotal']" />
         <div class="checkout-total-row checkout-grand-total"><span>Total pratinjau</span><strong>{{ formatPrice(total) }}</strong></div>
         <q-select
           v-model="form.method"
@@ -27,9 +33,19 @@
         <CurrencyInput v-model="form.paid" label="Jumlah dibayar" min="0" :disable="form.method !== 'cash'" :rules="[() => Number(form.paid) >= total || (form.method === 'cash' ? 'Pembayaran kurang dari total' : 'Jumlah harus sama dengan total')]" />
         <div v-if="form.method === 'cash'" class="checkout-total-row"><span>Kembalian pratinjau</span><strong>{{ formatPrice(Math.max(0, Number(form.paid || 0) - total)) }}</strong></div>
         <q-input v-model.trim="form.note" outlined type="textarea" autogrow maxlength="2000" label="Catatan (opsional)" />
-        <div class="row justify-end q-gutter-sm q-mt-lg">
+        <div class="row justify-end q-gutter-sm q-mt-lg checkout-actions">
           <q-btn flat no-caps label="Kembali" @click="$emit('update:modelValue', false)" />
-          <q-btn unelevated no-caps color="primary" icon="check" label="Simpan transaksi" type="submit" />
+          <q-btn
+            v-if="allowDefer"
+            flat
+            no-caps
+            color="primary"
+            icon="schedule"
+            label="Tunda pembayaran"
+            type="button"
+            @click="submitDeferred"
+          />
+          <q-btn unelevated no-caps color="primary" icon="check" label="Simpan & lunasi" type="submit" />
         </div>
       </q-form>
     </q-card>
@@ -43,6 +59,8 @@ import CurrencyInput from '@/components/CurrencyInput.vue'
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   subtotal: { type: Number, default: 0 },
+  allowDefer: { type: Boolean, default: false },
+  allowDiscount: { type: Boolean, default: true },
 })
 const emit = defineEmits(['update:modelValue', 'confirm'])
 const paymentOptions = [
@@ -69,6 +87,16 @@ function submit() {
   if (form.method !== 'cash' && Number(form.paid) !== total.value) return
   emit('confirm', { subtotal: props.subtotal, discount: Number(form.discount || 0), total: total.value, method: form.method, paid: Number(form.paid || 0), change: Math.max(0, Number(form.paid || 0) - total.value), note: form.note.trim(), tanggal: new Date().toISOString() })
 }
+
+function submitDeferred() {
+  if (Number(form.discount || 0) > props.subtotal) return
+  emit('confirm', {
+    deferred: true,
+    discount: Number(form.discount || 0),
+    note: form.note.trim(),
+    tanggal: new Date().toISOString(),
+  })
+}
 </script>
 
 <style scoped>
@@ -76,4 +104,8 @@ function submit() {
 .checkout-total-row { display: flex; align-items: center; justify-content: space-between; margin: 0 0 14px; color: #66766c; font-size: 13px; }
 .checkout-total-row strong { color: #213d2e; }
 .checkout-grand-total { margin: 4px 0 18px; padding: 14px 0; border-block: 1px solid #e9eeea; font-size: 15px; }
+@media (max-width: 599px) {
+  .checkout-actions { align-items: stretch; flex-direction: column-reverse; }
+  .checkout-actions :deep(.q-btn) { width: 100%; margin-left: 0; }
+}
 </style>

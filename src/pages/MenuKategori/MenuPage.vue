@@ -68,9 +68,31 @@
         <span class="panel-title">Daftar menu</span>
         <span class="results-count">{{ filteredProducts.length }} menu</span>
       </div>
-      <q-btn flat round dense icon="tune" aria-label="Filter" class="filter-button">
-        <q-tooltip>Filter barang</q-tooltip>
-      </q-btn>
+      <q-btn-dropdown
+        outline
+        dense
+        no-caps
+        color="grey-8"
+        label="Urutkan"
+        icon="sort"
+        dropdown-icon="expand_more"
+        class="sort-button"
+      >
+        <q-list dense>
+          <q-item
+            v-for="option in sortOptions"
+            :key="option.value"
+            clickable
+            v-close-popup
+            @click="sortBy = option.value"
+          >
+            <q-item-section>{{ option.label }}</q-item-section>
+            <q-item-section v-if="sortBy === option.value" side>
+              <q-icon name="check" color="primary" />
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-btn-dropdown>
     </div>
 
     <div v-if="filteredProducts.length" class="product-grid">
@@ -119,10 +141,21 @@ import { categories, catalogState, loadCatalog, productCategories, products, sav
 import { displayApiError } from '@/services/larisama-api.js'
 
 const $q = useQuasar()
-const canManageCatalog = computed(() => ['owner', 'manager'].includes(authSession.user?.role))
+const canManageCatalog = computed(
+  () =>
+    ['owner', 'manager'].includes(authSession.user?.role) ||
+    (authSession.user?.role === 'superadmin' && Boolean(authSession.selectedWarungId)),
+)
 const loadError = computed(() => catalogState.value.error ? displayApiError(catalogState.value.error) : '')
 const search = ref('')
 const activeCategory = ref('Semua')
+const sortBy = ref('name_asc')
+const sortOptions = [
+  { label: 'Nama A–Z', value: 'name_asc' },
+  { label: 'Nama Z–A', value: 'name_desc' },
+  { label: 'Harga termurah', value: 'price_asc' },
+  { label: 'Harga termahal', value: 'price_desc' },
+]
 const formOpen = ref(false)
 const savingProduct = ref(false)
 const savingCategory = ref(false)
@@ -132,14 +165,35 @@ const categoryManagerOpen = ref(false)
 const categoryManagerRef = ref(null)
 const filteredProducts = computed(() => {
   const query = search.value.trim().toLocaleLowerCase('id-ID')
-  return products.value.filter((product) => {
+  const result = products.value.filter((product) => {
     const matchesCategory =
       activeCategory.value === 'Semua' || product.category === activeCategory.value
     const matchesSearch =
       !query || `${product.code} ${product.name}`.toLocaleLowerCase('id-ID').includes(query)
     return matchesCategory && matchesSearch
   })
+
+  return result.sort((left, right) => {
+    if (sortBy.value === 'price_asc' || sortBy.value === 'price_desc') {
+      const order = compareMoney(left.price, right.price)
+      return sortBy.value === 'price_asc' ? order : -order
+    }
+
+    const order = left.name.localeCompare(right.name, 'id', { sensitivity: 'base' })
+    return sortBy.value === 'name_asc' ? order : -order
+  })
 })
+
+function compareMoney(left, right) {
+  const toMinorUnits = (value) => {
+    const [whole = '0', fraction = ''] = String(value ?? '0').split('.')
+    return BigInt(whole || '0') * 100n + BigInt(`${fraction}00`.slice(0, 2))
+  }
+
+  const leftValue = toMinorUnits(left)
+  const rightValue = toMinorUnits(right)
+  return leftValue === rightValue ? 0 : leftValue < rightValue ? -1 : 1
+}
 
 onMounted(async () => {
   try {

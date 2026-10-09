@@ -1,8 +1,8 @@
 <template>
   <q-page class="page-shell">
     <div class="page-heading row items-end justify-between q-col-gutter-md">
-      <div class="col"><div class="eyebrow">PENGATURAN WARUNG</div><h1 class="page-title">Pengguna</h1><p class="page-subtitle">Kelola akun dan peran pengguna dalam warung ini.</p></div>
-      <div class="col-auto"><q-btn unelevated no-caps color="primary" icon="person_add" label="Tambah pengguna" @click="openForm()" /></div>
+      <div class="col"><div class="eyebrow">PENGATURAN WARUNG</div><h1 class="page-title">Pengguna</h1><p class="page-subtitle">{{ canManage ? 'Kelola akun dan peran pengguna dalam warung ini.' : 'Daftar akun pada warung yang dipilih (hanya baca).' }}</p></div>
+      <div v-if="canManage" class="col-auto"><q-btn unelevated no-caps color="primary" icon="person_add" label="Tambah pengguna" @click="openForm()" /></div>
     </div>
     <q-card flat bordered class="panel-card">
       <q-card-section class="row items-center justify-between"><div><div class="panel-title">Akun warung</div><div class="panel-caption">Pengelolaan akun melalui API.</div></div><q-chip class="demo-chip">Data server</q-chip></q-card-section>
@@ -10,11 +10,11 @@
       <q-table flat :rows="users" :columns="columns" row-key="id" :loading="loading" :pagination="{ rowsPerPage: 10 }">
         <template #body-cell-role="props"><q-td :props="props"><q-badge outline color="primary">{{ roleLabel(props.row.role) }}</q-badge></q-td></template>
         <template #body-cell-active="props"><q-td :props="props"><q-badge :color="props.row.aktif ? 'positive' : 'grey-6'">{{ props.row.aktif ? 'Aktif' : 'Nonaktif' }}</q-badge></q-td></template>
-        <template #body-cell-actions="props"><q-td :props="props"><q-btn flat round dense icon="edit" aria-label="Edit pengguna" @click="openForm(props.row)" /></q-td></template>
+        <template #body-cell-actions="props"><q-td :props="props"><q-btn v-if="canManage" flat round dense icon="edit" aria-label="Edit pengguna" @click="openForm(props.row)" /></q-td></template>
       </q-table>
     </q-card>
 
-    <q-dialog v-model="formOpen">
+    <q-dialog v-if="canManage" v-model="formOpen">
       <q-card class="product-form-dialog">
         <q-card-section class="dialog-header"><div class="dialog-header-copy"><div class="dialog-eyebrow">AKUN WARUNG</div><div class="text-h6 dialog-title">{{ selectedUser ? 'Edit pengguna' : 'Tambah pengguna' }}</div><div class="dialog-subtitle">Data pengguna dikelola melalui server.</div></div><q-btn class="dialog-header-close" flat round dense icon="close" aria-label="Tutup" @click="formOpen = false" /></q-card-section>
         <q-separator />
@@ -33,11 +33,17 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useQuasar } from 'quasar'
+import { authSession } from '@/stores/auth-session.js'
 import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
 
 const $q = useQuasar()
+const canManage = computed(
+  () =>
+    authSession.user?.role === 'owner' ||
+    (authSession.user?.role === 'superadmin' && Boolean(authSession.selectedWarungId)),
+)
 const formOpen = ref(false)
 const selectedUser = ref(null)
 const users = ref([])

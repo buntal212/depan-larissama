@@ -40,7 +40,6 @@ export default defineRouter((/* { store, ssrContext } */) => {
     const authenticated = await restoreSession()
     if (to.meta.requiresAuth && !authenticated) return { path: '/login', query: { redirect: to.fullPath } }
     if (to.meta.guestOnly && authenticated) return '/'
-    if (to.path === '/' && authSession.user?.role === 'superadmin') return '/platform/warungs'
     if (to.meta.roles && !to.meta.roles.includes(authSession.user?.role)) return '/'
     return true
   })

@@ -30,24 +30,56 @@
             <q-avatar size="38px" class="profile-avatar">{{ userInitials }}</q-avatar>
           </template>
           <q-list style="min-width: 220px">
-            <q-item><q-item-section><q-item-label>{{ authSession.user?.nama }}</q-item-label><q-item-label caption>{{ authSession.user?.username }} Â· {{ authSession.user?.role }}</q-item-label></q-item-section></q-item>
+            <q-item
+              ><q-item-section
+                ><q-item-label>{{ authSession.user?.nama }}</q-item-label
+                ><q-item-label caption>{{ authSession.user?.role }}</q-item-label></q-item-section
+              ></q-item
+            >
             <q-separator />
-            <q-item clickable v-close-popup @click="signOut"><q-item-section avatar><q-icon name="logout" /></q-item-section><q-item-section>Keluar</q-item-section></q-item>
+            <q-item clickable v-close-popup @click="signOut"
+              ><q-item-section avatar><q-icon name="logout" /></q-item-section
+              ><q-item-section>Keluar</q-item-section></q-item
+            >
           </q-list>
         </q-btn-dropdown>
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="drawerOpen" show-if-above :behavior="$q.screen.width < 900 ? 'mobile' : 'desktop'" :width="248" :breakpoint="900" class="app-drawer">
+    <q-drawer
+      v-model="drawerOpen"
+      show-if-above
+      :behavior="$q.screen.width < 900 ? 'mobile' : 'desktop'"
+      :width="248"
+      :breakpoint="900"
+      class="app-drawer"
+    >
       <div class="drawer-content">
         <div class="store-switcher">
           <q-avatar size="40px" class="store-avatar"
             ><span class="store-avatar-mark" aria-hidden="true"
           /></q-avatar>
-          <div class="store-copy">
-            <div class="store-name">{{ authSession.warung?.nama || 'Larisama' }}</div>
-            <div class="store-type">{{ authSession.warung?.kode || 'Warung aktif' }}</div>
+          <div class="store-copy" v-if="authSession.user?.role !== 'superadmin'">
+            <div class="store-name" :title="authSession.warung?.nama || 'Larisama'">
+              {{ authSession.warung?.nama || 'Larisama' }}
+            </div>
+            <!-- <div class="store-type">{{ authSession.warung?.kode || 'Warung aktif' }}</div> -->
           </div>
+          <q-select
+            v-else
+            v-model="selectedWarungId"
+            class="superadmin-warung-select"
+            dense
+            borderless
+            emit-value
+            map-options
+            option-value="id"
+            option-label="nama"
+            :options="warungOptions"
+            label="Pilih warung"
+            :loading="warungsLoading"
+            @update:model-value="changeWarung"
+          />
           <q-icon name="expand_more" color="grey-6" />
         </div>
 
@@ -81,7 +113,10 @@
       <router-view />
     </q-page-container>
 
-    <q-footer v-if="['owner', 'manager', 'kasir'].includes(authSession.user?.role)" class="mobile-bottom-nav">
+    <q-footer
+      v-if="['owner', 'manager', 'kasir'].includes(authSession.user?.role)"
+      class="mobile-bottom-nav"
+    >
       <q-tabs
         :model-value="currentRoute"
         dense
@@ -98,14 +133,18 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import { logout } from '@/services/auth.js'
-import { authSession } from '@/stores/auth-session.js'
+import { authSession, getSelectedWarungId, setSelectedWarung } from '@/stores/auth-session.js'
 import { products } from '@/stores/catalog.js'
+import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
 
 const drawerOpen = ref(false)
+const warungOptions = ref([])
+const warungsLoading = ref(false)
+const selectedWarungId = ref(getSelectedWarungId())
 const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
@@ -121,17 +160,79 @@ const currentRoute = computed(() => {
 })
 const productCount = computed(() => products.value.length)
 
+onMounted(async () => {
+  if (authSession.user?.role !== 'superadmin') return
+  warungsLoading.value = true
+  try {
+    warungOptions.value = await larisamaApi.listWarungs()
+    const selected = warungOptions.value.find((warung) => String(warung.id) === String(selectedWarungId.value))
+    if (selected) setSelectedWarung(selected)
+    else if (selectedWarungId.value) {
+      selectedWarungId.value = null
+      setSelectedWarung(null)
+    }
+  } catch (error) {
+    $q.notify({ type: 'negative', message: displayApiError(error), position: 'top' })
+  } finally { warungsLoading.value = false }
+})
+
+function changeWarung(id) {
+  const selected = warungOptions.value.find((warung) => String(warung.id) === String(id))
+  setSelectedWarung(selected)
+  if (selected) window.location.reload()
+}
+
 const navigation = computed(() => {
   const dashboard = { label: 'Dashboard', icon: 'space_dashboard', to: '/' }
   const catalog = { label: 'Kategori & Menu', icon: 'restaurant_menu', to: '/menu' }
   const salesHistory = { label: 'Penjualan', icon: 'receipt_long', to: '/penjualan' }
   const role = authSession.user?.role
-  if (role === 'superadmin') return [{ label: 'Kelola Warung', icon: 'storefront', to: '/platform/warungs' }]
-  if (role === 'kasir') return [dashboard, { label: 'Kasir', icon: 'point_of_sale', to: '/transaksi' }, catalog, salesHistory]
-  if (role === 'manager') return [dashboard, catalog, salesHistory, { label: 'Pembelian', icon: 'shopping_cart', to: '/pembelian' }, { label: 'Laporan', icon: 'bar_chart', to: '/laporan' }, { label: 'Profil Warung', icon: 'storefront', to: '/warung' }]
-  return [dashboard, { label: 'Kasir', icon: 'point_of_sale', to: '/transaksi' }, catalog, salesHistory, { label: 'Pembelian', icon: 'shopping_cart', to: '/pembelian' }, { label: 'Laporan', icon: 'bar_chart', to: '/laporan' }, { label: 'Pengguna', icon: 'group', to: '/pengguna' }, { label: 'Profil Warung', icon: 'storefront', to: '/warung' }]
+  if (role === 'superadmin')
+    return [
+      { label: 'Kelola Warung', icon: 'storefront', to: '/platform/warungs' },
+      dashboard,
+      catalog,
+      { label: 'Kasir', icon: 'point_of_sale', to: '/transaksi' },
+      salesHistory,
+      { label: 'Pembelian', icon: 'shopping_cart', to: '/pembelian' },
+      { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
+      { label: 'Pengguna', icon: 'group', to: '/pengguna' },
+    ]
+  if (role === 'kasir')
+    return [
+      dashboard,
+      { label: 'Kasir', icon: 'point_of_sale', to: '/transaksi' },
+      catalog,
+      salesHistory,
+    ]
+  if (role === 'manager')
+    return [
+      dashboard,
+      catalog,
+      salesHistory,
+      { label: 'Pembelian', icon: 'shopping_cart', to: '/pembelian' },
+      { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
+      { label: 'Profil Warung', icon: 'storefront', to: '/warung' },
+    ]
+  return [
+    dashboard,
+    { label: 'Kasir', icon: 'point_of_sale', to: '/transaksi' },
+    catalog,
+    salesHistory,
+    { label: 'Pembelian', icon: 'shopping_cart', to: '/pembelian' },
+    { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
+    { label: 'Pengguna', icon: 'group', to: '/pengguna' },
+    { label: 'Profil Warung', icon: 'storefront', to: '/warung' },
+  ]
 })
-const userInitials = computed(() => (authSession.user?.nama || 'LS').split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase())
+const userInitials = computed(() =>
+  (authSession.user?.nama || 'LS')
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase(),
+)
 
 async function signOut() {
   await logout()

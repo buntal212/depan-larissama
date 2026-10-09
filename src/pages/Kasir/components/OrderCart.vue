@@ -7,7 +7,7 @@
         <div class="panel-caption">{{ cartQuantity }} item dipilih</div>
       </div>
       <q-space />
-      <q-btn v-if="cart.length" flat round dense icon="delete_outline" color="grey-7" aria-label="Kosongkan pesanan" @click="$emit('clear')">
+      <q-btn v-if="cart.length && !editing" flat round dense icon="delete_outline" color="grey-7" aria-label="Kosongkan pesanan" @click="$emit('clear')">
         <q-tooltip>Kosongkan pesanan</q-tooltip>
       </q-btn>
       <q-btn v-if="sheet" flat round dense icon="close" color="grey-7" aria-label="Tutup keranjang" @click="$emit('close')" />
@@ -43,10 +43,33 @@
         no-caps
         color="primary"
         icon="check"
-        label="Lanjut ke pembayaran"
+        :label="editing ? 'Lanjut pelunasan' : 'Lanjut ke pembayaran'"
         class="checkout-button full-width q-mt-lg"
         :disable="cart.length === 0"
         @click="$emit('checkout')"
+      />
+      <q-input
+        v-if="editing"
+        :model-value="reason"
+        class="q-mt-md"
+        outlined
+        type="textarea"
+        autogrow
+        maxlength="1000"
+        label="Alasan perubahan"
+        hint="Wajib diisi setelah pesanan diubah."
+        @update:model-value="$emit('update:reason', $event)"
+      />
+      <q-btn
+        v-if="editing"
+        flat
+        no-caps
+        color="primary"
+        label="Simpan perubahan"
+        class="full-width q-mt-sm"
+        :disable="!hasChanges || cart.length === 0 || !reason.trim()"
+        :loading="saving"
+        @click="$emit('save-edit')"
       />
       <div class="demo-disclaimer">Nama menu dan harga akan divalidasi kembali oleh server.</div>
     </q-card-section>
@@ -59,8 +82,12 @@ defineProps({
   cartQuantity: { type: Number, required: true },
   subtotal: { type: Number, required: true },
   sheet: { type: Boolean, default: false },
+  editing: { type: Boolean, default: false },
+  hasChanges: { type: Boolean, default: false },
+  saving: { type: Boolean, default: false },
+  reason: { type: String, default: '' },
 })
-defineEmits(['change-quantity', 'clear', 'close', 'checkout'])
+defineEmits(['change-quantity', 'clear', 'close', 'checkout', 'save-edit', 'update:reason'])
 
 function formatPrice(value) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value)
