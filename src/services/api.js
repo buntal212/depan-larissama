@@ -6,21 +6,23 @@ import {
   getSelectedWarungId,
 } from '@/stores/auth-session.js'
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1').replace(
+const API_BASE_URL = (import.meta.env.QCLI_API_BASE_URL || 'http://127.0.0.1:8000/api/v1').replace(
   /\/+$/,
   '',
 )
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: { Accept: 'application/json' },
-  transformResponse: [(data) => {
-    if (typeof data !== 'string' || !data) return data
-    try {
-      return JSON.parse(data)
-    } catch {
-      return { message: data }
-    }
-  }],
+  transformResponse: [
+    (data) => {
+      if (typeof data !== 'string' || !data) return data
+      try {
+        return JSON.parse(data)
+      } catch {
+        return { message: data }
+      }
+    },
+  ],
 })
 
 export function newIdempotencyKey() {
@@ -53,8 +55,7 @@ export async function apiRequest(
     /^(users|kategori-menus|menus|penjualans|pembelians)(?:\/|$)/.test(resourcePath)
   if (tenantWrite && authSession.user?.role === 'superadmin') {
     const selectedWarungId = getSelectedWarungId()
-    if (!selectedWarungId)
-      throw new ApiError('Pilih warung terlebih dahulu untuk menyimpan data.')
+    if (!selectedWarungId) throw new ApiError('Pilih warung terlebih dahulu untuk menyimpan data.')
     requestBody = { ...body, warung_id: String(selectedWarungId) }
   }
   const tenantRead =
@@ -78,9 +79,14 @@ export async function apiRequest(
   const token = auth ? getAccessToken() : null
 
   if (token) requestHeaders.Authorization = `Bearer ${token}`
-  if (requestBody !== undefined && !Object.keys(requestHeaders).some((key) => key.toLowerCase() === 'content-type'))
+  if (
+    requestBody !== undefined &&
+    !Object.keys(requestHeaders).some((key) => key.toLowerCase() === 'content-type')
+  )
     requestHeaders['Content-Type'] = 'application/json'
-  if (idempotency) requestHeaders['Idempotency-Key'] = typeof idempotency === 'string' ? idempotency : newIdempotencyKey()
+  if (idempotency)
+    requestHeaders['Idempotency-Key'] =
+      typeof idempotency === 'string' ? idempotency : newIdempotencyKey()
 
   let response
   try {
