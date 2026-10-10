@@ -137,17 +137,41 @@
             <q-btn class="full-width q-mt-sm" flat no-caps color="primary" label="Sudah punya akun? Masuk" @click="closeRegistration" />
           </q-form>
         </q-card>
+
+        <q-dialog v-model="showInstallDialog">
+          <q-card class="install-card">
+            <q-card-section class="row items-start no-wrap">
+              <q-avatar color="primary" text-color="white" icon="install_mobile" />
+              <div class="q-ml-md">
+                <div class="text-h6">Install aplikasi Larisama</div>
+                <div class="text-body2 text-grey-7 q-mt-xs">{{ installInstructions }}</div>
+              </div>
+            </q-card-section>
+            <q-card-actions align="right">
+              <q-btn flat no-caps label="Nanti saja" color="grey-8" @click="dismissInstallPrompt" />
+              <q-btn v-if="deferredInstallPrompt" unelevated no-caps label="Install" color="primary" :loading="installing" @click="installApp" />
+              <q-btn v-else-if="manualInstallGuide === 'ios'" unelevated no-caps label="Mengerti" color="primary" @click="dismissInstallPrompt" />
+            </q-card-actions>
+          </q-card>
+        </q-dialog>
       </q-page>
     </q-page-container>
   </q-layout>
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '@/services/api.js'
 import { login } from '@/services/auth.js'
 import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
+import {
+  deferredInstallPrompt,
+  dismissInstallPrompt,
+  installPromptDismissed,
+  manualInstallGuide,
+  requestAppInstall,
+} from '@/boot/pwa-install.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -172,6 +196,29 @@ const registrationMessage = ref('')
 const registrationError = ref('')
 const registrationSuccess = ref(false)
 const registrationSubmitting = ref(false)
+const installing = ref(false)
+
+const showInstallDialog = computed({
+  get: () => !installPromptDismissed.value && (manualInstallGuide.value !== null || deferredInstallPrompt.value !== null),
+  set: (visible) => {
+    if (!visible) dismissInstallPrompt()
+  },
+})
+
+const installInstructions = computed(() =>
+  manualInstallGuide.value === 'ios'
+    ? 'Di Safari, tekan tombol Bagikan lalu pilih “Tambahkan ke Layar Utama”.'
+    : 'Tekan tombol Install untuk menambahkan Larisama ke perangkat ini.',
+)
+
+async function installApp() {
+  installing.value = true
+  try {
+    await requestAppInstall()
+  } finally {
+    installing.value = false
+  }
+}
 
 async function submitLogin() {
   errorMessage.value = ''
@@ -264,4 +311,5 @@ async function submitRegistration() {
 .registration-form .q-field { margin-bottom: 12px; }
 .registration-section-title { margin: 2px 0 12px; color: #315342; font-size: 13px; font-weight: 700; }
 .registration-notice { font-size: 12px; line-height: 1.5; }
+.install-card { width: min(100vw - 32px, 390px); border-radius: 16px; }
 </style>

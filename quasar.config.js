@@ -11,7 +11,7 @@ export default defineConfig((/* ctx */) => {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: [],
+    boot: ['pwa-install'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#css
     css: ['app.scss'],
@@ -75,6 +75,9 @@ export default defineConfig((/* ctx */) => {
       // vueDevtools: true,
       // https: true,
       open: false,
+      // PWA dan service worker diikat ke origin. Port khusus mencegah bentrok
+      // dengan PWA proyek lain yang berjalan di localhost.
+      port: 9201,
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
@@ -167,6 +170,16 @@ export default defineConfig((/* ctx */) => {
     // https://v2.quasar.dev/quasar-cli-vite/developing-pwa/configuring-pwa
     pwa: {
       workboxMode: 'GenerateSW', // 'GenerateSW' or 'InjectManifest'
+      extendPWAManifestJson (manifest) {
+        manifest.scope = '/'
+        manifest.related_applications = [
+          {
+            platform: 'webapp',
+            url: '/manifest.json',
+            id: '/depan-larissama',
+          },
+        ]
+      },
       // swFilename: 'sw.js',
       // manifestFilename: 'manifest.json',
       // extendPWAManifestJson (json) {},
