@@ -6,8 +6,33 @@
     </div>
     <q-card flat bordered class="panel-card">
       <q-card-section class="row items-center justify-between"><div><div class="panel-title">Riwayat pembelian</div><div class="panel-caption">Data dan total dari server.</div></div><q-chip class="demo-chip">Data server</q-chip></q-card-section>
+      <q-card-section class="row items-end q-col-gutter-md q-pt-none">
+        <div class="col-12 col-sm-4"><q-input v-model="dateFrom" outlined dense type="date" label="Dari tanggal" /></div>
+        <div class="col-12 col-sm-4"><q-input v-model="dateTo" outlined dense type="date" label="Sampai tanggal" /></div>
+        <div class="col-12 col-sm-4 row q-gutter-sm">
+          <q-btn unelevated no-caps color="primary" icon="filter_alt" label="Terapkan" :loading="loading" @click="applyDateFilter" />
+        </div>
+      </q-card-section>
       <q-banner v-if="loadError" rounded class="bg-red-1 text-negative q-mx-md q-mb-md">{{ loadError }}</q-banner>
-      <q-table flat :rows="purchases" :columns="columns" row-key="id" :loading="loading" :pagination="{ rowsPerPage: 10 }" no-data-label="Belum ada pembelian.">
+      <q-table flat :rows="purchases" :columns="columns" row-key="id" :loading="loading" :pagination="{ rowsPerPage: 10 }" :grid="$q.screen.lt.sm" no-data-label="Belum ada pembelian.">
+        <template #item="props">
+          <div class="q-pa-xs col-12">
+            <q-card flat bordered class="purchase-mobile-card">
+              <q-card-section>
+                <div class="row items-center justify-between q-gutter-sm">
+                  <strong class="purchase-mobile-number">{{ props.row.no_transaksi }}</strong>
+                  <q-badge :color="props.row.status === 'tercatat' ? 'positive' : 'grey-6'">{{ props.row.status }}</q-badge>
+                </div>
+                <div class="panel-caption q-mt-sm">{{ formatDate(props.row.tanggal) }}</div>
+                <div class="purchase-mobile-total">{{ formatPrice(props.row.total) }}</div>
+                <div v-if="canManage" class="row justify-end">
+                  <q-btn flat round dense icon="edit" aria-label="Koreksi pembelian" :disable="props.row.status !== 'tercatat' || loadingCorrection" :loading="loadingCorrection && selectedPurchase?.id === props.row.id" @click="openCorrection(props.row)" />
+                  <q-btn flat round dense color="negative" icon="block" aria-label="Batalkan pembelian" :disable="props.row.status !== 'tercatat'" @click="openCancellation(props.row)" />
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+        </template>
         <template #body-cell-tanggal="props"><q-td :props="props">{{ formatDate(props.row.tanggal) }}</q-td></template>
         <template #body-cell-total="props"><q-td :props="props" class="text-weight-bold">{{ formatPrice(props.row.total) }}</q-td></template>
         <template #body-cell-status="props"><q-td :props="props"><q-badge :color="props.row.status === 'tercatat' ? 'positive' : 'grey-6'">{{ props.row.status }}</q-badge></q-td></template>
@@ -90,6 +115,13 @@ const purchases = ref([])
 const loading = ref(false)
 const saving = ref(false)
 const loadError = ref('')
+const today = new Intl.DateTimeFormat('en-CA', {
+  timeZone: authSession.warung?.timezone || 'Asia/Jakarta',
+}).format(new Date())
+const dateFrom = ref(today)
+const dateTo = ref(today)
+const appliedDateFrom = ref(today)
+const appliedDateTo = ref(today)
 const canManage = computed(() => ['owner', 'manager', 'superadmin'].includes(authSession.user?.role))
 const mutationForm = reactive({ date: '', note: '', reason: '', lines: [] })
 const originalCorrection = ref(null)
@@ -109,11 +141,25 @@ const pendingKey = ref(null)
 
 async function loadPurchases() {
   loading.value = true; loadError.value = ''
-  try { purchases.value = await larisamaApi.listPurchases({ sort: '-tanggal' }) }
+  try { purchases.value = await larisamaApi.listPurchases({ sort: '-tanggal', date_from: appliedDateFrom.value || undefined, date_to: appliedDateTo.value || undefined }) }
   catch (error) { loadError.value = displayApiError(error); $q.notify({ type: 'negative', message: loadError.value }) }
   finally { loading.value = false }
 }
 onMounted(loadPurchases)
+
+function applyDateFilter() {
+  if (Boolean(dateFrom.value) !== Boolean(dateTo.value)) {
+    $q.notify({ type: 'warning', message: 'Isi kedua tanggal untuk memfilter riwayat.' })
+    return
+  }
+  if (dateFrom.value && dateFrom.value > dateTo.value) {
+    $q.notify({ type: 'warning', message: 'Tanggal awal tidak boleh melewati tanggal akhir.' })
+    return
+  }
+  appliedDateFrom.value = dateFrom.value
+  appliedDateTo.value = dateTo.value
+  loadPurchases()
+}
 
 function addLine() { form.lines.push(blankLine()) }
 function removeLine(index) { form.lines.splice(index, 1) }
@@ -229,6 +275,9 @@ async function submitPurchase() {
 </script>
 
 <style scoped>
+.purchase-mobile-card { width: 100%; }
+.purchase-mobile-number { min-width: 0; overflow-wrap: anywhere; }
+.purchase-mobile-total { margin-top: 10px; color: #1d5439; font-size: 20px; font-weight: 800; }
 .purchase-line { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; margin: 14px 0; }
 .purchase-line > .row { grid-column: 1 / -1; }
 .purchase-preview { display: flex; justify-content: space-between; margin-top: 18px; padding: 14px; border-radius: 10px; background: #f3f7f4; }

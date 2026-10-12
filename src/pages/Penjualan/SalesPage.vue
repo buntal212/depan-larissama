@@ -46,6 +46,17 @@
         </div>
         <div class="col-auto"><q-chip class="demo-chip">Data server</q-chip></div>
       </q-card-section>
+      <q-card-section class="row items-end q-col-gutter-md q-pt-none">
+        <div class="col-12 col-sm-4">
+          <q-input v-model="dateFrom" outlined dense type="date" label="Dari tanggal" />
+        </div>
+        <div class="col-12 col-sm-4">
+          <q-input v-model="dateTo" outlined dense type="date" label="Sampai tanggal" />
+        </div>
+        <div class="col-12 col-sm-4 row q-gutter-sm">
+          <q-btn unelevated no-caps color="primary" icon="filter_alt" label="Terapkan" :loading="loading" @click="applyDateFilter" />
+        </div>
+      </q-card-section>
       <q-banner v-if="loadError" rounded class="bg-red-1 text-negative q-mx-md q-mb-md">{{
         loadError
       }}</q-banner>
@@ -402,6 +413,13 @@ import {
 const $q = useQuasar()
 const router = useRouter()
 const search = ref('')
+const today = new Intl.DateTimeFormat('en-CA', {
+  timeZone: authSession.warung?.timezone || 'Asia/Jakarta',
+}).format(new Date())
+const dateFrom = ref(today)
+const dateTo = ref(today)
+const appliedDateFrom = ref(today)
+const appliedDateTo = ref(today)
 const detailOpen = ref(false)
 const paymentOpen = ref(false)
 const receiptOpen = ref(false)
@@ -477,6 +495,8 @@ async function loadSales() {
     sales.value = await larisamaApi.listSales({
       sort: '-tanggal',
       status_pembayaran: paymentStatusFilter.value,
+      date_from: appliedDateFrom.value || undefined,
+      date_to: appliedDateTo.value || undefined,
     })
   } catch (error) {
     loadError.value = displayApiError(error)
@@ -484,6 +504,20 @@ async function loadSales() {
   } finally {
     loading.value = false
   }
+}
+
+function applyDateFilter() {
+  if (Boolean(dateFrom.value) !== Boolean(dateTo.value)) {
+    $q.notify({ type: 'warning', message: 'Isi kedua tanggal untuk memfilter riwayat.' })
+    return
+  }
+  if (dateFrom.value && dateFrom.value > dateTo.value) {
+    $q.notify({ type: 'warning', message: 'Tanggal awal tidak boleh melewati tanggal akhir.' })
+    return
+  }
+  appliedDateFrom.value = dateFrom.value
+  appliedDateTo.value = dateTo.value
+  loadSales()
 }
 
 onMounted(loadSales)
