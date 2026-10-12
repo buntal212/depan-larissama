@@ -15,9 +15,10 @@
     <q-separator />
     <q-card-section v-if="cart.length" :class="['cart-items', { 'sheet-cart-items': sheet }]">
       <div v-for="item in cart" :key="item.id" class="cart-item">
-        <div class="cart-item-icon" :class="`art-${item.color || 'mint'}`"><q-icon :name="item.icon || 'restaurant'" /></div>
+        <div class="cart-item-icon" :class="`art-${item.color || 'mint'}`"><q-icon :name="item.freeForm ? 'edit_note' : (item.icon || 'restaurant')" /></div>
         <div class="cart-item-copy">
           <div class="cart-item-name">{{ item.name }}</div>
+          <q-badge v-if="item.freeForm" class="q-mt-xs" color="orange-1" text-color="orange-10" label="Item lainnya" />
           <div class="cart-item-price">{{ formatPrice(item.price) }}</div>
         </div>
         <div class="quantity-control">

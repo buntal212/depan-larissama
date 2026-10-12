@@ -1,5 +1,5 @@
 <template>
-  <q-page class="page-shell transaction-page">
+  <q-page :class="['page-shell', 'transaction-page', { 'has-mobile-cart': cart.length > 0 }]">
     <div class="page-heading row items-end justify-between q-col-gutter-md">
       <div class="col">
         <div class="eyebrow">KASIR WARUNG</div>
@@ -21,9 +21,24 @@
 
     <div class="pos-grid">
       <section class="pos-menu-column">
-        <q-input v-model="search" outlined dense clearable placeholder="Cari menu..." class="pos-search">
-          <template #prepend><q-icon name="search" /></template>
-        </q-input>
+        <div class="row q-col-gutter-sm items-center">
+          <div class="col-12 col-sm">
+            <q-input v-model="search" outlined dense clearable placeholder="Cari menu..." class="pos-search">
+              <template #prepend><q-icon name="search" /></template>
+            </q-input>
+          </div>
+          <div class="col-12 col-sm-auto">
+            <q-btn
+              outline
+              no-caps
+              color="primary"
+              icon="add"
+              label="Tambah item lainnya"
+              class="full-width"
+              @click="openFreeItemDialog"
+            />
+          </div>
+        </div>
         <q-tabs v-model="activeCategory" dense no-caps align="left" indicator-color="primary" active-color="primary" class="category-tabs pos-category-tabs">
           <q-tab v-for="category in productCategories" :key="category" :name="category" :label="category" />
         </q-tabs>
@@ -85,6 +100,57 @@
       />
     </q-dialog>
 
+    <q-dialog v-model="freeItemDialogOpen">
+      <q-card class="product-form-dialog free-item-dialog">
+        <q-card-section class="dialog-header">
+          <div class="dialog-header-copy">
+            <div class="dialog-eyebrow">KASIR</div>
+            <div class="text-h6 dialog-title">Tambah item lainnya</div>
+            <div class="dialog-subtitle">Item ini hanya dicatat pada pesanan dan tidak masuk ke katalog menu.</div>
+          </div>
+          <q-btn class="dialog-header-close" flat round dense icon="close" aria-label="Tutup" @click="freeItemDialogOpen = false" />
+        </q-card-section>
+        <q-separator />
+        <q-form class="q-pa-lg" @submit.prevent="addFreeFormItem">
+          <q-input
+            v-model.trim="freeItemForm.name"
+            outlined
+            autofocus
+            maxlength="150"
+            label="Nama item"
+            :rules="[(value) => Boolean(value?.trim()) || 'Nama item wajib diisi']"
+          />
+          <CurrencyInput
+            v-model="freeItemForm.price"
+            label="Harga satuan"
+            min="0.01"
+            :rules="[
+              (value) => parseFormattedMoney(value) > 0 || 'Harga harus lebih dari Rp 0',
+              (value) => parseFormattedMoney(value) <= 9999999999999.99 || 'Harga melebihi batas API',
+            ]"
+          />
+          <q-input
+            v-model.number="freeItemForm.quantity"
+            outlined
+            type="number"
+            min="0.01"
+            max="99999999.99"
+            step="0.01"
+            label="Jumlah"
+            :rules="[
+              (value) => Number.isFinite(Number(value)) && Number(value) > 0 || 'Jumlah harus lebih dari 0',
+              (value) => Number(value) <= 99999999.99 || 'Jumlah melebihi batas',
+              (value) => Number(value) === Number(toQuantity(value)) || 'Jumlah maksimal dua angka desimal',
+            ]"
+          />
+          <div class="row justify-end q-gutter-sm q-mt-lg free-item-actions">
+            <q-btn flat no-caps label="Batal" @click="freeItemDialogOpen = false" />
+            <q-btn unelevated no-caps color="primary" icon="add_shopping_cart" label="Masukkan ke pesanan" type="submit" />
+          </div>
+        </q-form>
+      </q-card>
+    </q-dialog>
+
     <CheckoutDialog
       v-model="checkoutOpen"
       :subtotal="editingSale ? Number(editingSale.total || 0) : subtotal"
@@ -103,13 +169,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import ReceiptDialog from '@/pages/Kasir/components/ReceiptDialog.vue'
 import AppAttribution from '@/components/AppAttribution.vue'
 import OrderCart from '@/pages/Kasir/components/OrderCart.vue'
 import CheckoutDialog from '@/pages/Kasir/components/CheckoutDialog.vue'
+import CurrencyInput from '@/components/CurrencyInput.vue'
 import { authSession } from '@/stores/auth-session.js'
 import { categories, catalogState, loadCatalog, productCategories, products } from '@/stores/catalog.js'
 import { newIdempotencyKey } from '@/services/api.js'
@@ -122,6 +189,8 @@ const search = ref('')
 const activeCategory = ref('Semua')
 const cart = ref([])
 const cartOpen = ref(false)
+const freeItemDialogOpen = ref(false)
+const freeItemForm = reactive({ name: '', price: null, quantity: 1 })
 const checkoutOpen = ref(false)
 const receiptOpen = ref(false)
 const completedSale = ref(null)
@@ -145,9 +214,11 @@ const filteredProducts = computed(() => {
   })
 })
 const cartQuantity = computed(() => cart.value.reduce((total, item) => total + item.quantity, 0))
-const subtotal = computed(() => cart.value.reduce((total, item) => total + item.price * item.quantity, 0))
+const subtotal = computed(() => Number(cartSubtotalCents()) / 100)
 const editLines = computed(() => cart.value.map((item) => ({
-  menu_id: String(item.id),
+  ...(item.freeForm
+    ? { nama_menu: item.name.trim(), harga: toMoney(item.price) }
+    : { menu_id: String(item.id) }),
   qty: toQuantity(item.quantity),
   diskon: toMoney(item.discount || 0),
   catatan: item.note?.trim() || null,
@@ -158,6 +229,22 @@ const editHasChanges = computed(() =>
 
 function formatPrice(value) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value)
+}
+
+function parseFormattedMoney(value) {
+  const normalized = String(value ?? '').replace(/,/g, '').trim()
+  if (!/^\d+(?:\.\d{0,2})?$/.test(normalized)) return Number.NaN
+  return Number(normalized)
+}
+
+function cartSubtotalCents() {
+  return cart.value.reduce((total, item) => {
+    const price = toMoney(item.price).split('.')
+    const quantity = toQuantity(item.quantity).split('.')
+    const priceCents = BigInt(price[0]) * 100n + BigInt(price[1])
+    const quantityHundredths = BigInt(quantity[0]) * 100n + BigInt(quantity[1])
+    return total + (priceCents * quantityHundredths + 50n) / 100n
+  }, 0n)
 }
 
 onMounted(async () => {
@@ -183,7 +270,18 @@ async function loadSaleForEditing(id) {
     throw new Error('Hanya pesanan yang belum lunas yang bisa diedit dari kasir.')
   }
   editingSale.value = sale
-  cart.value = (sale.rincian || []).map((line) => {
+  cart.value = (sale.rincian || []).map((line, index) => {
+    if (!line.menu_id) {
+      return {
+        id: `free-${line.id || index}`,
+        freeForm: true,
+        name: line.nama_menu,
+        price: Number(line.harga),
+        quantity: Number(line.qty),
+        discount: Number(line.diskon || 0),
+        note: line.catatan || '',
+      }
+    }
     const menu = products.value.find((product) => String(product.id) === String(line.menu_id))
     return {
       ...(menu || {}),
@@ -206,6 +304,31 @@ function addToCart(product) {
   const existing = cart.value.find((item) => String(item.id) === String(product.id))
   if (existing) existing.quantity += 1
   else cart.value.push({ ...product, id: String(product.id), quantity: 1, discount: 0, note: '' })
+}
+
+function openFreeItemDialog() {
+  Object.assign(freeItemForm, { name: '', price: null, quantity: 1 })
+  freeItemDialogOpen.value = true
+}
+
+function addFreeFormItem() {
+  const name = freeItemForm.name.trim()
+  const price = Number(freeItemForm.price)
+  const quantity = Number(freeItemForm.quantity)
+  if (!name || name.length > 150 || !Number.isFinite(price) || price <= 0 || !Number.isFinite(quantity) || quantity <= 0 || quantity > 99999999.99) {
+    $q.notify({ type: 'warning', message: 'Lengkapi nama, harga satuan, dan jumlah item dengan benar.', position: 'top' })
+    return
+  }
+  cart.value.push({
+    id: `free-${newIdempotencyKey()}`,
+    freeForm: true,
+    name,
+    price: Number(toMoney(price)),
+    quantity: Number(toQuantity(quantity)),
+    discount: 0,
+    note: '',
+  })
+  freeItemDialogOpen.value = false
 }
 
 function changeQuantity(productId, amount) {
@@ -231,7 +354,12 @@ async function completeTransaction(payment) {
       ? { bayar: toMoney(payment.paid), metode_pembayaran: payment.method }
       : {}),
     catatan: payment.note?.trim() || null,
-    rincian: cart.value.map((item) => ({ menu_id: String(item.id), qty: toQuantity(item.quantity) })),
+    rincian: cart.value.map((item) => ({
+      ...(item.freeForm
+        ? { nama_menu: item.name.trim(), harga: toMoney(item.price) }
+        : { menu_id: String(item.id) }),
+      qty: toQuantity(item.quantity),
+    })),
   }
   const fingerprint = JSON.stringify(saleInput)
   if (pendingSaleAttempt.value?.fingerprint !== fingerprint) {
@@ -291,7 +419,7 @@ async function persistEditChanges() {
   const activeMenuIds = new Set(products.value
     .filter((product) => product.available && categories.value.some((category) => category.id === product.categoryId && category.active))
     .map((product) => String(product.id)))
-  if (editLines.value.some((line) => !activeMenuIds.has(line.menu_id))) {
+  if (cart.value.some((item) => !item.freeForm && !activeMenuIds.has(String(item.id)))) {
     editError.value = 'Semua item harus berasal dari menu aktif sebelum perubahan disimpan.'
     $q.notify({ type: 'warning', message: editError.value, position: 'top' })
     return false
@@ -306,6 +434,9 @@ async function persistEditChanges() {
   const updated = await larisamaApi.getSale(editingSale.value.id)
   editingSale.value = updated
   cart.value = (updated.rincian || []).map((line) => {
+    if (!line.menu_id) {
+      return { id: `free-${line.id || newIdempotencyKey()}`, freeForm: true, name: line.nama_menu, price: Number(line.harga), quantity: Number(line.qty), discount: Number(line.diskon || 0), note: line.catatan || '' }
+    }
     const menu = products.value.find((product) => String(product.id) === String(line.menu_id))
     return { ...(menu || {}), id: String(line.menu_id), name: line.nama_menu, price: Number(line.harga), quantity: Number(line.qty), discount: Number(line.diskon || 0), note: line.catatan || '' }
   })
@@ -375,3 +506,21 @@ async function payEditedSale(payment) {
   }
 }
 </script>
+
+<style scoped>
+.free-item-dialog {
+  width: min(calc(100vw - 32px), 480px);
+}
+
+@media (max-width: 599px) {
+  .free-item-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .free-item-actions :deep(.q-btn) {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+</style>

@@ -113,10 +113,7 @@
       <router-view />
     </q-page-container>
 
-    <q-footer
-      v-if="['owner', 'manager', 'kasir'].includes(authSession.user?.role)"
-      class="mobile-bottom-nav"
-    >
+    <q-footer class="mobile-bottom-nav">
       <q-tabs
         :model-value="currentRoute"
         dense
@@ -149,11 +146,7 @@ const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
 const currentRoute = computed(() => {
-  if (route.path === '/penjualan') return 'sales'
-  if (route.path === '/pembelian') return 'purchases'
-  if (route.path.startsWith('/laporan')) return 'reports'
-  if (route.path === '/pengguna') return 'users'
-  if (route.path === '/warung') return 'warung'
+  if (route.path === '/penjualan') return 'transactions'
   if (route.path.startsWith('/menu')) return 'menu'
   if (route.path.startsWith('/transaksi')) return 'transactions'
   return 'dashboard'
