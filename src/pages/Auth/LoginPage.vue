@@ -9,7 +9,7 @@
             <h1 class="page-title q-mt-sm">
               {{ registrationSuccess ? 'Terimakasih telah bergabung bersama Larisama.' : isRegistering ? 'Daftarkan warung' : 'Masuk ke Larisama' }}
             </h1>
-            <p v-if="!registrationSuccess" class="page-subtitle">
+            <p v-if="!registrationSuccess" class="page-subtitle login-subtitle">
               {{ isRegistering ? 'Isi data warung dan pemilik untuk mengajukan pendaftaran.' : 'Gunakan akun warung yang sudah terdaftar.' }}
             </p>
           </q-card-section>
@@ -307,6 +307,7 @@ async function submitRegistration() {
 .login-card { width: min(100%, 460px); border-radius: 20px; background: white; }
 .login-logo { width: min(280px, 80%); height: auto; }
 .page-title { font-size: clamp(24px, 6vw, 30px); }
+.login-subtitle { margin-right: auto; margin-left: auto; text-align: center; }
 .login-footnote { margin-top: 20px; color: #718078; font-size: 12px; text-align: center; }
 .registration-form .q-field { margin-bottom: 12px; }
 .registration-section-title { margin: 2px 0 12px; color: #315342; font-size: 13px; font-weight: 700; }
