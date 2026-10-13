@@ -3,6 +3,13 @@ import { apiRequest, getAllPages, listQuery } from '@/services/api.js'
 export const larisamaApi = {
   registerWarungOwner: async (body) => (await apiRequest('auth/register', { method: 'POST', body, auth: false })).data,
   currentWarung: async () => (await apiRequest('warung')).data,
+  updateCurrentWarung: async (body) => (await apiRequest('warung', { method: 'PATCH', body })).data,
+  uploadCurrentWarungLogo: async (file) => {
+    const body = new FormData()
+    body.append('logo', file)
+    return (await apiRequest('warung/logo', { method: 'POST', body })).data
+  },
+  deleteCurrentWarungLogo: async () => (await apiRequest('warung/logo', { method: 'DELETE' })).data,
   listWarungs: async () => getAllPages('admin/warungs'),
   listPendingWarungs: async () => getAllPages('admin/warungs', { status_langganan: 'menunggu_persetujuan' }),
   createWarung: async (body) => (await apiRequest('admin/warungs', { method: 'POST', body })).data,
@@ -29,6 +36,9 @@ export const larisamaApi = {
 
   salesReport: async (dateFrom, dateTo) => (await apiRequest(`laporan/penjualan${listQuery({ date_from: dateFrom, date_to: dateTo })}`)).data,
   purchasesReport: async (dateFrom, dateTo) => (await apiRequest(`laporan/pembelian${listQuery({ date_from: dateFrom, date_to: dateTo })}`)).data,
+  unpaidSalesReport: async (dateFrom, dateTo) => (await apiRequest(`laporan/pesanan-belum-lunas${listQuery({ date_from: dateFrom, date_to: dateTo })}`)).data,
+  dailySalesReport: async (dateFrom, dateTo) => (await apiRequest(`laporan/penjualan-harian${listQuery({ date_from: dateFrom, date_to: dateTo })}`)).data,
+  itemSalesReport: async (dateFrom, dateTo) => (await apiRequest(`laporan/penjualan-item${listQuery({ date_from: dateFrom, date_to: dateTo })}`)).data,
 }
 
 export function displayApiError(error) {

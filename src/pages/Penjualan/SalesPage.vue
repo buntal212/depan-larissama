@@ -1,23 +1,22 @@
 <template>
   <q-page class="page-shell">
-    <div class="page-heading row items-end justify-between q-col-gutter-md">
-      <div class="col">
+    <div class="page-heading history-page-heading no-print">
+      <div class="history-heading-copy">
         <div class="eyebrow">KASIR WARUNG</div>
         <h1 class="page-title">Riwayat penjualan</h1>
         <p class="page-subtitle">Lihat transaksi kasir dan rincian itemnya.</p>
       </div>
-      <div class="col-auto">
-        <q-btn
-          unelevated
-          no-caps
-          color="primary"
-          icon="point_of_sale"
-          label="Buka kasir"
-          to="/transaksi"
-        />
+      <div class="history-heading-actions no-print">
+        <q-btn-dropdown outline no-caps icon="print" label="Ekspor riwayat" :disable="loading || !filteredSales.length">
+          <q-list dense style="min-width: 200px">
+            <q-item clickable v-close-popup @click="printHistory"><q-item-section avatar><q-icon name="print" /></q-item-section><q-item-section>Cetak riwayat</q-item-section></q-item>
+            <q-item clickable v-close-popup @click="saveHistoryPdf"><q-item-section avatar><q-icon name="picture_as_pdf" /></q-item-section><q-item-section>Download PDF</q-item-section></q-item>
+          </q-list>
+        </q-btn-dropdown>
+        <q-btn unelevated no-caps color="primary" icon="point_of_sale" label="Buka kasir" to="/transaksi" />
       </div>
     </div>
-    <q-card flat bordered class="panel-card">
+    <q-card flat bordered class="panel-card no-print">
       <q-card-section class="row items-center q-col-gutter-md">
         <div class="col-12 col-sm-6">
           <q-input
@@ -60,6 +59,10 @@
       <q-banner v-if="loadError" rounded class="bg-red-1 text-negative q-mx-md q-mb-md">{{
         loadError
       }}</q-banner>
+      <q-card-section class="history-total row items-center justify-between">
+        <div><strong>Total nilai transaksi tampil</strong><div class="panel-caption">Transaksi batal dikecualikan; pesanan belum lunas tetap masuk. Nilai retur belum dikurangi.</div></div>
+        <div class="history-total-value">{{ visibleSalesTotal }}</div>
+      </q-card-section>
       <q-table
         flat
         :rows="filteredSales"
@@ -168,6 +171,11 @@
         </template>
       </q-table>
     </q-card>
+
+    <section class="history-print">
+      <header class="history-print-heading"><h1>Riwayat Penjualan</h1><p>{{ authSession.warung?.nama || 'Larisama' }}</p><p>Periode {{ formatDate(appliedDateFrom) }} – {{ formatDate(appliedDateTo) }}</p><p>{{ filteredSales.length }} transaksi · Total nilai transaksi tampil: {{ visibleSalesTotal }}</p><p>Transaksi batal dikecualikan; pesanan belum lunas tetap masuk. Nilai retur belum dikurangi.</p></header>
+      <table class="history-print-table"><thead><tr><th>No. transaksi</th><th>Tanggal</th><th>Pembayaran</th><th>Status bayar</th><th>Status transaksi</th><th>Total</th></tr></thead><tbody><tr v-for="sale in filteredSales" :key="sale.id"><td>{{ sale.no_transaksi }}</td><td>{{ formatDate(sale.tanggal || sale.created_at) }}</td><td>{{ paymentLabel(sale.metode_pembayaran) }}</td><td>{{ sale.status_pembayaran === 'belum_lunas' ? 'Belum lunas' : 'Lunas' }}</td><td>{{ sale.status }}</td><td class="print-money">{{ formatPrice(sale.total) }}</td></tr></tbody><tfoot><tr><th colspan="5">Total nilai transaksi tampil</th><th class="print-money">{{ visibleSalesTotal }}</th></tr></tfoot></table>
+    </section>
 
     <q-dialog v-model="detailOpen">
       <q-card class="product-form-dialog">
@@ -402,6 +410,7 @@ import ReceiptDialog from '@/pages/Kasir/components/ReceiptDialog.vue'
 import { authSession } from '@/stores/auth-session.js'
 import { newIdempotencyKey } from '@/services/api.js'
 import { categories, products } from '@/stores/catalog.js'
+import { downloadPdfReport } from '@/services/pdf-export.js'
 import {
   createLocalDayTimestamp,
   displayApiError,
@@ -480,6 +489,7 @@ const filteredSales = computed(() =>
     sale.no_transaksi.toLowerCase().includes(search.value.trim().toLowerCase()),
   ),
 )
+const visibleSalesTotal = computed(() => exactMoneySum(filteredSales.value.filter((sale) => sale.status !== 'batal')))
 const mutationTitle = computed(
   () =>
     ({
@@ -746,6 +756,42 @@ function formatPrice(value) {
     maximumFractionDigits: 2,
   }).format(Number(value || 0))
 }
+function exactMoneySum(rows) {
+  const cents = rows.reduce((total, row) => total + moneyToCents(row.total), 0n)
+  const negative = cents < 0n
+  const absolute = negative ? -cents : cents
+  const whole = (absolute / 100n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  const fraction = (absolute % 100n).toString().padStart(2, '0')
+  return `Rp ${negative ? '-' : ''}${whole},${fraction}`
+}
+function moneyToCents(value) {
+  const source = String(value ?? '0')
+  const negative = source.startsWith('-')
+  const [whole = '0', fraction = ''] = source.replace(/^-/, '').split('.')
+  const cents = BigInt(whole || '0') * 100n + BigInt(fraction.padEnd(2, '0').slice(0, 2) || '0')
+  return negative ? -cents : cents
+}
+function printHistory() { window.print() }
+function saveHistoryPdf() {
+  downloadPdfReport({
+    filename: `riwayat-penjualan-${appliedDateFrom.value}-${appliedDateTo.value}`,
+    title: 'Riwayat Penjualan',
+    subtitle: `${authSession.warung?.nama || 'Larisama'} | ${appliedDateFrom.value} - ${appliedDateTo.value}`,
+    sections: [{
+      title: 'Daftar transaksi',
+      headers: ['No. transaksi', 'Tanggal', 'Pembayaran', 'Status bayar', 'Status transaksi', 'Total'],
+      rows: filteredSales.value.map((sale) => [
+        sale.no_transaksi,
+        formatDate(sale.tanggal || sale.created_at),
+        paymentLabel(sale.metode_pembayaran),
+        sale.status_pembayaran === 'belum_lunas' ? 'Belum lunas' : 'Lunas',
+        sale.status,
+        formatPrice(sale.total),
+      ]),
+      foot: ['Total nilai transaksi tampil', '', '', '', '', visibleSalesTotal.value],
+    }],
+  })
+}
 function formatDate(value) {
   return value
     ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(
@@ -805,5 +851,29 @@ function paymentLabel(value) {
 }
 .pending-sale-line > :last-child {
   justify-self: end;
+}
+.history-total { border-top: 1px solid #e7ece8; border-bottom: 1px solid #e7ece8; gap: 12px; }
+.history-total-value { color: #1d5439; font-size: 19px; font-weight: 800; text-align: right; }
+.history-print { display: none; }
+@media print {
+  :global(body), :global(#q-app), :global(.q-layout), :global(.q-page-container) { width: auto !important; min-width: 0 !important; height: auto !important; overflow: visible !important; background: white !important; }
+  :global(.q-header), :global(.q-drawer), :global(.q-footer), :global(.no-print), :global(.q-dialog) { display: none !important; }
+  :global(.q-page-container) { padding: 0 !important; }
+  .page-shell { display: block !important; min-height: 0 !important; padding: 0 !important; }
+  .history-print { display: block !important; color: #17231b; }
+  .history-print-heading { margin-bottom: 16px; }
+  .history-print-heading h1 { margin: 0 0 8px; font-size: 22px; }
+  .history-print-heading p { margin: 3px 0; }
+  .history-print-table { box-sizing: border-box; width: calc(100% - 8mm); max-width: calc(100% - 8mm); table-layout: fixed; border-collapse: collapse; font-size: 7pt; }
+  .history-print-table th, .history-print-table td { box-sizing: border-box; min-width: 0; padding: 4px 3px; border: 1px solid #bbc7bf; text-align: left; overflow-wrap: anywhere; word-break: break-word; white-space: normal !important; }
+  .history-print-table th:nth-child(1), .history-print-table td:nth-child(1) { width: 20%; }
+  .history-print-table th:nth-child(2), .history-print-table td:nth-child(2) { width: 19%; }
+  .history-print-table th:nth-child(3), .history-print-table td:nth-child(3) { width: 14%; }
+  .history-print-table th:nth-child(4), .history-print-table td:nth-child(4) { width: 15%; }
+  .history-print-table th:nth-child(5), .history-print-table td:nth-child(5) { width: 18%; }
+  .history-print-table th:nth-child(6), .history-print-table td:nth-child(6) { width: 14%; }
+  .history-print-table .print-money { text-align: right; }
+  .history-print-table tfoot th { font-weight: 800; }
+  @page { size: A4 portrait; margin: 10mm; }
 }
 </style>

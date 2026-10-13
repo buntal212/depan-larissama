@@ -56,9 +56,15 @@
     >
       <div class="drawer-content">
         <div class="store-switcher">
-          <q-avatar size="40px" class="store-avatar"
-            ><span class="store-avatar-mark" aria-hidden="true"
-          /></q-avatar>
+          <q-avatar size="40px" class="store-avatar">
+            <img
+              v-if="warungLogo"
+              :src="warungLogo"
+              :alt="`Logo ${authSession.warung?.nama || 'warung'}`"
+              @error="handleWarungLogoError"
+            />
+            <span v-else class="store-avatar-mark" aria-hidden="true" />
+          </q-avatar>
           <div class="store-copy" v-if="authSession.user?.role !== 'superadmin'">
             <div class="store-name" :title="authSession.warung?.nama || 'Larisama'">
               {{ authSession.warung?.nama || 'Larisama' }}
@@ -130,7 +136,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import { logout } from '@/services/auth.js'
@@ -142,6 +148,7 @@ const drawerOpen = ref(false)
 const warungOptions = ref([])
 const warungsLoading = ref(false)
 const selectedWarungId = ref(getSelectedWarungId())
+const failedWarungLogo = ref(null)
 const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
@@ -152,6 +159,18 @@ const currentRoute = computed(() => {
   return 'dashboard'
 })
 const productCount = computed(() => products.value.length)
+const warungLogo = computed(() => {
+  const logo = authSession.warung?.logo
+  return logo && logo !== failedWarungLogo.value ? logo : ''
+})
+
+watch(() => authSession.warung?.logo, () => {
+  failedWarungLogo.value = null
+})
+
+function handleWarungLogoError() {
+  failedWarungLogo.value = authSession.warung?.logo || null
+}
 
 onMounted(async () => {
   if (authSession.user?.role !== 'superadmin') return

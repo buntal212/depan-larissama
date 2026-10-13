@@ -5,7 +5,7 @@
     <div class="page-heading row items-end justify-between q-col-gutter-md">
       <div class="col">
         <div class="eyebrow">{{ formattedDate }}</div>
-        <h1 class="page-title">Selamat pagi, Ani <span class="wave">☀️</span></h1>
+        <h1 class="page-title">{{ greeting }} <span class="wave">👋</span></h1>
         <p class="page-subtitle">Ini ringkasan warungmu hari ini. Semangat, ya!</p>
       </div>
       <div class="col-auto heading-actions">
@@ -128,6 +128,17 @@ const loading = ref(false)
 const loadError = ref('')
 const salesReady = ref(false)
 const purchasesReady = ref(false)
+const greeting = computed(() => {
+  const timezone = authSession.warung?.timezone || 'Asia/Jakarta'
+  const hour = Number(new Intl.DateTimeFormat('en-US', {
+    hour: '2-digit',
+    hourCycle: 'h23',
+    timeZone: timezone,
+  }).format(new Date()))
+  const salutation = hour < 11 ? 'Selamat pagi' : hour < 15 ? 'Selamat siang' : hour < 18 ? 'Selamat sore' : 'Selamat malam'
+  const name = authSession.user?.nama?.trim()
+  return name ? `${salutation}, ${name}` : salutation
+})
 const totalCount = computed(() => products.value.length)
 const availableCount = computed(() => products.value.filter((product) => product.available).length)
 const popularProducts = computed(() => products.value.filter((product) => product.available).slice(0, 4))

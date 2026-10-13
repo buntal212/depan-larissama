@@ -1,11 +1,19 @@
 <template>
   <q-page class="page-shell">
-    <div class="page-heading row items-end justify-between q-col-gutter-md">
-      <div class="col"><div class="eyebrow">OPERASIONAL WARUNG</div><h1 class="page-title">Pembelian</h1><p class="page-subtitle">Catat pengeluaran berdasarkan rincian barang yang dibeli.</p></div>
-      <div v-if="canManage" class="col-auto"><q-btn unelevated no-caps color="primary" icon="add" label="Catat pembelian" @click="formOpen = true" /></div>
+    <div class="page-heading history-page-heading no-print">
+      <div class="history-heading-copy"><div class="eyebrow">OPERASIONAL WARUNG</div><h1 class="page-title">Pembelian</h1><p class="page-subtitle">Catat pengeluaran berdasarkan rincian barang yang dibeli.</p></div>
+      <div v-if="canManage" class="history-heading-actions">
+        <q-btn-dropdown outline no-caps icon="print" label="Ekspor riwayat" :disable="loading || !purchases.length">
+          <q-list dense style="min-width: 200px">
+            <q-item clickable v-close-popup @click="printHistory"><q-item-section avatar><q-icon name="print" /></q-item-section><q-item-section>Cetak riwayat</q-item-section></q-item>
+            <q-item clickable v-close-popup @click="saveHistoryPdf"><q-item-section avatar><q-icon name="picture_as_pdf" /></q-item-section><q-item-section>Download PDF</q-item-section></q-item>
+          </q-list>
+        </q-btn-dropdown>
+        <q-btn unelevated no-caps color="primary" icon="add" label="Catat pembelian" @click="formOpen = true" />
+      </div>
     </div>
-    <q-card flat bordered class="panel-card">
-      <q-card-section class="row items-center justify-between"><div><div class="panel-title">Riwayat pembelian</div><div class="panel-caption">Data dan total dari server.</div></div><q-chip class="demo-chip">Data server</q-chip></q-card-section>
+    <q-card flat bordered class="panel-card no-print">
+      <q-card-section class="row items-center justify-between"><div><div class="panel-title">Riwayat pembelian</div><div class="panel-caption">Daftar transaksi dari server.</div></div><q-chip class="demo-chip">Data server</q-chip></q-card-section>
       <q-card-section class="row items-end q-col-gutter-md q-pt-none">
         <div class="col-12 col-sm-4"><q-input v-model="dateFrom" outlined dense type="date" label="Dari tanggal" /></div>
         <div class="col-12 col-sm-4"><q-input v-model="dateTo" outlined dense type="date" label="Sampai tanggal" /></div>
@@ -14,6 +22,7 @@
         </div>
       </q-card-section>
       <q-banner v-if="loadError" rounded class="bg-red-1 text-negative q-mx-md q-mb-md">{{ loadError }}</q-banner>
+      <q-card-section class="history-total row items-center justify-between"><div><strong>Total pembelian tercatat</strong><div class="panel-caption">Transaksi dibatalkan tidak masuk hitungan.</div></div><div class="history-total-value">{{ recordedPurchasesTotal }}</div></q-card-section>
       <q-table flat :rows="purchases" :columns="columns" row-key="id" :loading="loading" :pagination="{ rowsPerPage: 10 }" :grid="$q.screen.lt.sm" no-data-label="Belum ada pembelian.">
         <template #item="props">
           <div class="q-pa-xs col-12">
@@ -39,6 +48,11 @@
         <template #body-cell-actions="props"><q-td :props="props"><q-btn v-if="canManage" flat round dense icon="edit" aria-label="Koreksi pembelian" :disable="props.row.status !== 'tercatat' || loadingCorrection" :loading="loadingCorrection && selectedPurchase?.id === props.row.id" @click="openCorrection(props.row)" /><q-btn v-if="canManage" flat round dense color="negative" icon="block" aria-label="Batalkan pembelian" :disable="props.row.status !== 'tercatat'" @click="openCancellation(props.row)" /></q-td></template>
       </q-table>
     </q-card>
+
+    <section class="history-print">
+      <header class="history-print-heading"><h1>Riwayat Pembelian</h1><p>{{ authSession.warung?.nama || 'Larisama' }}</p><p>Periode {{ formatDate(appliedDateFrom) }} – {{ formatDate(appliedDateTo) }}</p><p>{{ purchases.length }} transaksi · Total pembelian tercatat: {{ recordedPurchasesTotal }}</p><p>Transaksi dibatalkan tidak masuk hitungan total.</p></header>
+      <table class="history-print-table"><thead><tr><th>No. pembelian</th><th>Tanggal</th><th>Status</th><th>Total</th></tr></thead><tbody><tr v-for="purchase in purchases" :key="purchase.id"><td>{{ purchase.no_transaksi }}</td><td>{{ formatDate(purchase.tanggal) }}</td><td>{{ purchase.status }}</td><td class="print-money">{{ formatPrice(purchase.total) }}</td></tr></tbody><tfoot><tr><th colspan="3">Total pembelian tercatat</th><th class="print-money">{{ recordedPurchasesTotal }}</th></tr></tfoot></table>
+    </section>
 
     <q-dialog v-model="formOpen">
       <q-card class="product-form-dialog">
@@ -104,6 +118,7 @@ import { useQuasar } from 'quasar'
 import CurrencyInput from '@/components/CurrencyInput.vue'
 import { authSession } from '@/stores/auth-session.js'
 import { newIdempotencyKey } from '@/services/api.js'
+import { downloadPdfReport } from '@/services/pdf-export.js'
 import { createLocalDayTimestamp, displayApiError, larisamaApi, toMoney, toQuantity } from '@/services/larisama-api.js'
 
 const $q = useQuasar()
@@ -123,6 +138,7 @@ const dateTo = ref(today)
 const appliedDateFrom = ref(today)
 const appliedDateTo = ref(today)
 const canManage = computed(() => ['owner', 'manager', 'superadmin'].includes(authSession.user?.role))
+const recordedPurchasesTotal = computed(() => exactMoneySum(purchases.value.filter((purchase) => purchase.status === 'tercatat')))
 const mutationForm = reactive({ date: '', note: '', reason: '', lines: [] })
 const originalCorrection = ref(null)
 const loadingCorrection = ref(false)
@@ -165,6 +181,35 @@ function addLine() { form.lines.push(blankLine()) }
 function removeLine(index) { form.lines.splice(index, 1) }
 function formatPrice(value) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 2 }).format(Number(value || 0)) }
 function formatDate(value) { return value ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(value)) : '—' }
+function exactMoneySum(rows) {
+  const cents = rows.reduce((total, row) => total + moneyToCents(row.total), 0n)
+  const whole = (cents / 100n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  const fraction = (cents % 100n).toString().padStart(2, '0')
+  return `Rp ${whole},${fraction}`
+}
+function moneyToCents(value) {
+  const [whole = '0', fraction = ''] = String(value ?? '0').split('.')
+  return BigInt(whole || '0') * 100n + BigInt(fraction.padEnd(2, '0').slice(0, 2) || '0')
+}
+function printHistory() { window.print() }
+function saveHistoryPdf() {
+  downloadPdfReport({
+    filename: `riwayat-pembelian-${appliedDateFrom.value}-${appliedDateTo.value}`,
+    title: 'Riwayat Pembelian',
+    subtitle: `${authSession.warung?.nama || 'Larisama'} | ${appliedDateFrom.value} - ${appliedDateTo.value}`,
+    sections: [{
+      title: 'Daftar pembelian',
+      headers: ['No. pembelian', 'Tanggal', 'Status', 'Total'],
+      rows: purchases.value.map((purchase) => [
+        purchase.no_transaksi,
+        formatDate(purchase.tanggal),
+        purchase.status,
+        formatPrice(purchase.total),
+      ]),
+      foot: ['Total pembelian tercatat', '', '', recordedPurchasesTotal.value],
+    }],
+  })
+}
 
 async function openCorrection(purchase) {
   if (loadingCorrection.value) return
@@ -281,4 +326,26 @@ async function submitPurchase() {
 .purchase-line { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; margin: 14px 0; }
 .purchase-line > .row { grid-column: 1 / -1; }
 .purchase-preview { display: flex; justify-content: space-between; margin-top: 18px; padding: 14px; border-radius: 10px; background: #f3f7f4; }
+.history-total { border-top: 1px solid #e7ece8; border-bottom: 1px solid #e7ece8; gap: 12px; }
+.history-total-value { color: #1d5439; font-size: 19px; font-weight: 800; text-align: right; }
+.history-print { display: none; }
+@media print {
+  :global(body), :global(#q-app), :global(.q-layout), :global(.q-page-container) { width: auto !important; min-width: 0 !important; height: auto !important; overflow: visible !important; background: white !important; }
+  :global(.q-header), :global(.q-drawer), :global(.q-footer), :global(.no-print), :global(.q-dialog) { display: none !important; }
+  :global(.q-page-container) { padding: 0 !important; }
+  .page-shell { display: block !important; min-height: 0 !important; padding: 0 !important; }
+  .history-print { display: block !important; color: #17231b; }
+  .history-print-heading { margin-bottom: 16px; }
+  .history-print-heading h1 { margin: 0 0 8px; font-size: 22px; }
+  .history-print-heading p { margin: 3px 0; }
+  .history-print-table { box-sizing: border-box; width: calc(100% - 8mm); max-width: calc(100% - 8mm); table-layout: fixed; border-collapse: collapse; font-size: 9pt; }
+  .history-print-table th, .history-print-table td { box-sizing: border-box; min-width: 0; padding: 6px 5px; border: 1px solid #bbc7bf; text-align: left; overflow-wrap: anywhere; word-break: break-word; white-space: normal !important; }
+  .history-print-table th:nth-child(1), .history-print-table td:nth-child(1) { width: 30%; }
+  .history-print-table th:nth-child(2), .history-print-table td:nth-child(2) { width: 25%; }
+  .history-print-table th:nth-child(3), .history-print-table td:nth-child(3) { width: 22%; }
+  .history-print-table th:nth-child(4), .history-print-table td:nth-child(4) { width: 23%; }
+  .history-print-table .print-money { text-align: right; white-space: nowrap; }
+  .history-print-table tfoot th { font-weight: 800; }
+  @page { size: A4 portrait; margin: 10mm; }
+}
 </style>

@@ -39,7 +39,7 @@ export default defineConfig((/* ctx */) => {
       // https://v2.quasar.dev/quasar-cli-vite/page-routing-with-vue-router#filename-based-routing
       // filenameBasedRouting: true,
 
-      vueRouterMode: 'hash', // available values: 'hash', 'history'
+      vueRouterMode: 'history', // available values: 'hash', 'history'
       // vueRouterBase,
 
       // publicPath: '/',
@@ -170,7 +170,7 @@ export default defineConfig((/* ctx */) => {
     // https://v2.quasar.dev/quasar-cli-vite/developing-pwa/configuring-pwa
     pwa: {
       workboxMode: 'GenerateSW', // 'GenerateSW' or 'InjectManifest'
-      extendPWAManifestJson (manifest) {
+      extendPWAManifestJson(manifest) {
         manifest.scope = '/'
         manifest.related_applications = [
           {

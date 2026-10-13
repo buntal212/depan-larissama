@@ -79,8 +79,10 @@ export async function apiRequest(
   const token = auth ? getAccessToken() : null
 
   if (token) requestHeaders.Authorization = `Bearer ${token}`
+  const isFormData = typeof FormData !== 'undefined' && requestBody instanceof FormData
   if (
     requestBody !== undefined &&
+    !isFormData &&
     !Object.keys(requestHeaders).some((key) => key.toLowerCase() === 'content-type')
   )
     requestHeaders['Content-Type'] = 'application/json'

@@ -12,7 +12,7 @@ const routes = [
       { path: 'pembelian', component: () => import('@/pages/Pembelian/PurchasesPage.vue'), meta: { roles: ['owner', 'manager', 'superadmin'] } },
       { path: 'laporan', component: () => import('@/pages/Laporan/ReportsPage.vue'), meta: { roles: ['owner', 'manager', 'superadmin'] } },
       { path: 'pengguna', component: () => import('@/pages/Pengguna/UsersPage.vue'), meta: { roles: ['owner', 'superadmin'] } },
-      { path: 'warung', component: () => import('@/pages/ProfilWarung/WarungPage.vue'), meta: { roles: ['owner', 'manager', 'kasir'] } },
+      { path: 'warung', component: () => import('@/pages/ProfilWarung/WarungProfilePage.vue'), meta: { roles: ['owner', 'manager', 'kasir'] } },
       { path: 'platform/warungs', component: () => import('@/pages/Platform/WarungsPage.vue'), meta: { roles: ['superadmin'] } },
     ],
   },
