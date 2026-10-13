@@ -980,9 +980,9 @@ body {
 
 .receipt-paper {
   padding: 20px 22px;
-  color: #203c2e;
+  color: #000000;
   font-family: 'Courier New', monospace;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .receipt-store-header,
@@ -990,7 +990,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   text-align: center;
 }
 
@@ -998,10 +998,18 @@ body {
   font-size: 17px;
 }
 
+.receipt-store-logo {
+  width: 42px;
+  height: 42px;
+  margin-bottom: 1px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .receipt-store-header span,
 .receipt-muted,
 .receipt-footer small {
-  color: #66766c;
+  color: #202422;
   overflow-wrap: anywhere;
 }
 
@@ -1014,7 +1022,7 @@ body {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  margin: 5px 0;
+  margin: 1px 0;
 }
 
 .receipt-meta > :last-child {
@@ -1099,9 +1107,55 @@ body {
 
   body.print-pos-receipt .receipt-paper {
     width: 80mm !important;
-    padding: 4mm !important;
+    padding: 3mm !important;
     color: #000 !important;
-    font-size: 10pt !important;
+    font-size: 11.5pt !important;
+    line-height: 1.15;
+  }
+
+  body.print-pos-receipt .receipt-store-header,
+  body.print-pos-receipt .receipt-footer {
+    gap: 2px;
+  }
+
+  body.print-pos-receipt .receipt-store-logo {
+    width: 34px;
+    height: 34px;
+    margin-bottom: 0;
+  }
+
+  body.print-pos-receipt .receipt-store-header strong {
+    font-size: 16pt;
+  }
+
+  body.print-pos-receipt .receipt-divider {
+    margin: 6px 0;
+  }
+
+  body.print-pos-receipt .receipt-meta {
+    margin: 2px 0;
+  }
+
+  body.print-pos-receipt .receipt-item {
+    margin: 5px 0;
+  }
+
+  body.print-pos-receipt .receipt-total {
+    margin-top: 5px;
+    padding-top: 4px;
+    font-size: 13pt;
+  }
+
+  body.print-pos-receipt .receipt-footer small {
+    font-size: 10pt;
+  }
+
+  body.print-pos-receipt .receipt-note {
+    margin-top: 6px;
+  }
+
+  body.print-pos-receipt .receipt-footer {
+    margin-top: 10px;
   }
 
   body.print-pos-receipt .receipt-print-actions {
@@ -1157,12 +1211,16 @@ body {
     color: #88958c;
     box-shadow: 0 -5px 18px #1b3f2909;
   }
-  .mobile-bottom-nav .q-tabs { height: 62px; }
+  .mobile-bottom-nav .q-tabs {
+    height: 62px;
+  }
   .mobile-bottom-nav .q-tab {
     min-height: 56px;
     padding: 3px 8px 0;
   }
-  .mobile-bottom-nav .q-tab__icon { font-size: 20px; }
+  .mobile-bottom-nav .q-tab__icon {
+    font-size: 20px;
+  }
   .mobile-bottom-nav .q-tab__label {
     font-size: 9px;
     font-weight: 600;

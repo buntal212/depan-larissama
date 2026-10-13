@@ -7,6 +7,7 @@
     <q-card class="receipt-dialog-card">
       <div class="receipt-paper">
         <header class="receipt-store-header">
+          <img v-if="warung?.logo" :src="warung.logo" :alt="`Logo ${warung?.nama || 'warung'}`" class="receipt-store-logo" />
           <strong>{{ warung?.nama || 'Warung' }}</strong>
           <span v-if="warung?.alamat">{{ warung.alamat }}</span>
           <span v-if="warung?.telepon">{{ warung.telepon }}</span>
