@@ -173,8 +173,17 @@
     </q-card>
 
     <section class="history-print">
-      <header class="history-print-heading"><h1>Riwayat Penjualan</h1><p>{{ authSession.warung?.nama || 'Larisama' }}</p><p>Periode {{ formatDate(appliedDateFrom) }} – {{ formatDate(appliedDateTo) }}</p><p>{{ filteredSales.length }} transaksi · Total nilai transaksi tampil: {{ visibleSalesTotal }}</p><p>Transaksi batal dikecualikan; pesanan belum lunas tetap masuk. Nilai retur belum dikurangi.</p></header>
-      <table class="history-print-table"><thead><tr><th>No. transaksi</th><th>Tanggal</th><th>Pembayaran</th><th>Status bayar</th><th>Status transaksi</th><th>Total</th></tr></thead><tbody><tr v-for="sale in filteredSales" :key="sale.id"><td>{{ sale.no_transaksi }}</td><td>{{ formatDate(sale.tanggal || sale.created_at) }}</td><td>{{ paymentLabel(sale.metode_pembayaran) }}</td><td>{{ sale.status_pembayaran === 'belum_lunas' ? 'Belum lunas' : 'Lunas' }}</td><td>{{ sale.status }}</td><td class="print-money">{{ formatPrice(sale.total) }}</td></tr></tbody><tfoot><tr><th colspan="5">Total nilai transaksi tampil</th><th class="print-money">{{ visibleSalesTotal }}</th></tr></tfoot></table>
+      <header class="history-print-heading document-print-heading">
+        <div class="document-header-row">
+          <div class="document-store-brand">
+            <img v-if="authSession.warung?.logo" :src="authSession.warung.logo" :alt="`Logo ${authSession.warung?.nama || 'warung'}`" />
+            <div><strong>{{ authSession.warung?.nama || 'Larisama' }}</strong><span v-if="authSession.warung?.alamat">{{ authSession.warung.alamat }}</span><span v-if="authSession.warung?.telepon">{{ authSession.warung.telepon }}</span></div>
+          </div>
+          <div class="document-info"><h1>Riwayat Penjualan</h1><p>Periode {{ formatPeriodDate(appliedDateFrom) }} – {{ formatPeriodDate(appliedDateTo) }}</p></div>
+        </div>
+        <p class="document-print-notes">{{ filteredSales.length }} transaksi. Transaksi batal dikecualikan; pesanan belum lunas tetap masuk. Nilai retur belum dikurangi.</p>
+      </header>
+      <table class="history-print-table"><thead><tr><th>No. transaksi / tanggal</th><th>Pembayaran</th><th>Status bayar</th><th>Total</th></tr></thead><tbody><tr v-for="sale in filteredSales" :key="sale.id"><td><strong>{{ sale.no_transaksi }}</strong><br />{{ formatDate(sale.tanggal || sale.created_at) }}</td><td>{{ paymentLabel(sale.metode_pembayaran) }}</td><td>{{ sale.status_pembayaran === 'belum_lunas' ? 'Belum lunas' : 'Lunas' }}</td><td class="print-money">{{ formatPrice(sale.total) }}</td></tr></tbody><tfoot><tr><th colspan="3">Total nilai transaksi tampil</th><th class="print-money">{{ visibleSalesTotal }}</th></tr></tfoot></table>
     </section>
 
     <q-dialog v-model="detailOpen">
@@ -410,7 +419,7 @@ import ReceiptDialog from '@/pages/Kasir/components/ReceiptDialog.vue'
 import { authSession } from '@/stores/auth-session.js'
 import { newIdempotencyKey } from '@/services/api.js'
 import { categories, products } from '@/stores/catalog.js'
-import { downloadPdfReport } from '@/services/pdf-export.js'
+import { downloadPdfReport, printPdfReport } from '@/services/pdf-export.js'
 import {
   createLocalDayTimestamp,
   displayApiError,
@@ -771,32 +780,38 @@ function moneyToCents(value) {
   const cents = BigInt(whole || '0') * 100n + BigInt(fraction.padEnd(2, '0').slice(0, 2) || '0')
   return negative ? -cents : cents
 }
-function printHistory() { window.print() }
-function saveHistoryPdf() {
-  downloadPdfReport({
+function printHistory() { printPdfReport(salesHistoryPdfOptions()) }
+function saveHistoryPdf() { downloadPdfReport(salesHistoryPdfOptions()) }
+function salesHistoryPdfOptions() {
+  return {
     filename: `riwayat-penjualan-${appliedDateFrom.value}-${appliedDateTo.value}`,
     title: 'Riwayat Penjualan',
-    subtitle: `${authSession.warung?.nama || 'Larisama'} | ${appliedDateFrom.value} - ${appliedDateTo.value}`,
+    subtitle: `Periode ${formatPeriodDate(appliedDateFrom.value)} - ${formatPeriodDate(appliedDateTo.value)}`,
+    warung: authSession.warung,
     sections: [{
       title: 'Daftar transaksi',
-      headers: ['No. transaksi', 'Tanggal', 'Pembayaran', 'Status bayar', 'Status transaksi', 'Total'],
+      headers: ['No. transaksi / tanggal', 'Pembayaran', 'Status bayar', 'Total'],
+      columnWidths: [76, 34, 32, 40],
       rows: filteredSales.value.map((sale) => [
-        sale.no_transaksi,
-        formatDate(sale.tanggal || sale.created_at),
+        `${sale.no_transaksi}\n${formatDate(sale.tanggal || sale.created_at)}`,
         paymentLabel(sale.metode_pembayaran),
         sale.status_pembayaran === 'belum_lunas' ? 'Belum lunas' : 'Lunas',
-        sale.status,
         formatPrice(sale.total),
       ]),
-      foot: ['Total nilai transaksi tampil', '', '', '', '', visibleSalesTotal.value],
+      foot: ['Total nilai transaksi tampil', '', '', visibleSalesTotal.value],
     }],
-  })
+  }
 }
 function formatDate(value) {
   return value
     ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(
         new Date(value),
       )
+    : '—'
+}
+function formatPeriodDate(value) {
+  return value
+    ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: authSession.warung?.timezone || 'Asia/Jakarta' }).format(new Date(`${value}T00:00:00`))
     : '—'
 }
 function paymentLabel(value) {
@@ -864,14 +879,13 @@ function paymentLabel(value) {
   .history-print-heading { margin-bottom: 16px; }
   .history-print-heading h1 { margin: 0 0 8px; font-size: 22px; }
   .history-print-heading p { margin: 3px 0; }
-  .history-print-table { box-sizing: border-box; width: calc(100% - 8mm); max-width: calc(100% - 8mm); table-layout: fixed; border-collapse: collapse; font-size: 7pt; }
-  .history-print-table th, .history-print-table td { box-sizing: border-box; min-width: 0; padding: 4px 3px; border: 1px solid #bbc7bf; text-align: left; overflow-wrap: anywhere; word-break: break-word; white-space: normal !important; }
-  .history-print-table th:nth-child(1), .history-print-table td:nth-child(1) { width: 20%; }
-  .history-print-table th:nth-child(2), .history-print-table td:nth-child(2) { width: 19%; }
-  .history-print-table th:nth-child(3), .history-print-table td:nth-child(3) { width: 14%; }
-  .history-print-table th:nth-child(4), .history-print-table td:nth-child(4) { width: 15%; }
-  .history-print-table th:nth-child(5), .history-print-table td:nth-child(5) { width: 18%; }
-  .history-print-table th:nth-child(6), .history-print-table td:nth-child(6) { width: 14%; }
+  .history-print-table { box-sizing: border-box; width: calc(100% - 8mm); max-width: calc(100% - 8mm); table-layout: fixed; border-collapse: collapse; font-size: 12pt; }
+  .history-print-table th, .history-print-table td { box-sizing: border-box; min-width: 0; padding: 4px 3px; border: 1px solid #bbc7bf; text-align: left; vertical-align: middle; overflow-wrap: anywhere; word-break: break-word; white-space: normal !important; }
+  .history-print-table th { text-align: center; }
+  .history-print-table th:nth-child(1), .history-print-table td:nth-child(1) { width: 42%; }
+  .history-print-table th:nth-child(2), .history-print-table td:nth-child(2) { width: 18%; }
+  .history-print-table th:nth-child(3), .history-print-table td:nth-child(3) { width: 18%; }
+  .history-print-table th:nth-child(4), .history-print-table td:nth-child(4) { width: 22%; }
   .history-print-table .print-money { text-align: right; }
   .history-print-table tfoot th { font-weight: 800; }
   @page { size: A4 portrait; margin: 10mm; }

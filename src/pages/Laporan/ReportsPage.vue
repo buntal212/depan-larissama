@@ -36,7 +36,15 @@
       <div v-for="message in errors" :key="message">{{ message }}</div>
     </q-banner>
     <section class="report-print">
-      <header class="report-print-heading"><h1>Laporan {{ activeLabel }}</h1><p>{{ authSession.warung?.nama || 'Larisama' }}</p><p>Periode {{ formatDate(dateFrom) }} - {{ formatDate(dateTo) }}</p></header>
+      <header class="report-print-heading document-print-heading">
+        <div class="document-header-row">
+          <div class="document-store-brand">
+            <img v-if="authSession.warung?.logo" :src="authSession.warung.logo" :alt="`Logo ${authSession.warung?.nama || 'warung'}`" />
+            <div><strong>{{ authSession.warung?.nama || 'Larisama' }}</strong><span v-if="authSession.warung?.alamat">{{ authSession.warung.alamat }}</span><span v-if="authSession.warung?.telepon">{{ authSession.warung.telepon }}</span></div>
+          </div>
+          <div class="document-info"><h1>Laporan {{ activeLabel }}</h1><p>Periode {{ formatDate(dateFrom) }} - {{ formatDate(dateTo) }}</p></div>
+        </div>
+      </header>
       <article v-for="section in reportSections" :key="section.title" class="report-print-section">
         <h2>{{ section.title }}</h2>
         <table class="report-print-table"><thead><tr><th v-for="header in section.headers" :key="header">{{ header }}</th></tr></thead><tbody>
@@ -73,7 +81,7 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import { downloadPdfReport } from '@/services/pdf-export.js'
+import { downloadPdfReport, printPdfReport } from '@/services/pdf-export.js'
 import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
 import { authSession } from '@/stores/auth-session.js'
 
@@ -209,14 +217,16 @@ async function loadActiveReport() {
   if (sequence === requestSequence) loading.value = false
 }
 
-function printReport() { window.print() }
-function downloadPdf() {
-  downloadPdfReport({
+function printReport() { printPdfReport(reportPdfOptions()) }
+function downloadPdf() { downloadPdfReport(reportPdfOptions()) }
+function reportPdfOptions() {
+  return {
     filename: `laporan-${activeTab.value}-${dateFrom.value}-${dateTo.value}`,
     title: `Laporan ${activeLabel.value}`,
-    subtitle: `${authSession.warung?.nama || 'Larisama'} | ${dateFrom.value} - ${dateTo.value}`,
+    subtitle: `Periode ${formatDate(dateFrom.value)} - ${formatDate(dateTo.value)}`,
+    warung: authSession.warung,
     sections: reportSections.value,
-  })
+  }
 }
 function formatPrice(value) {
   if (value === null || value === undefined || value === '') return '—'
