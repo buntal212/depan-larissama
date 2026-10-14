@@ -70,6 +70,7 @@
       <template v-else-if="activeTab === 'sales'">
         <q-card flat bordered class="panel-card q-mb-lg"><q-card-section class="row items-center justify-between"><div><div class="panel-title">Pendapatan setelah retur</div><div class="panel-caption">Total penjualan setelah diskon dikurangi retur pada periode ini; belum dikurangi pembelian atau biaya operasional.</div></div><div class="report-total q-mb-none">{{ salesReport ? formatPrice(salesReport.total_pendapatan) : '—' }}</div></q-card-section><q-separator /><q-card-section v-if="salesReport?.per_metode_pembayaran?.length" class="method-grid"><div v-for="method in salesReport.per_metode_pembayaran" :key="method.metode_pembayaran" class="method-card"><div class="method-name">{{ paymentLabel(method.metode_pembayaran) }}</div><strong>{{ formatPrice(method.total_penjualan) }}</strong><span>{{ method.jumlah_transaksi }} transaksi</span></div></q-card-section><q-card-section v-else class="panel-caption">{{ salesReport ? 'Belum ada transaksi pada periode ini.' : 'Data laporan penjualan tidak tersedia.' }}</q-card-section></q-card>
         <q-card flat bordered class="panel-card q-mb-lg"><q-card-section><div class="panel-title">Tren penjualan harian</div><div class="panel-caption">Pengelompokan berdasarkan tanggal pembayaran dan tanggal pencatatan retur.</div></q-card-section><q-separator /><q-card-section v-if="dailyReport?.length" class="daily-grid"><article v-for="day in dailyReport" :key="day.tanggal" class="daily-card"><header><strong>{{ formatDate(day.tanggal) }}</strong><span>{{ day.jumlah_transaksi }} transaksi</span></header><div class="daily-values"><div><span>Penjualan</span><strong>{{ formatPrice(day.total_penjualan) }}</strong></div><div><span>Retur</span><strong>{{ formatPrice(day.total_retur) }}</strong></div><div class="daily-net"><span>Pendapatan setelah retur</span><strong>{{ formatPrice(day.total_pendapatan) }}</strong></div><div><span>Jumlah retur</span><strong>{{ day.jumlah_retur }}</strong></div></div></article></q-card-section><q-card-section v-else class="panel-caption">{{ dailyReport ? 'Belum ada transaksi atau retur pada periode ini.' : 'Data tren penjualan tidak tersedia.' }}</q-card-section></q-card>
+        <q-card flat bordered class="panel-card q-mb-lg"><q-card-section><div class="panel-title">5 Menu Terlaris</div><div class="panel-caption">Diurutkan berdasarkan jumlah terjual. Baris dengan harga berbeda digabung berdasarkan menu.</div></q-card-section><q-separator /><q-card-section v-if="topSellingMenus.length" class="top-menu-list"><article v-for="(item, index) in topSellingMenus" :key="item.menu_id" class="top-menu-item"><q-badge class="top-menu-rank" rounded color="primary">{{ index + 1 }}</q-badge><strong>{{ item.nama_item }}</strong><span>{{ formatQuantity(item.qtyScaled) }} terjual</span></article></q-card-section><q-card-section v-else class="panel-caption">{{ itemReport ? 'Belum ada menu katalog terjual pada periode ini.' : 'Data penjualan item tidak tersedia.' }}</q-card-section></q-card>
         <q-card flat bordered class="panel-card"><q-card-section><div class="panel-title">Penjualan per item</div><div class="panel-caption">Nama dan harga mengikuti snapshot transaksi. Retur dan diskon header tidak dialokasikan ke item.</div></q-card-section><q-separator /><q-card-section v-if="itemReport?.length" class="item-grid"><article v-for="(item, index) in itemReport" :key="item.menu_id || item.nama_item + '-' + item.harga_saat_transaksi + '-' + index" class="item-card"><div class="item-heading"><strong>{{ item.nama_item }}</strong><q-badge :color="item.jenis_item === 'menu' ? 'positive' : 'grey-7'">{{ item.jenis_item === 'menu' ? 'Menu' : 'Item bebas' }}</q-badge></div><div class="item-values"><div><span>Terjual</span><strong>{{ item.qty_terjual }}</strong></div><div><span>Harga saat transaksi</span><strong>{{ formatPrice(item.harga_saat_transaksi) }}</strong></div><div class="item-total"><span>Nilai item</span><strong>{{ formatPrice(item.nilai_item) }}</strong></div></div></article></q-card-section><q-card-section v-else class="panel-caption">{{ itemReport ? 'Belum ada item terjual pada periode ini.' : 'Data penjualan per item tidak tersedia.' }}</q-card-section></q-card>
       </template>
       <template v-else-if="activeTab === 'purchases'"><q-card flat bordered class="panel-card report-single-card"><q-card-section><div class="panel-title">Total pembelian</div><div class="panel-caption">Pembelian tercatat pada periode yang dipilih. Transaksi yang dibatalkan tidak dihitung.</div><div class="report-total q-mt-md">{{ purchaseReport ? formatPrice(purchaseReport.total_pembelian) : '—' }}</div><div class="panel-caption">{{ purchaseReport ? purchaseReport.jumlah_transaksi + ' pembelian tercatat' : 'Data laporan pembelian tidak tersedia.' }}</div></q-card-section></q-card></template>
@@ -96,6 +97,19 @@ const dailyReport = ref(null)
 const itemReport = ref(null)
 const errors = ref([])
 const loading = ref(false)
+const topSellingMenus = computed(() => {
+  const menus = new Map()
+  for (const item of itemReport.value || []) {
+    if (item.jenis_item !== 'menu' || item.menu_id === null || item.menu_id === undefined) continue
+    const key = String(item.menu_id)
+    const menu = menus.get(key) || { menu_id: key, nama_item: item.nama_item, qtyScaled: 0n }
+    menu.qtyScaled += quantityToScaled(item.qty_terjual)
+    menus.set(key, menu)
+  }
+  return [...menus.values()]
+    .sort((a, b) => a.qtyScaled === b.qtyScaled ? a.nama_item.localeCompare(b.nama_item, 'id') : (a.qtyScaled > b.qtyScaled ? -1 : 1))
+    .slice(0, 5)
+})
 const activeLabel = computed(() => ({ summary: 'Ringkasan', sales: 'Penjualan', purchases: 'Pembelian', unpaid: 'Belum Lunas' })[activeTab.value])
 const activeHasData = computed(() => {
   if (activeTab.value === 'summary') return Boolean(salesReport.value || purchaseReport.value || unpaidReport.value)
@@ -141,6 +155,11 @@ const reportSections = computed(() => {
               ]),
             ]
           : [],
+      },
+      {
+        title: '5 Menu Terlaris',
+        headers: ['Peringkat', 'Menu', 'Jumlah terjual'],
+        rows: topSellingMenus.value.map((item, index) => [String(index + 1), item.nama_item, formatQuantity(item.qtyScaled)]),
       },
       {
         title: 'Tren penjualan harian',
@@ -233,6 +252,20 @@ function formatPrice(value) {
   const source = String(value); const negative = source.startsWith('-'); const [wholePart, fractionPart = '00'] = source.replace(/^-/, '').split('.')
   return 'Rp ' + (negative ? '-' : '') + wholePart.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + fractionPart.padEnd(2, '0').slice(0, 2)
 }
+function quantityToScaled(value) {
+  const source = String(value ?? '0')
+  const negative = source.startsWith('-')
+  const [whole, fraction = ''] = source.replace(/^-/, '').split('.')
+  const scaled = BigInt(whole || '0') * 100n + BigInt((fraction + '00').slice(0, 2))
+  return negative ? -scaled : scaled
+}
+function formatQuantity(scaled) {
+  const negative = scaled < 0n
+  const absolute = negative ? -scaled : scaled
+  const whole = absolute / 100n
+  const fraction = String(absolute % 100n).padStart(2, '0')
+  return `${negative ? '-' : ''}${whole}${fraction === '00' ? '' : `,${fraction}`}`
+}
 function formatDate(value) { return value ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: authSession.warung?.timezone || 'Asia/Jakarta' }).format(new Date(value + 'T00:00:00')) : '—' }
 function paymentLabel(value) { return ({ cash: 'Tunai', qris: 'QRIS', transfer: 'Transfer' })[value] || value || '—' }
 onMounted(loadActiveReport)
@@ -249,6 +282,11 @@ onMounted(loadActiveReport)
 .method-card strong { color: #1d5439; font-size: 19px; overflow-wrap: anywhere; }
 .method-card span, .daily-card span, .item-card span { color: #68766e; font-size: 12px; }
 .daily-grid, .item-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 12px; }
+.top-menu-list { display: grid; gap: 10px; }
+.top-menu-item { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-width: 0; padding: 12px; border: 1px solid #e0e7e2; border-radius: 10px; }
+.top-menu-item :deep(.top-menu-rank) { display: flex; align-items: center; justify-content: center; width: 36px; min-width: 36px; height: 22px; padding: 0; line-height: 1; text-align: center; }
+.top-menu-item strong { min-width: 0; overflow-wrap: anywhere; }
+.top-menu-item > span { color: #1d5439; font-weight: 700; text-align: right; }
 .daily-card header, .item-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .daily-card header span { text-align: right; }
 .daily-values, .item-values { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
@@ -259,7 +297,7 @@ onMounted(loadActiveReport)
 .report-actions { display: flex; justify-content: flex-end; }
 .report-loading { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 180px; color: #68766e; }
 .report-print { display: none; }
-@media (max-width: 600px) { .report-actions { width: 100%; } .report-actions :deep(.q-btn-dropdown) { width: 100%; } }
+@media (max-width: 600px) { .report-actions { width: 100%; } .report-actions :deep(.q-btn-dropdown) { width: 100%; } .top-menu-item { grid-template-columns: 36px minmax(0, 1fr); } .top-menu-item > span { grid-column: 2; text-align: left; } }
 @media print {
   :global(body), :global(#q-app), :global(.q-layout), :global(.q-page-container) { min-width: 0 !important; width: auto !important; height: auto !important; overflow: visible !important; background: white !important; }
   :global(.q-header), :global(.q-drawer), :global(.q-footer), :global(.no-print), :global(.report-errors), .report-screen { display: none !important; }
