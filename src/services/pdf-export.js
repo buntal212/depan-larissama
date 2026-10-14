@@ -106,7 +106,9 @@ async function createReportDocument({ title, subtitle, sections, warung }) {
 }
 
 function isNominalColumn(header) {
-  return /nilai|nominal|harga|total|penjualan|retur|pendapatan|pembelian|belum lunas/i.test(String(header))
+  const label = String(header).trim()
+  if (/^(no\.?|nomor)\s/i.test(label)) return false
+  return /nilai|nominal|harga|total|penjualan|retur|pendapatan|pembelian|belum lunas/i.test(label)
 }
 
 function loadImageData(source) {
