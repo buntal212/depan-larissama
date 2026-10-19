@@ -29,7 +29,7 @@ Pastikan API PHP berjalan dan database sudah disiapkan. Konfigurasi alamat API p
 ```powershell
 cd depan-larissama
 npm.cmd ci
-npm.cmd run dev -- --mode pwa
+npm.cmd run dev
 ```
 
 Buka URL yang ditampilkan Quasar (default `http://localhost:9000`). Hentikan server dengan `Ctrl+C`.
@@ -37,7 +37,7 @@ Buka URL yang ditampilkan Quasar (default `http://localhost:9000`). Hentikan ser
 Untuk membangun berkas PWA produksi:
 
 ```powershell
-npm.cmd run build -- --mode pwa
+npm.cmd run build
 ```
 
 Hasil build berada di `dist/pwa`. Sajikan melalui HTTP/HTTPS untuk mencoba instalasi PWA dan service worker; jangan membuka `index.html` langsung dari `file://`.
@@ -64,5 +64,5 @@ Salin `.env.example` menjadi `.env` dan sesuaikan `VITE_API_BASE_URL` dengan hos
 
 ```powershell
 npm.cmd run lint:check
-npm.cmd run build -- --mode pwa
+npm.cmd run build
 ```

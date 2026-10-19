@@ -23,6 +23,10 @@ function isIosSafari() {
   return (isIphoneOrIpad || isIpadDesktopUserAgent) && /Safari/.test(navigator.userAgent) && !/Chrome|Chromium|CriOS|FxiOS|Edg|OPR/.test(navigator.userAgent)
 }
 
+function isAndroidBrowser() {
+  return /Android/i.test(window.navigator.userAgent)
+}
+
 function resetInstallDialog() {
   installPromptDismissed.value = false
 }
@@ -43,8 +47,6 @@ export async function requestAppInstall() {
 }
 
 export default async function registerPwaInstallPrompt() {
-  if (await isInstalledApp()) return
-
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault()
     deferredInstallPrompt.value = event
@@ -58,8 +60,15 @@ export default async function registerPwaInstallPrompt() {
     dismissInstallPrompt()
   })
 
+  if (await isInstalledApp() || deferredInstallPrompt.value !== null) return
+
   if (isIosSafari()) {
     manualInstallGuide.value = 'ios'
+    resetInstallDialog()
+  } else if (isAndroidBrowser()) {
+    // Chrome bisa menahan beforeinstallprompt (misalnya setelah pengguna pernah menolaknya).
+    // Tetap tampilkan panduan agar pengguna dapat memasang aplikasi dari menu browser.
+    manualInstallGuide.value = 'android'
     resetInstallDialog()
   }
 }

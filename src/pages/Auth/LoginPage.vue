@@ -150,7 +150,7 @@
             <q-card-actions align="right">
               <q-btn flat no-caps label="Nanti saja" color="grey-8" @click="dismissInstallPrompt" />
               <q-btn v-if="deferredInstallPrompt" unelevated no-caps label="Install" color="primary" :loading="installing" @click="installApp" />
-              <q-btn v-else-if="manualInstallGuide === 'ios'" unelevated no-caps label="Mengerti" color="primary" @click="dismissInstallPrompt" />
+              <q-btn v-else-if="manualInstallGuide" unelevated no-caps label="Mengerti" color="primary" @click="dismissInstallPrompt" />
             </q-card-actions>
           </q-card>
         </q-dialog>
@@ -208,7 +208,9 @@ const showInstallDialog = computed({
 const installInstructions = computed(() =>
   manualInstallGuide.value === 'ios'
     ? 'Di Safari, tekan tombol Bagikan lalu pilih “Tambahkan ke Layar Utama”.'
-    : 'Tekan tombol Install untuk menambahkan Larisama ke perangkat ini.',
+    : manualInstallGuide.value === 'android'
+      ? 'Buka menu browser (ikon tiga titik), lalu pilih Install aplikasi atau Tambahkan ke layar utama.'
+      : 'Tekan tombol Install untuk menambahkan Larisama ke perangkat ini.',
 )
 
 async function installApp() {
