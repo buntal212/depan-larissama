@@ -9,7 +9,12 @@
         <header class="receipt-store-header">
           <img v-if="warung?.logo" :src="warung.logo" :alt="`Logo ${warung?.nama || 'warung'}`" class="receipt-store-logo" />
           <div class="receipt-store-header-lines">
-            <div v-for="(line, index) in storeHeaderLines" :key="index" class="receipt-line receipt-header-line">{{ line }}</div>
+            <div
+              v-for="(line, index) in storeHeaderLines"
+              :key="index"
+              class="receipt-line receipt-header-line"
+              :class="{ 'receipt-header-line--small': line.small }"
+            >{{ line.text }}</div>
           </div>
         </header>
         <div class="receipt-text" aria-label="Pratinjau isi struk">
@@ -17,7 +22,11 @@
             v-for="(line, index) in receiptLines"
             :key="index"
             class="receipt-line"
-            :class="{ 'receipt-line--emphasis': line.emphasis, 'receipt-line--muted': line.muted }"
+            :class="{
+              'receipt-line--emphasis': line.emphasis,
+              'receipt-line--muted': line.muted,
+              'receipt-line--small': line.small,
+            }"
           >{{ line.text || '\u00a0' }}</div>
         </div>
       </div>
@@ -79,8 +88,14 @@ const activeColumns = computed({
   },
 })
 const storeHeaderLines = computed(() => {
-  const rows = [props.warung?.nama || 'Warung', props.warung?.alamat, props.warung?.telepon]
-  return rows.filter(Boolean).flatMap((row) => alignCenter(row, activeColumns.value))
+  const rows = []
+  const appendCentered = (value, small = false) => {
+    if (value) alignCenter(value, activeColumns.value).forEach((text) => rows.push({ text, small }))
+  }
+  appendCentered(props.warung?.nama || 'Warung')
+  appendCentered(props.warung?.alamat, true)
+  appendCentered(props.warung?.telepon)
+  return rows
 })
 const receiptLines = computed(() => formatReceipt(props.sale, props.cashierName, activeColumns.value))
 watch([paperWidth, columnsByPaper], saveSettings, { deep: true })
@@ -164,8 +179,8 @@ function formatReceipt(sale, cashierName, columns) {
   if (!data) return []
 
   const lines = []
-  const add = (text, emphasis = false, muted = false) => lines.push({ text, emphasis, muted })
-  const addWrapped = (rows, emphasis = false, muted = false) => rows.forEach((text) => add(text, emphasis, muted))
+  const add = (text, emphasis = false, muted = false, small = false) => lines.push({ text, emphasis, muted, small })
+  const addWrapped = (rows, emphasis = false, muted = false, small = false) => rows.forEach((text) => add(text, emphasis, muted, small))
   const divider = () => add('-'.repeat(columns), false, true)
   const addPair = (label, value, emphasis = false) => addWrapped(twoColumns(label, value, columns), emphasis)
 
@@ -191,8 +206,8 @@ function formatReceipt(sale, cashierName, columns) {
   }
   if (data.catatan) addWrapped(alignLeft(`Catatan: ${data.catatan}`, columns), false, true)
   divider()
-  addWrapped(alignCenter(data.status_pembayaran === 'belum_lunas' ? 'Pesanan belum dibayar' : 'Terima kasih atas kunjungan Anda', columns))
-  addWrapped(alignCenter('Dibuat oleh Udumbara Informatika', columns), false, true)
+  addWrapped(alignCenter(data.status_pembayaran === 'belum_lunas' ? 'Pesanan belum dibayar' : 'Terima kasih atas kunjungan Anda', columns), false, false, true)
+  addWrapped(alignCenter('Dibuat oleh Udumbara Informatika', columns), false, true, true)
   return lines
 }
 

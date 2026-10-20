@@ -1821,6 +1821,8 @@ body,
 
 .receipt-line--emphasis { font-weight: 700; }
 .receipt-line--muted { color: #333; }
+.receipt-line--small,
+.receipt-header-line--small { font-size: 9px !important; }
 
 .receipt-print-actions {
   display: flex;
@@ -1947,6 +1949,8 @@ body,
     line-height: 1.2 !important;
     white-space: pre !important;
   }
+  body.print-pos-receipt .receipt-line--small,
+  body.print-pos-receipt .receipt-header-line--small { font-size: 9px !important; }
   body.print-pos-receipt .receipt-print-actions { display: none !important; }
 
   @page larisama-receipt-58 { size: 58mm auto; margin: 0; }
