@@ -1790,6 +1790,13 @@ body,
   object-fit: contain;
 }
 
+.receipt-store-header-lines {
+  width: 100%;
+  overflow: hidden;
+  font: inherit;
+  text-align: left;
+}
+
 .receipt-text {
   margin-top: 10px;
   font-family: 'Courier New', 'Liberation Mono', monospace;
@@ -1916,6 +1923,17 @@ body,
     margin-inline: auto !important;
     font-size: 8pt !important;
     text-align: center !important;
+  }
+  body.print-pos-receipt .receipt-store-header-lines {
+    width: 100% !important;
+    overflow: hidden !important;
+    font: inherit !important;
+    text-align: left !important;
+  }
+  body.print-pos-receipt .receipt-header-line {
+    min-height: 0 !important;
+    line-height: 1.2 !important;
+    white-space: pre !important;
   }
   body.print-pos-receipt .receipt-print-actions { display: none !important; }
 

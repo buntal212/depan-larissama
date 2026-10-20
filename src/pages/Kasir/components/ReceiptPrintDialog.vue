@@ -8,9 +8,9 @@
       <div class="receipt-paper">
         <header class="receipt-store-header">
           <img v-if="warung?.logo" :src="warung.logo" :alt="`Logo ${warung?.nama || 'warung'}`" class="receipt-store-logo" />
-          <strong>{{ warung?.nama || 'Warung' }}</strong>
-          <span v-if="warung?.alamat">{{ warung.alamat }}</span>
-          <span v-if="warung?.telepon">{{ warung.telepon }}</span>
+          <div class="receipt-store-header-lines">
+            <div v-for="(line, index) in storeHeaderLines" :key="index" class="receipt-line receipt-header-line">{{ line }}</div>
+          </div>
         </header>
         <div class="receipt-text" aria-label="Pratinjau isi struk">
           <div
@@ -77,6 +77,10 @@ const activeColumns = computed({
     const parsed = Number.parseInt(value, 10)
     if (Number.isInteger(parsed)) columnsByPaper[paperWidth.value] = clampColumns(parsed, paperWidth.value)
   },
+})
+const storeHeaderLines = computed(() => {
+  const rows = [props.warung?.nama || 'Warung', props.warung?.alamat, props.warung?.telepon]
+  return rows.filter(Boolean).flatMap((row) => alignCenter(row, activeColumns.value))
 })
 const receiptLines = computed(() => formatReceipt(props.sale, props.cashierName, activeColumns.value))
 watch([paperWidth, columnsByPaper], saveSettings, { deep: true })
