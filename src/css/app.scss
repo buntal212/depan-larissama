@@ -1793,7 +1793,13 @@ body,
 .receipt-store-header-lines {
   width: 100%;
   overflow: hidden;
-  font: inherit;
+  font-family: 'Courier New', 'Liberation Mono', monospace;
+  font-size: 10px;
+  line-height: 1.25;
+  font-kerning: none;
+  font-variant-ligatures: none;
+  letter-spacing: normal;
+  word-spacing: normal;
   text-align: left;
 }
 
@@ -1927,7 +1933,13 @@ body,
   body.print-pos-receipt .receipt-store-header-lines {
     width: 100% !important;
     overflow: hidden !important;
-    font: inherit !important;
+    font-family: 'Courier New', 'Liberation Mono', monospace !important;
+    font-size: 8pt !important;
+    line-height: 1.2 !important;
+    font-kerning: none !important;
+    font-variant-ligatures: none !important;
+    letter-spacing: normal !important;
+    word-spacing: normal !important;
     text-align: left !important;
   }
   body.print-pos-receipt .receipt-header-line {
