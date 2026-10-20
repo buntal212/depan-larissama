@@ -31,6 +31,7 @@
         </div>
       </div>
       <q-separator />
+      <BlePrinterPanel />
       <q-card-actions class="receipt-print-actions">
         <div class="receipt-print-settings">
           <q-select
@@ -64,6 +65,7 @@
 
 <script setup>
 import { computed, nextTick, reactive, ref, watch } from 'vue'
+import BlePrinterPanel from '@/pages/Kasir/components/BlePrinterPanel.vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
