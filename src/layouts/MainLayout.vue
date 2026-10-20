@@ -22,7 +22,7 @@
             alt="Larisama — Dagangan Laris, Sukses Bersama"
           />
         </router-link>
-
+        <!-- <span class="app-title">XXX</span> -->
         <q-space />
 
         <q-btn-dropdown flat no-caps dropdown-icon="expand_more" class="account-menu">
@@ -164,9 +164,12 @@ const warungLogo = computed(() => {
   return logo && logo !== failedWarungLogo.value ? logo : ''
 })
 
-watch(() => authSession.warung?.logo, () => {
-  failedWarungLogo.value = null
-})
+watch(
+  () => authSession.warung?.logo,
+  () => {
+    failedWarungLogo.value = null
+  },
+)
 
 function handleWarungLogoError() {
   failedWarungLogo.value = authSession.warung?.logo || null
@@ -177,7 +180,9 @@ onMounted(async () => {
   warungsLoading.value = true
   try {
     warungOptions.value = await larisamaApi.listWarungs()
-    const selected = warungOptions.value.find((warung) => String(warung.id) === String(selectedWarungId.value))
+    const selected = warungOptions.value.find(
+      (warung) => String(warung.id) === String(selectedWarungId.value),
+    )
     if (selected) setSelectedWarung(selected)
     else if (selectedWarungId.value) {
       selectedWarungId.value = null
@@ -185,7 +190,9 @@ onMounted(async () => {
     }
   } catch (error) {
     $q.notify({ type: 'negative', message: displayApiError(error), position: 'top' })
-  } finally { warungsLoading.value = false }
+  } finally {
+    warungsLoading.value = false
+  }
 })
 
 function changeWarung(id) {
@@ -209,6 +216,7 @@ const navigation = computed(() => {
       { label: 'Pembelian', icon: 'shopping_cart', to: '/pembelian' },
       { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
       { label: 'Pengguna', icon: 'group', to: '/pengguna' },
+      { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
     ]
   if (role === 'kasir')
     return [
@@ -216,6 +224,7 @@ const navigation = computed(() => {
       { label: 'Kasir', icon: 'point_of_sale', to: '/transaksi' },
       catalog,
       salesHistory,
+      { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
     ]
   if (role === 'manager')
     return [
@@ -225,6 +234,7 @@ const navigation = computed(() => {
       { label: 'Pembelian', icon: 'shopping_cart', to: '/pembelian' },
       { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
       { label: 'Profil Warung', icon: 'storefront', to: '/warung' },
+      { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
     ]
   return [
     dashboard,
@@ -235,6 +245,7 @@ const navigation = computed(() => {
     { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
     { label: 'Pengguna', icon: 'group', to: '/pengguna' },
     { label: 'Profil Warung', icon: 'storefront', to: '/warung' },
+    { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
   ]
 })
 const userInitials = computed(() =>

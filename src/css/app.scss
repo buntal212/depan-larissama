@@ -1117,17 +1117,12 @@ body {
 }
 
 @media print {
-  body.print-pos-receipt,
-  body.print-pos-receipt #q-app {
-    width: 80mm !important;
-    min-width: 0 !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
   body.print-pos-receipt * {
     visibility: hidden !important;
+  }
+
+  body.print-pos-receipt #q-app {
+    display: none !important;
   }
 
   body.print-pos-receipt .receipt-print-dialog {
@@ -1135,6 +1130,11 @@ body {
     display: block !important;
     opacity: 1 !important;
     visibility: hidden !important;
+    width: var(--receipt-paper-width, 80mm) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   body.print-pos-receipt .receipt-print-dialog .q-dialog__backdrop {
@@ -1144,8 +1144,12 @@ body {
   body.print-pos-receipt .receipt-print-dialog .q-dialog__inner {
     position: static !important;
     display: block !important;
+    width: var(--receipt-paper-width, 80mm) !important;
+    height: auto !important;
     min-height: 0 !important;
+    max-height: none !important;
     padding: 0 !important;
+    overflow: visible !important;
   }
 
   body.print-pos-receipt .receipt-dialog-card,
@@ -1154,10 +1158,8 @@ body {
   }
 
   body.print-pos-receipt .receipt-dialog-card {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 80mm !important;
+    position: static !important;
+    width: var(--receipt-paper-width, 80mm) !important;
     max-width: none !important;
     max-height: none !important;
     margin: 0 !important;
@@ -1743,4 +1745,221 @@ body,
   .q-menu {
     display: none !important;
   }
+}
+
+// POS receipt uses browser/driver printing, not raw ESC/POS commands.
+.receipt-dialog-card {
+  width: min(calc(100vw - 32px), var(--receipt-paper-width, 80mm));
+}
+
+.receipt-paper {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px;
+  color: #000;
+  font-family: 'Courier New', 'Liberation Mono', monospace;
+  font-size: 12px;
+  font-kerning: none;
+  font-variant-ligatures: none;
+  letter-spacing: normal;
+  word-spacing: normal;
+}
+
+.receipt-store-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-align: center;
+}
+
+.receipt-store-header strong,
+.receipt-store-header span,
+.receipt-store-header b {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.receipt-store-header strong,
+.receipt-store-header b { font-size: inherit; }
+
+.receipt-store-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: contain;
+}
+
+.receipt-store-header-lines {
+  width: 100%;
+  overflow: hidden;
+  font-family: 'Courier New', 'Liberation Mono', monospace;
+  font-size: 10px;
+  line-height: 1.25;
+  font-kerning: none;
+  font-variant-ligatures: none;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-align: left;
+}
+
+.receipt-text {
+  margin-top: 10px;
+  font-family: 'Courier New', 'Liberation Mono', monospace;
+  font-size: 10px;
+  font-kerning: none;
+  font-variant-ligatures: none;
+  letter-spacing: normal;
+  word-spacing: normal;
+}
+
+.receipt-line {
+  min-height: 1.25em;
+  line-height: 1.25;
+  white-space: pre;
+}
+
+.receipt-line--emphasis { font-weight: 700; }
+.receipt-line--muted { color: #333; }
+.receipt-line--small,
+.receipt-header-line--small { font-size: 9px !important; }
+
+.receipt-print-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.receipt-print-settings,
+.receipt-print-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.receipt-print-settings { flex: 1 1 240px; }
+.receipt-print-settings > * { flex: 1 1 120px; min-width: 0; }
+.receipt-print-buttons { justify-content: flex-end; }
+
+@media print {
+  body.print-pos-receipt #q-app {
+    display: none !important;
+  }
+
+  body.print-pos-receipt,
+  body.print-pos-receipt-58,
+  body.print-pos-receipt-80 {
+    width: var(--receipt-paper-width, 80mm) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  body.print-pos-receipt.print-pos-receipt-58 { width: 58mm !important; }
+  body.print-pos-receipt.print-pos-receipt-80 { width: 80mm !important; }
+
+  body.print-pos-receipt .receipt-dialog-card {
+    position: static !important;
+    display: block !important;
+    width: var(--receipt-paper-width, 80mm) !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  body.print-pos-receipt .receipt-paper {
+    box-sizing: border-box !important;
+    width: var(--receipt-paper-width, 80mm) !important;
+    padding: 2mm !important;
+    color: #000 !important;
+    font-family: 'Courier New', 'Liberation Mono', monospace !important;
+    font-size: 8pt !important;
+    font-weight: 400;
+    font-kerning: none !important;
+    font-variant-ligatures: none !important;
+    letter-spacing: normal !important;
+    word-spacing: normal !important;
+    line-height: 1.2 !important;
+    break-inside: auto !important;
+  }
+
+  body.print-pos-receipt .receipt-text {
+    margin-top: 2mm !important;
+    font: inherit !important;
+  }
+
+  body.print-pos-receipt .receipt-line {
+    min-height: 0 !important;
+    line-height: 1.2 !important;
+    white-space: pre !important;
+  }
+
+  body.print-pos-receipt .receipt-line--emphasis { font-weight: 700 !important; }
+  body.print-pos-receipt .receipt-store-header {
+    display: flex !important;
+    width: 100% !important;
+    margin-inline: auto !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5mm !important;
+    text-align: center !important;
+  }
+  body.print-pos-receipt .receipt-store-logo {
+    display: block !important;
+    flex: 0 0 6mm !important;
+    width: 6mm !important;
+    min-width: 6mm !important;
+    max-width: 6mm !important;
+    height: 6mm !important;
+    min-height: 6mm !important;
+    max-height: 6mm !important;
+    margin: 0 auto !important;
+  }
+  body.print-pos-receipt .receipt-store-header strong,
+  body.print-pos-receipt .receipt-store-header span,
+  body.print-pos-receipt .receipt-store-header b {
+    display: block !important;
+    width: 100% !important;
+    margin-inline: auto !important;
+    font-size: 8pt !important;
+    text-align: center !important;
+  }
+  body.print-pos-receipt .receipt-store-header-lines {
+    width: 100% !important;
+    overflow: hidden !important;
+    font-family: 'Courier New', 'Liberation Mono', monospace !important;
+    font-size: 8pt !important;
+    line-height: 1.2 !important;
+    font-kerning: none !important;
+    font-variant-ligatures: none !important;
+    letter-spacing: normal !important;
+    word-spacing: normal !important;
+    text-align: left !important;
+  }
+  body.print-pos-receipt .receipt-header-line {
+    min-height: 0 !important;
+    line-height: 1.2 !important;
+    white-space: pre !important;
+  }
+  body.print-pos-receipt .receipt-line--small,
+  body.print-pos-receipt .receipt-header-line--small { font-size: 9px !important; }
+  body.print-pos-receipt .receipt-print-actions { display: none !important; }
+
+  @page larisama-receipt-58 { size: 58mm auto; margin: 0; }
+  @page larisama-receipt-80 { size: 80mm auto; margin: 0; }
+  body.print-pos-receipt.print-pos-receipt-58 .receipt-dialog-card { page: larisama-receipt-58; }
+  body.print-pos-receipt.print-pos-receipt-80 .receipt-dialog-card { page: larisama-receipt-80; }
+}
+
+@media (max-width: 520px) {
+  .receipt-print-buttons { justify-content: stretch; width: 100%; }
+  .receipt-print-buttons .q-btn { flex: 1 1 auto; }
 }

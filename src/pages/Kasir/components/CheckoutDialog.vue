@@ -85,7 +85,7 @@ function formatPrice(value) {
 function submit() {
   if (Number(form.discount) > props.subtotal || Number(form.paid) < total.value) return
   if (form.method !== 'cash' && Number(form.paid) !== total.value) return
-  emit('confirm', { subtotal: props.subtotal, discount: Number(form.discount || 0), total: total.value, method: form.method, paid: Number(form.paid || 0), change: Math.max(0, Number(form.paid || 0) - total.value), note: form.note.trim(), tanggal: new Date().toISOString() })
+  emit('confirm', { subtotal: props.subtotal, discount: Number(form.discount || 0), total: total.value, method: form.method, paid: Number(form.paid || 0), change: Math.max(0, Number(form.paid || 0) - total.value), note: form.note.trim() })
 }
 
 function submitDeferred() {
@@ -94,7 +94,6 @@ function submitDeferred() {
     deferred: true,
     discount: Number(form.discount || 0),
     note: form.note.trim(),
-    tanggal: new Date().toISOString(),
   })
 }
 </script>

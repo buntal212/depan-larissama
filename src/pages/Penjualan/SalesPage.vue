@@ -415,7 +415,7 @@ import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import CurrencyInput from '@/components/CurrencyInput.vue'
 import CheckoutDialog from '@/pages/Kasir/components/CheckoutDialog.vue'
-import ReceiptDialog from '@/pages/Kasir/components/ReceiptDialog.vue'
+import ReceiptDialog from '@/pages/Kasir/components/ReceiptPrintDialog.vue'
 import { authSession } from '@/stores/auth-session.js'
 import { newIdempotencyKey } from '@/services/api.js'
 import { categories, products } from '@/stores/catalog.js'
@@ -495,7 +495,7 @@ const columns = [
 ]
 const filteredSales = computed(() =>
   sales.value.filter((sale) =>
-    sale.no_transaksi.toLowerCase().includes(search.value.trim().toLowerCase()),
+    String(sale.no_transaksi ?? '').toLowerCase().includes(String(search.value ?? '').trim().toLowerCase()),
   ),
 )
 const visibleSalesTotal = computed(() => exactMoneySum(filteredSales.value.filter((sale) => sale.status !== 'batal')))
