@@ -37,19 +37,13 @@ export function buildEscPosReceiptBytes(lines, logoRaster = null) {
   }
 
   let currentAlignment = 0
-  let currentFont = 0
   let currentEmphasis = false
   for (const line of lines) {
     const alignment = line.align === 'center' ? 1 : 0
-    const font = line.small ? 1 : 0
     const emphasis = Boolean(line.emphasis)
     if (alignment !== currentAlignment) {
       parts.push(Uint8Array.from([0x1b, 0x61, alignment]))
       currentAlignment = alignment
-    }
-    if (font !== currentFont) {
-      parts.push(Uint8Array.from([0x1b, 0x4d, font]))
-      currentFont = font
     }
     if (emphasis !== currentEmphasis) {
       parts.push(Uint8Array.from([0x1b, 0x45, emphasis ? 1 : 0]))

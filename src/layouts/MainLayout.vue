@@ -22,7 +22,7 @@
             alt="Larisama — Dagangan Laris, Sukses Bersama"
           />
         </router-link>
-        <span class="app-title">XXX</span>
+        <!-- <span class="app-title">XXX</span> -->
         <q-space />
 
         <q-btn-dropdown flat no-caps dropdown-icon="expand_more" class="account-menu">

@@ -31,22 +31,9 @@
         </div>
       </div>
       <q-separator />
-      <q-banner v-if="isBleConnected" dense class="bg-green-1 text-green-10">
-        <template #avatar><q-icon name="bluetooth_connected" /></template>
-        Printer BLE terhubung. Tombol cetak utama mengirim struk langsung ke printer.
-      </q-banner>
-      <q-banner v-else-if="printerError" dense class="bg-orange-1 text-orange-10">
-        <template #avatar><q-icon name="info" /></template>
-        {{ printerError }} Cetak browser tetap tersedia sebagai cadangan.
-      </q-banner>
-      <q-banner v-else dense class="bg-grey-2 text-grey-9">
-        <template #avatar><q-icon name="bluetooth_disabled" /></template>
-        Printer BLE belum terhubung. Hubungkan melalui menu Pengaturan untuk mencetak langsung; tombol cetak memakai browser.
-      </q-banner>
       <q-card-actions class="receipt-print-actions">
         <div class="receipt-print-buttons">
           <q-btn flat no-caps label="Tutup" @click="$emit('update:modelValue', false)" />
-          <q-btn v-if="isBleConnected" flat no-caps color="primary" icon="print" label="Cetak via browser" @click="printBrowserReceipt" />
           <q-btn unelevated no-caps color="primary" icon="print" :label="isBleConnected ? 'Cetak struk BLE' : 'Cetak struk'" :loading="printerStatus === 'printing' || isPreparingBleReceipt" :disable="isPreparingBleReceipt" @click="printReceipt" />
         </div>
       </q-card-actions>
@@ -68,7 +55,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue'])
 
-const { isConnected: isBleConnected, sendBytes, status: printerStatus, errorMessage: printerError } = useBleThermalPrinter()
+const { isConnected: isBleConnected, sendBytes, status: printerStatus } = useBleThermalPrinter()
 const isPreparingBleReceipt = ref(false)
 const { paperWidth, columnsByPaper } = useReceiptPrinterSettings()
 const activeColumns = computed({

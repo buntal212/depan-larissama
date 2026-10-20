@@ -25,6 +25,8 @@ const apiClient = axios.create({
   ],
 })
 
+let serverClockSnapshot = null
+
 export function newIdempotencyKey() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID()
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -39,6 +41,26 @@ export class ApiError extends Error {
     this.errors = errors || {}
     this.requestId = requestId
     this.payload = payload
+  }
+}
+
+export function getServerTimestamp() {
+  if (!serverClockSnapshot) return null
+  const monotonicNow = globalThis.performance?.now?.() ?? Date.now()
+  const elapsedMilliseconds = Math.max(0, monotonicNow - serverClockSnapshot.monotonicTime)
+  return new Date(serverClockSnapshot.timestamp + elapsedMilliseconds).toISOString()
+}
+
+function captureServerClock(response) {
+  if (!response?.headers) return
+  const dateHeader = response.headers.get?.('date') ?? response.headers.date
+  if (typeof dateHeader !== 'string') return
+  const timestamp = Date.parse(dateHeader)
+  if (!Number.isFinite(timestamp)) return
+
+  serverClockSnapshot = {
+    timestamp,
+    monotonicTime: globalThis.performance?.now?.() ?? Date.now(),
   }
 }
 
@@ -99,6 +121,7 @@ export async function apiRequest(
       data: requestBody,
     })
   } catch (error) {
+    captureServerClock(error.response)
     if (!error.response) {
       throw new ApiError('Tidak dapat terhubung ke server. Periksa alamat API dan koneksi.', {
         payload: error,
@@ -119,6 +142,7 @@ export async function apiRequest(
     })
   }
 
+  captureServerClock(response)
   return response.data
 }
 

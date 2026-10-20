@@ -495,7 +495,7 @@ const columns = [
 ]
 const filteredSales = computed(() =>
   sales.value.filter((sale) =>
-    sale.no_transaksi.toLowerCase().includes(search.value.trim().toLowerCase()),
+    String(sale.no_transaksi ?? '').toLowerCase().includes(String(search.value ?? '').trim().toLowerCase()),
   ),
 )
 const visibleSalesTotal = computed(() => exactMoneySum(filteredSales.value.filter((sale) => sale.status !== 'batal')))

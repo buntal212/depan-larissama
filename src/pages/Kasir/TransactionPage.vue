@@ -179,7 +179,7 @@ import CheckoutDialog from '@/pages/Kasir/components/CheckoutDialog.vue'
 import CurrencyInput from '@/components/CurrencyInput.vue'
 import { authSession } from '@/stores/auth-session.js'
 import { categories, catalogState, loadCatalog, productCategories, products } from '@/stores/catalog.js'
-import { newIdempotencyKey } from '@/services/api.js'
+import { getServerTimestamp, newIdempotencyKey } from '@/services/api.js'
 import { displayApiError, larisamaApi, toMoney, toQuantity } from '@/services/larisama-api.js'
 
 const $q = useQuasar()
@@ -205,7 +205,7 @@ const savingEdit = ref(false)
 const pendingCorrectionAttempt = ref(null)
 const pendingPaymentAttempt = ref(null)
 const filteredProducts = computed(() => {
-  const query = search.value.trim().toLocaleLowerCase('id-ID')
+  const query = String(search.value ?? '').trim().toLocaleLowerCase('id-ID')
   return products.value.filter((product) => {
     const category = categories.value.find((item) => item.id === product.categoryId)
     if (!product.available || !category?.active) return false
@@ -363,10 +363,19 @@ async function completeTransaction(payment) {
   }
   const fingerprint = JSON.stringify(saleInput)
   if (pendingSaleAttempt.value?.fingerprint !== fingerprint) {
+    const serverTimestamp = getServerTimestamp()
+    if (!serverTimestamp) {
+      $q.notify({
+        type: 'negative',
+        message: 'Waktu server belum tersedia. Periksa koneksi lalu coba lagi.',
+        position: 'top',
+      })
+      return
+    }
     pendingSaleAttempt.value = {
       fingerprint,
       key: newIdempotencyKey(),
-      tanggal: payment.tanggal || new Date().toISOString(),
+      tanggal: serverTimestamp,
     }
   }
   const body = { tanggal: pendingSaleAttempt.value.tanggal, ...saleInput }

@@ -164,7 +164,7 @@ const availableCount = computed(() => products.value.filter((product) => product
 const categoryManagerOpen = ref(false)
 const categoryManagerRef = ref(null)
 const filteredProducts = computed(() => {
-  const query = search.value.trim().toLocaleLowerCase('id-ID')
+  const query = String(search.value ?? '').trim().toLocaleLowerCase('id-ID')
   const result = products.value.filter((product) => {
     const matchesCategory =
       activeCategory.value === 'Semua' || product.category === activeCategory.value
