@@ -1,22 +1,33 @@
 name: Deploy Larissama PWA
 
+# ============================================================
+# TRIGGER
+# ============================================================
 on:
   push:
     branches:
       - master
+
   workflow_dispatch:
 
+# ============================================================
+# PERMISSIONS
+# ============================================================
 permissions:
   contents: read
 
+# Jangan jalankan dua deployment production bersamaan
 concurrency:
   group: larissama-pwa-production
   cancel-in-progress: false
 
+# ============================================================
+# JOBS
+# ============================================================
 jobs:
-  # ==========================================
-  # BUILD DI GITHUB, BUKAN DI HOMELAB
-  # ==========================================
+  # ==========================================================
+  # JOB 1 - BUILD DI GITHUB-HOSTED RUNNER
+  # ==========================================================
   build:
     name: Build Quasar PWA
     runs-on: ubuntu-latest
@@ -26,56 +37,111 @@ jobs:
       QCLI_API_BASE_URL: ${{ vars.QCLI_API_BASE_URL }}
 
     steps:
+      # ------------------------------------------------------
+      # 1. CHECKOUT
+      # ------------------------------------------------------
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
+      # ------------------------------------------------------
+      # 2. SETUP NODE
+      # ------------------------------------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22.22.0'
           cache: npm
 
+      # ------------------------------------------------------
+      # 3. VALIDATE ENVIRONMENT
+      # ------------------------------------------------------
       - name: Validate production environment
         shell: bash
         run: |
+          set -euo pipefail
+
           if [ -z "$QCLI_API_BASE_URL" ]; then
-            echo "::error::QCLI_API_BASE_URL belum diatur"
+            echo "::error::QCLI_API_BASE_URL belum diatur."
             exit 1
           fi
 
+          echo "Production environment available."
+
+      # ------------------------------------------------------
+      # 4. CREATE PRODUCTION ENV
+      # ------------------------------------------------------
       - name: Create production environment
         shell: bash
         run: |
+          set -euo pipefail
+
           printf 'QCLI_API_BASE_URL=%s\n' \
             "$QCLI_API_BASE_URL" > .env.production
 
+          echo ".env.production created."
+
+      # ------------------------------------------------------
+      # 5. INSTALL DEPENDENCIES
+      # ------------------------------------------------------
       - name: Install dependencies
-        run: npm ci
-
-      - name: Build Quasar PWA
-        run: npx quasar build -m pwa
-
-      - name: Verify build
         shell: bash
         run: |
+          set -euo pipefail
+
+          npm ci
+
+      # ------------------------------------------------------
+      # 6. BUILD QUASAR PWA
+      # ------------------------------------------------------
+      - name: Build Quasar PWA
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          npx quasar build -m pwa
+
+      # ------------------------------------------------------
+      # 7. VERIFY BUILD
+      # ------------------------------------------------------
+      - name: Verify PWA build
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -d dist/pwa
           test -f dist/pwa/index.html
           test -f dist/pwa/manifest.json
           test -f dist/pwa/sw.js
 
-          echo "Build size:"
+          echo "PWA build verified."
           du -sh dist/pwa
 
+      # ------------------------------------------------------
+      # 8. UPLOAD ARTIFACT
+      # ------------------------------------------------------
       - name: Upload production artifact
         uses: actions/upload-artifact@v4
         with:
-          name: larissama-pwa-${{ github.run_id }}
+          name: larissama-pwa-${{ github.run_id }}-${{ github.run_attempt }}
           path: dist/pwa/
           if-no-files-found: error
           retention-days: 1
+          include-hidden-files: false
 
-  # ==========================================
-  # DEPLOY DI HOMELAB TANPA BUILD
-  # ==========================================
+      # ------------------------------------------------------
+      # 9. CLEAN TEMP ENV
+      # ------------------------------------------------------
+      - name: Cleanup production environment
+        if: always()
+        shell: bash
+        run: |
+          rm -f .env.production
+
+  # ==========================================================
+  # JOB 2 - DEPLOY KE HOMELAB
+  # ==========================================================
   deploy:
     name: Deploy to HOMELAB
     needs: build
@@ -90,16 +156,22 @@ jobs:
 
     env:
       DEPLOY_PATH: /www/wwwroot/larissama.udumbara.my.id
-      ARTIFACT_PATH: ${{ runner.temp }}/larissama-pwa-${{ github.run_id }}
+      ARTIFACT_PATH: /tmp/larissama-pwa-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
+      # ------------------------------------------------------
+      # 1. DOWNLOAD ARTIFACT
+      # ------------------------------------------------------
       - name: Download production artifact
         uses: actions/download-artifact@v4
         with:
-          name: larissama-pwa-${{ github.run_id }}
-          path: ${{ runner.temp }}/larissama-pwa-${{ github.run_id }}
+          name: larissama-pwa-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.ARTIFACT_PATH }}
 
-      - name: Verify artifact and destination
+      # ------------------------------------------------------
+      # 2. VERIFY ARTIFACT
+      # ------------------------------------------------------
+      - name: Verify production artifact
         shell: bash
         run: |
           set -euo pipefail
@@ -108,22 +180,45 @@ jobs:
           test -f "$ARTIFACT_PATH/manifest.json"
           test -f "$ARTIFACT_PATH/sw.js"
 
-          test -d "$DEPLOY_PATH"
-          test -w "$DEPLOY_PATH"
+          echo "Production artifact verified."
+          du -sh "$ARTIFACT_PATH"
 
-          if [ "$DEPLOY_PATH" != \
-            "/www/wwwroot/larissama.udumbara.my.id" ]; then
-            echo "::error::Unexpected deployment path"
+      # ------------------------------------------------------
+      # 3. CHECK DEPLOYMENT DIRECTORY
+      # ------------------------------------------------------
+      - name: Check deployment directory
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          EXPECTED_PATH="/www/wwwroot/larissama.udumbara.my.id"
+
+          if [ "$DEPLOY_PATH" != "$EXPECTED_PATH" ]; then
+            echo "::error::Unexpected deployment path."
             exit 1
           fi
 
-          echo "Artifact:"
-          du -sh "$ARTIFACT_PATH"
+          if [ ! -d "$DEPLOY_PATH" ]; then
+            echo "::error::Production directory not found."
+            exit 1
+          fi
 
+          if [ ! -w "$DEPLOY_PATH" ]; then
+            echo "::error::Runner has no write permission."
+            exit 1
+          fi
+
+          echo "Deployment directory verified."
+
+      # ------------------------------------------------------
+      # 4. DEPLOY PWA
+      # ------------------------------------------------------
       - name: Deploy PWA to aaPanel
         shell: bash
         run: |
           set -euo pipefail
+
+          echo "Deploying Larissama PWA..."
 
           rsync \
             -rlv \
@@ -140,6 +235,11 @@ jobs:
             "$ARTIFACT_PATH/" \
             "$DEPLOY_PATH/"
 
+          echo "Rsync deployment completed."
+
+      # ------------------------------------------------------
+      # 5. VERIFY DEPLOYMENT
+      # ------------------------------------------------------
       - name: Verify production deployment
         shell: bash
         run: |
@@ -152,17 +252,34 @@ jobs:
           echo "Production deployment verified."
           du -sh "$DEPLOY_PATH"
 
-      - name: Cleanup downloaded artifact
+      # ------------------------------------------------------
+      # 6. CLEANUP ARTIFACT
+      # ------------------------------------------------------
+      - name: Cleanup temporary artifact
         if: always()
         shell: bash
         run: |
-          if [[ "$ARTIFACT_PATH" == \
-            "${RUNNER_TEMP}/larissama-pwa-"* ]]; then
+          set -euo pipefail
+
+          EXPECTED_PREFIX="/tmp/larissama-pwa-"
+
+          if [[ "$ARTIFACT_PATH" == "$EXPECTED_PREFIX"* ]] &&
+             [[ "$ARTIFACT_PATH" != "$EXPECTED_PREFIX" ]]; then
             rm -rf -- "$ARTIFACT_PATH"
+            echo "Temporary artifact removed."
           fi
 
+      # ------------------------------------------------------
+      # 7. FINISH
+      # ------------------------------------------------------
       - name: Deployment completed
         if: success()
+        shell: bash
         run: |
-          echo "Larissama PWA deployed successfully."
-          echo "Production: $DEPLOY_PATH"
+          echo "=========================================="
+          echo " LARISSAMA PWA DEPLOYMENT SUCCESS"
+          echo "=========================================="
+          echo "Application : Larissama"
+          echo "Mode        : Quasar PWA"
+          echo "Production  : $DEPLOY_PATH"
+          echo "=========================================="
