@@ -6,7 +6,7 @@
   >
     <q-card class="receipt-dialog-card" :style="{ '--receipt-paper-width': `${paperWidth}mm` }">
       <div class="receipt-paper">
-        <header v-if="!printingTest" class="receipt-store-header">
+        <header class="receipt-store-header">
           <img v-if="warung?.logo" :src="warung.logo" :alt="`Logo ${warung?.nama || 'warung'}`" class="receipt-store-logo" />
           <strong>{{ warung?.nama || 'Warung' }}</strong>
           <span v-if="warung?.alamat">{{ warung.alamat }}</span>
@@ -46,7 +46,6 @@
         </div>
         <div class="receipt-print-buttons">
           <q-btn flat no-caps label="Tutup" @click="$emit('update:modelValue', false)" />
-          <q-btn outline no-caps icon="receipt_long" label="Cetak diagnostik" @click="printTestReceipt" />
           <q-btn unelevated no-caps color="primary" icon="print" label="Cetak struk" @click="printReceipt" />
         </div>
       </q-card-actions>
@@ -79,8 +78,7 @@ const activeColumns = computed({
     if (Number.isInteger(parsed)) columnsByPaper[paperWidth.value] = clampColumns(parsed, paperWidth.value)
   },
 })
-const printingTest = ref(false)
-const receiptLines = computed(() => formatReceipt(props.sale, props.cashierName, activeColumns.value, printingTest.value))
+const receiptLines = computed(() => formatReceipt(props.sale, props.cashierName, activeColumns.value))
 watch([paperWidth, columnsByPaper], saveSettings, { deep: true })
 
 function formatPrice(value) {
@@ -114,21 +112,15 @@ function paymentLabel(value) {
 }
 
 function printReceipt() {
-  printDocument(false)
+  printDocument()
 }
 
-function printTestReceipt() {
-  printDocument(true)
-}
-
-async function printDocument(isTest) {
-  printingTest.value = isTest
+async function printDocument() {
   document.body.classList.remove('print-pos-receipt-58', 'print-pos-receipt-80')
   document.body.classList.add('print-pos-receipt', `print-pos-receipt-${paperWidth.value}`)
   await nextTick()
   window.addEventListener('afterprint', () => {
     document.body.classList.remove('print-pos-receipt', 'print-pos-receipt-58', 'print-pos-receipt-80')
-    printingTest.value = false
   }, { once: true })
   window.print()
 }
@@ -163,8 +155,7 @@ function clampColumns(value, width = '80') {
   return Number.isInteger(parsed) ? Math.max(20, Math.min(maximum, parsed)) : (width === '58' ? 30 : 42)
 }
 
-function formatReceipt(sale, cashierName, columns, isTest) {
-  if (isTest) return formatDiagnosticPrint(columns)
+function formatReceipt(sale, cashierName, columns) {
   const data = sale
   if (!data) return []
 
@@ -199,25 +190,6 @@ function formatReceipt(sale, cashierName, columns, isTest) {
   addWrapped(alignCenter(data.status_pembayaran === 'belum_lunas' ? 'Pesanan belum dibayar' : 'Terima kasih atas kunjungan Anda', columns))
   addWrapped(alignCenter('Dibuat oleh Udumbara Informatika', columns), false, true)
   return lines
-}
-
-function formatDiagnosticPrint(columns) {
-  return [
-    { text: '1234567890123456' },
-    { text: '123456789012345678901234' },
-    { text: '12345678901234567890123456789012' },
-    { text: '' },
-    { text: alignLeft('LEFT', 16)[0] },
-    { text: alignCenter('CENTER', 16)[0] },
-    { text: alignRight('RIGHT', 16)[0] },
-    { text: '' },
-    { text: 'SUBTOTAL' },
-    { text: alignRight('Rp 39.000', columns)[0] },
-    { text: 'TOTAL' },
-    { text: alignRight('Rp 39.000', columns)[0], emphasis: true },
-    { text: '' },
-    { text: 'END PRINT' },
-  ]
 }
 
 function alignLeft(text, width) {
