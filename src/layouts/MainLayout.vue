@@ -22,7 +22,7 @@
             alt="Larisama — Dagangan Laris, Sukses Bersama"
           />
         </router-link>
-
+        <span class="app-title">XXX</span>
         <q-space />
 
         <q-btn-dropdown flat no-caps dropdown-icon="expand_more" class="account-menu">
@@ -164,9 +164,12 @@ const warungLogo = computed(() => {
   return logo && logo !== failedWarungLogo.value ? logo : ''
 })
 
-watch(() => authSession.warung?.logo, () => {
-  failedWarungLogo.value = null
-})
+watch(
+  () => authSession.warung?.logo,
+  () => {
+    failedWarungLogo.value = null
+  },
+)
 
 function handleWarungLogoError() {
   failedWarungLogo.value = authSession.warung?.logo || null
@@ -177,7 +180,9 @@ onMounted(async () => {
   warungsLoading.value = true
   try {
     warungOptions.value = await larisamaApi.listWarungs()
-    const selected = warungOptions.value.find((warung) => String(warung.id) === String(selectedWarungId.value))
+    const selected = warungOptions.value.find(
+      (warung) => String(warung.id) === String(selectedWarungId.value),
+    )
     if (selected) setSelectedWarung(selected)
     else if (selectedWarungId.value) {
       selectedWarungId.value = null
@@ -185,7 +190,9 @@ onMounted(async () => {
     }
   } catch (error) {
     $q.notify({ type: 'negative', message: displayApiError(error), position: 'top' })
-  } finally { warungsLoading.value = false }
+  } finally {
+    warungsLoading.value = false
+  }
 })
 
 function changeWarung(id) {

@@ -172,7 +172,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
-import ReceiptDialog from '@/pages/Kasir/components/ReceiptDialog.vue'
+import ReceiptDialog from '@/pages/Kasir/components/ReceiptPrintDialog.vue'
 import AppAttribution from '@/components/AppAttribution.vue'
 import OrderCart from '@/pages/Kasir/components/OrderCart.vue'
 import CheckoutDialog from '@/pages/Kasir/components/CheckoutDialog.vue'
