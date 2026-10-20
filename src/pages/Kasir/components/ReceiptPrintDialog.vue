@@ -31,32 +31,23 @@
         </div>
       </div>
       <q-separator />
-      <BlePrinterPanel />
+      <q-banner v-if="isBleConnected" dense class="bg-green-1 text-green-10">
+        <template #avatar><q-icon name="bluetooth_connected" /></template>
+        Printer BLE terhubung. Tombol cetak utama mengirim struk langsung ke printer.
+      </q-banner>
+      <q-banner v-else-if="printerError" dense class="bg-orange-1 text-orange-10">
+        <template #avatar><q-icon name="info" /></template>
+        {{ printerError }} Cetak browser tetap tersedia sebagai cadangan.
+      </q-banner>
+      <q-banner v-else dense class="bg-grey-2 text-grey-9">
+        <template #avatar><q-icon name="bluetooth_disabled" /></template>
+        Printer BLE belum terhubung. Hubungkan melalui menu Pengaturan untuk mencetak langsung; tombol cetak memakai browser.
+      </q-banner>
       <q-card-actions class="receipt-print-actions">
-        <div class="receipt-print-settings">
-          <q-select
-            v-model="paperWidth"
-            dense
-            outlined
-            options-dense
-            emit-value
-            map-options
-            label="Lebar kertas"
-            :options="paperOptions"
-          />
-          <q-input
-            v-model.number="activeColumns"
-            dense
-            outlined
-            type="number"
-            label="Karakter/baris"
-            min="20"
-            :max="paperWidth === '58' ? 32 : 48"
-          />
-        </div>
         <div class="receipt-print-buttons">
           <q-btn flat no-caps label="Tutup" @click="$emit('update:modelValue', false)" />
-          <q-btn unelevated no-caps color="primary" icon="print" label="Cetak struk" @click="printReceipt" />
+          <q-btn v-if="isBleConnected" flat no-caps color="primary" icon="print" label="Cetak via browser" @click="printBrowserReceipt" />
+          <q-btn unelevated no-caps color="primary" icon="print" :label="isBleConnected ? 'Cetak struk BLE' : 'Cetak struk'" :loading="printerStatus === 'printing' || isPreparingBleReceipt" :disable="isPreparingBleReceipt" @click="printReceipt" />
         </div>
       </q-card-actions>
     </q-card>
@@ -64,8 +55,10 @@
 </template>
 
 <script setup>
-import { computed, nextTick, reactive, ref, watch } from 'vue'
-import BlePrinterPanel from '@/pages/Kasir/components/BlePrinterPanel.vue'
+import { computed, nextTick, ref } from 'vue'
+import { useBleThermalPrinter } from '@/services/useBleThermalPrinter.js'
+import { buildEscPosReceiptBytes, buildSmallLogoRaster } from '@/services/ble-thermal-printer.js'
+import { clampColumns, useReceiptPrinterSettings } from '@/services/receipt-printer-settings.js'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -73,15 +66,11 @@ const props = defineProps({
   warung: { type: Object, default: null },
   cashierName: { type: String, default: '' },
 })
-defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue'])
 
-const paperOptions = [
-  { label: '58 mm', value: '58' },
-  { label: '80 mm', value: '80' },
-]
-const settings = readSettings()
-const paperWidth = ref(settings.paperWidth)
-const columnsByPaper = reactive(settings.columnsByPaper)
+const { isConnected: isBleConnected, sendBytes, status: printerStatus, errorMessage: printerError } = useBleThermalPrinter()
+const isPreparingBleReceipt = ref(false)
+const { paperWidth, columnsByPaper } = useReceiptPrinterSettings()
 const activeColumns = computed({
   get: () => columnsByPaper[paperWidth.value],
   set: (value) => {
@@ -92,7 +81,7 @@ const activeColumns = computed({
 const storeHeaderLines = computed(() => {
   const rows = []
   const appendCentered = (value, small = false) => {
-    if (value) alignCenter(value, activeColumns.value).forEach((text) => rows.push({ text, small }))
+    if (value) alignCenter(value, activeColumns.value).forEach((text) => rows.push({ text, small, align: 'center' }))
   }
   appendCentered(props.warung?.nama || 'Warung')
   appendCentered(props.warung?.alamat, true)
@@ -100,7 +89,6 @@ const storeHeaderLines = computed(() => {
   return rows
 })
 const receiptLines = computed(() => formatReceipt(props.sale, props.cashierName, activeColumns.value))
-watch([paperWidth, columnsByPaper], saveSettings, { deep: true })
 
 function formatPrice(value) {
   const source = String(value ?? '0').trim()
@@ -132,7 +120,28 @@ function paymentLabel(value) {
   return { cash: 'Tunai', qris: 'QRIS', transfer: 'Transfer' }[value] || value || '—'
 }
 
-function printReceipt() {
+async function printReceipt() {
+  if (!isBleConnected.value) {
+    printBrowserReceipt()
+    return
+  }
+  if (!props.sale || isPreparingBleReceipt.value || printerStatus.value === 'printing') return
+  isPreparingBleReceipt.value = true
+  try {
+    const lines = [...storeHeaderLines.value, ...receiptLines.value]
+    const logoRaster = await buildSmallLogoRaster(props.warung?.logo)
+    const sent = await sendBytes(
+      buildEscPosReceiptBytes(lines, logoRaster),
+      'Struk berhasil dikirim ke printer BLE.',
+      'Struk BLE gagal dikirim.',
+    )
+    if (sent) emit('update:modelValue', false)
+  } finally {
+    isPreparingBleReceipt.value = false
+  }
+}
+
+function printBrowserReceipt() {
   printDocument()
 }
 
@@ -146,43 +155,13 @@ async function printDocument() {
   window.print()
 }
 
-function readSettings() {
-  const defaults = { paperWidth: '80', columnsByPaper: { 58: 30, 80: 42 } }
-  try {
-    const stored = JSON.parse(localStorage.getItem('larisama:receipt-printer') || '{}')
-    return {
-      paperWidth: ['58', '80'].includes(stored.paperWidth) ? stored.paperWidth : defaults.paperWidth,
-      columnsByPaper: {
-        58: clampColumns(stored.columnsByPaper?.[58] ?? defaults.columnsByPaper[58], '58'),
-        80: clampColumns(stored.columnsByPaper?.[80] ?? defaults.columnsByPaper[80], '80'),
-      },
-    }
-  } catch {
-    return defaults
-  }
-}
-
-function saveSettings() {
-  try {
-    localStorage.setItem('larisama:receipt-printer', JSON.stringify({ paperWidth: paperWidth.value, columnsByPaper }))
-  } catch {
-    // Browser storage is optional; printing remains available for this session.
-  }
-}
-
-function clampColumns(value, width = '80') {
-  const parsed = Number.parseInt(value, 10)
-  const maximum = width === '58' ? 32 : 48
-  return Number.isInteger(parsed) ? Math.max(20, Math.min(maximum, parsed)) : (width === '58' ? 30 : 42)
-}
-
 function formatReceipt(sale, cashierName, columns) {
   const data = sale
   if (!data) return []
 
   const lines = []
-  const add = (text, emphasis = false, muted = false, small = false) => lines.push({ text, emphasis, muted, small })
-  const addWrapped = (rows, emphasis = false, muted = false, small = false) => rows.forEach((text) => add(text, emphasis, muted, small))
+  const add = (text, emphasis = false, muted = false, small = false, align = 'left') => lines.push({ text, emphasis, muted, small, align })
+  const addWrapped = (rows, emphasis = false, muted = false, small = false, align = 'left') => rows.forEach((text) => add(text, emphasis, muted, small, align))
   const divider = () => add('-'.repeat(columns), false, true)
   const addPair = (label, value, emphasis = false) => addWrapped(twoColumns(label, value, columns), emphasis)
 
@@ -208,8 +187,8 @@ function formatReceipt(sale, cashierName, columns) {
   }
   if (data.catatan) addWrapped(alignLeft(`Catatan: ${data.catatan}`, columns), false, true)
   divider()
-  addWrapped(alignCenter(data.status_pembayaran === 'belum_lunas' ? 'Pesanan belum dibayar' : 'Terima kasih atas kunjungan Anda', columns), false, false, true)
-  addWrapped(alignCenter('Dibuat oleh Udumbara Informatika', columns), false, true, true)
+  addWrapped(alignCenter(data.status_pembayaran === 'belum_lunas' ? 'Pesanan belum dibayar' : 'Terima kasih atas kunjungan Anda', columns), false, false, true, 'center')
+  addWrapped(alignCenter('Dibuat oleh Udumbara Informatika', columns), false, true, true, 'center')
   return lines
 }
 

@@ -1,10 +1,11 @@
 <template>
   <q-expansion-item
     dense
+    default-opened
     expand-separator
     icon="bluetooth"
-    label="Printer BLE (eksperimen)"
-    caption="Tes koneksi langsung dari browser Android"
+    label="Printer Bluetooth BLE"
+    caption="Koneksi otomatis untuk printer yang sudah diizinkan"
     class="ble-printer-panel"
   >
     <div class="q-pa-md ble-printer-content">
@@ -78,7 +79,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useBleThermalPrinter } from '@/services/useBleThermalPrinter.js'
 import { CANDIDATE_PRINTER_SERVICE_UUID, PRINTER_WRITE_CHUNK_SIZE } from '@/services/ble-thermal-printer.js'
 
@@ -92,10 +93,17 @@ const {
   hasSelectedDevice,
   isConnected,
   isSecureContext,
+  reconnectRememberedPrinter,
   status,
   statusMessage,
   testPrint,
 } = useBleThermalPrinter()
+
+const props = defineProps({ active: { type: Boolean, default: false } })
+
+watch(() => props.active, (active) => {
+  if (active) reconnectRememberedPrinter()
+}, { immediate: true })
 
 const statusLabel = computed(() => ({
   connecting: 'Menghubungkan',

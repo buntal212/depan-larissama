@@ -216,6 +216,7 @@ const navigation = computed(() => {
       { label: 'Pembelian', icon: 'shopping_cart', to: '/pembelian' },
       { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
       { label: 'Pengguna', icon: 'group', to: '/pengguna' },
+      { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
     ]
   if (role === 'kasir')
     return [
@@ -223,6 +224,7 @@ const navigation = computed(() => {
       { label: 'Kasir', icon: 'point_of_sale', to: '/transaksi' },
       catalog,
       salesHistory,
+      { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
     ]
   if (role === 'manager')
     return [
@@ -232,6 +234,7 @@ const navigation = computed(() => {
       { label: 'Pembelian', icon: 'shopping_cart', to: '/pembelian' },
       { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
       { label: 'Profil Warung', icon: 'storefront', to: '/warung' },
+      { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
     ]
   return [
     dashboard,
@@ -242,6 +245,7 @@ const navigation = computed(() => {
     { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
     { label: 'Pengguna', icon: 'group', to: '/pengguna' },
     { label: 'Profil Warung', icon: 'storefront', to: '/warung' },
+    { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
   ]
 })
 const userInitials = computed(() =>
