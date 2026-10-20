@@ -1130,6 +1130,11 @@ body {
     display: block !important;
     opacity: 1 !important;
     visibility: hidden !important;
+    width: var(--receipt-paper-width, 80mm) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   body.print-pos-receipt .receipt-print-dialog .q-dialog__backdrop {
@@ -1139,8 +1144,12 @@ body {
   body.print-pos-receipt .receipt-print-dialog .q-dialog__inner {
     position: static !important;
     display: block !important;
+    width: var(--receipt-paper-width, 80mm) !important;
+    height: auto !important;
     min-height: 0 !important;
+    max-height: none !important;
     padding: 0 !important;
+    overflow: visible !important;
   }
 
   body.print-pos-receipt .receipt-dialog-card,
@@ -1848,8 +1857,6 @@ body,
     overflow: visible !important;
     border-radius: 0 !important;
     box-shadow: none !important;
-    break-after: avoid-page !important;
-    page-break-after: avoid !important;
   }
 
   body.print-pos-receipt .receipt-paper {
@@ -1883,6 +1890,7 @@ body,
   body.print-pos-receipt .receipt-store-header {
     display: flex !important;
     width: 100% !important;
+    margin-inline: auto !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
