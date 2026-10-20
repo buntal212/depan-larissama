@@ -1,283 +1,129 @@
 name: Deploy Larissama PWA
 
-# ============================================================
-# TRIGGER
-# ============================================================
 on:
   push:
     branches:
       - master
-
   workflow_dispatch:
 
-# ============================================================
-# PERMISSIONS
-# ============================================================
 permissions:
   contents: read
 
-# Jangan jalankan dua deployment production bersamaan
 concurrency:
   group: larissama-pwa-production
-  cancel-in-progress: true
+  cancel-in-progress: false
 
-# ============================================================
-# JOBS
-# ============================================================
 jobs:
-  deploy:
-    name: Build & Deploy Quasar PWA
+  # ==========================================
+  # BUILD DI GITHUB, BUKAN DI HOMELAB
+  # ==========================================
+  build:
+    name: Build Quasar PWA
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
 
-    # ========================================================
-    # SELF-HOSTED RUNNER
-    # ========================================================
+    env:
+      QCLI_API_BASE_URL: ${{ vars.QCLI_API_BASE_URL }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.0'
+          cache: npm
+
+      - name: Validate production environment
+        shell: bash
+        run: |
+          if [ -z "$QCLI_API_BASE_URL" ]; then
+            echo "::error::QCLI_API_BASE_URL belum diatur"
+            exit 1
+          fi
+
+      - name: Create production environment
+        shell: bash
+        run: |
+          printf 'QCLI_API_BASE_URL=%s\n' \
+            "$QCLI_API_BASE_URL" > .env.production
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Quasar PWA
+        run: npx quasar build -m pwa
+
+      - name: Verify build
+        shell: bash
+        run: |
+          test -f dist/pwa/index.html
+          test -f dist/pwa/manifest.json
+          test -f dist/pwa/sw.js
+
+          echo "Build size:"
+          du -sh dist/pwa
+
+      - name: Upload production artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: larissama-pwa-${{ github.run_id }}
+          path: dist/pwa/
+          if-no-files-found: error
+          retention-days: 1
+
+  # ==========================================
+  # DEPLOY DI HOMELAB TANPA BUILD
+  # ==========================================
+  deploy:
+    name: Deploy to HOMELAB
+    needs: build
+
     runs-on:
       - self-hosted
       - Linux
       - X64
       - frondlarisama
 
-    timeout-minutes: 30
+    timeout-minutes: 15
 
-    # ========================================================
-    # GLOBAL ENVIRONMENT
-    # ========================================================
     env:
-      # Folder production aaPanel
       DEPLOY_PATH: /www/wwwroot/larissama.udumbara.my.id
-
-      # Cache npm khusus runner kentang
-      npm_config_cache: /home/kentang/.npm
-
-      # Environment frontend production
-      QCLI_API_BASE_URL: ${{ vars.QCLI_API_BASE_URL }}
+      ARTIFACT_PATH: ${{ runner.temp }}/larissama-pwa-${{ github.run_id }}
 
     steps:
-      # ======================================================
-      # 1. CHECKOUT SOURCE
-      # ======================================================
-      - name: Checkout source
-        uses: actions/checkout@v4
+      - name: Download production artifact
+        uses: actions/download-artifact@v4
         with:
-          clean: true
+          name: larissama-pwa-${{ github.run_id }}
+          path: ${{ runner.temp }}/larissama-pwa-${{ github.run_id }}
 
-      # ======================================================
-      # 2. SETUP NODE
-      #
-      # Hanya berlaku untuk job GitHub Actions ini.
-      # Node aaPanel/project lain tidak berubah.
-      # ======================================================
-      - name: Setup Node.js 22.22.0
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.22.0'
-          cache: 'npm'
-
-      # ======================================================
-      # 3. CHECK RUNNER
-      # ======================================================
-      - name: Check runner environment
+      - name: Verify artifact and destination
+        shell: bash
         run: |
-          echo "=========================================="
-          echo " LARISSAMA PWA DEPLOYMENT"
-          echo "=========================================="
+          set -euo pipefail
 
-          echo ""
-          echo "Runner user:"
-          whoami
+          test -f "$ARTIFACT_PATH/index.html"
+          test -f "$ARTIFACT_PATH/manifest.json"
+          test -f "$ARTIFACT_PATH/sw.js"
 
-          echo ""
-          echo "Hostname:"
-          hostname
+          test -d "$DEPLOY_PATH"
+          test -w "$DEPLOY_PATH"
 
-          echo ""
-          echo "Node:"
-          node -v
-
-          echo ""
-          echo "NPM:"
-          npm -v
-
-          echo ""
-          echo "Node location:"
-          which node
-
-          echo ""
-          echo "NPM location:"
-          which npm
-
-          echo ""
-          echo "Working directory:"
-          pwd
-
-          echo ""
-          echo "NPM cache:"
-          npm config get cache
-
-          echo ""
-          echo "Deploy path:"
-          echo "$DEPLOY_PATH"
-
-      # ======================================================
-      # 4. VALIDATE PRODUCTION ENV
-      # ======================================================
-      - name: Validate production environment
-        run: |
-          echo "=========================================="
-          echo " Checking production environment"
-          echo "=========================================="
-
-          if [ -z "$QCLI_API_BASE_URL" ]; then
-            echo ""
-            echo "ERROR:"
-            echo "QCLI_API_BASE_URL belum diatur."
-            echo ""
-            echo "Tambahkan GitHub Actions Variable:"
-            echo "QCLI_API_BASE_URL"
+          if [ "$DEPLOY_PATH" != \
+            "/www/wwwroot/larissama.udumbara.my.id" ]; then
+            echo "::error::Unexpected deployment path"
             exit 1
           fi
 
-          echo ""
-          echo "QCLI_API_BASE_URL tersedia."
+          echo "Artifact:"
+          du -sh "$ARTIFACT_PATH"
 
-      # ======================================================
-      # 5. CREATE .ENV.PRODUCTION
-      #
-      # File ini hanya dibuat di workspace runner.
-      # Tidak di-commit ke repository.
-      # ======================================================
-      - name: Create production environment
-        run: |
-          echo "=========================================="
-          echo " Creating .env.production"
-          echo "=========================================="
-
-          cat > .env.production <<EOF
-          QCLI_API_BASE_URL=${QCLI_API_BASE_URL}
-          EOF
-
-          echo ""
-          echo ".env.production created."
-
-          echo ""
-          echo "API URL:"
-          grep '^QCLI_API_BASE_URL=' .env.production
-
-      # ======================================================
-      # 6. PREPARE NPM CACHE
-      # ======================================================
-      - name: Prepare npm cache
-        run: |
-          mkdir -p "$npm_config_cache"
-
-          echo "NPM cache:"
-          ls -ld "$npm_config_cache"
-
-      # ======================================================
-      # 7. INSTALL DEPENDENCIES
-      # ======================================================
-      - name: Install dependencies
-        run: |
-          echo "=========================================="
-          echo " Installing dependencies"
-          echo "=========================================="
-
-          npm ci
-
-      # ======================================================
-      # 8. BUILD QUASAR PWA
-      # ======================================================
-      - name: Build Quasar PWA
-        run: |
-          echo "=========================================="
-          echo " Building Quasar PWA"
-          echo "=========================================="
-
-          echo ""
-          echo "Node:"
-          node -v
-
-          echo ""
-          echo "Building production PWA..."
-
-          npx quasar build -m pwa
-
-      # ======================================================
-      # 9. VERIFY BUILD
-      # ======================================================
-      - name: Verify PWA build
-        run: |
-          echo "=========================================="
-          echo " Verifying PWA build"
-          echo "=========================================="
-
-          if [ ! -d "dist/pwa" ]; then
-            echo ""
-            echo "ERROR:"
-            echo "dist/pwa tidak ditemukan."
-            exit 1
-          fi
-
-          if [ ! -f "dist/pwa/index.html" ]; then
-            echo ""
-            echo "ERROR:"
-            echo "dist/pwa/index.html tidak ditemukan."
-            exit 1
-          fi
-
-          echo ""
-          echo "PWA build berhasil."
-
-          echo ""
-          echo "Build size:"
-          du -sh dist/pwa
-
-          echo ""
-          echo "Build contents:"
-          ls -lah dist/pwa
-
-      # ======================================================
-      # 10. CHECK DEPLOY DIRECTORY
-      # ======================================================
-      - name: Check deploy directory
-        run: |
-          echo "=========================================="
-          echo " Checking deployment directory"
-          echo "=========================================="
-
-          if [ ! -d "$DEPLOY_PATH" ]; then
-            echo ""
-            echo "ERROR:"
-            echo "Folder production tidak ditemukan:"
-            echo "$DEPLOY_PATH"
-            exit 1
-          fi
-
-          if [ ! -w "$DEPLOY_PATH" ]; then
-            echo ""
-            echo "ERROR:"
-            echo "Runner tidak memiliki write permission:"
-            echo "$DEPLOY_PATH"
-            exit 1
-          fi
-
-          echo ""
-          echo "Deploy directory OK:"
-          ls -ld "$DEPLOY_PATH"
-
-      # ======================================================
-      # 11. DEPLOY PWA
-      #
-      # Tidak mempertahankan owner/group/permission/timestamp
-      # folder aaPanel.
-      #
-      # File aaPanel/SSL dilindungi dari --delete.
-      # ======================================================
       - name: Deploy PWA to aaPanel
+        shell: bash
         run: |
-          echo "=========================================="
-          echo " Deploying Larissama PWA"
-          echo "=========================================="
+          set -euo pipefail
 
           rsync \
             -rlv \
@@ -291,116 +137,32 @@ jobs:
             --exclude=".well-known/" \
             --exclude="404.html" \
             --exclude="502.html" \
-            dist/pwa/ \
+            "$ARTIFACT_PATH/" \
             "$DEPLOY_PATH/"
 
-      # ======================================================
-      # 12. VERIFY DEPLOYMENT
-      # ======================================================
-      - name: Verify deployment
+      - name: Verify production deployment
+        shell: bash
         run: |
-          echo "=========================================="
-          echo " Verifying production deployment"
-          echo "=========================================="
+          set -euo pipefail
 
-          if [ ! -f "$DEPLOY_PATH/index.html" ]; then
-            echo ""
-            echo "ERROR:"
-            echo "Production index.html tidak ditemukan."
-            exit 1
-          fi
+          test -f "$DEPLOY_PATH/index.html"
+          test -f "$DEPLOY_PATH/manifest.json"
+          test -f "$DEPLOY_PATH/sw.js"
 
-          if [ ! -f "$DEPLOY_PATH/manifest.json" ]; then
-            echo ""
-            echo "ERROR:"
-            echo "Production manifest.json tidak ditemukan."
-            exit 1
-          fi
-
-          if [ ! -f "$DEPLOY_PATH/sw.js" ]; then
-            echo ""
-            echo "ERROR:"
-            echo "Production sw.js tidak ditemukan."
-            exit 1
-          fi
-
-          echo ""
-          echo "index.html   : OK"
-          echo "manifest.json: OK"
-          echo "sw.js        : OK"
-
-          echo ""
-          echo "Production size:"
+          echo "Production deployment verified."
           du -sh "$DEPLOY_PATH"
 
-      # ======================================================
-      # 13. CHECK PROTECTED AAPANEL FILES
-      # ======================================================
-      - name: Check protected aaPanel files
-        run: |
-          echo "=========================================="
-          echo " Checking protected aaPanel files"
-          echo "=========================================="
-
-          if [ -f "$DEPLOY_PATH/.user.ini" ]; then
-            echo ".user.ini   : protected"
-          fi
-
-          if [ -f "$DEPLOY_PATH/.htaccess" ]; then
-            echo ".htaccess   : protected"
-          fi
-
-          if [ -d "$DEPLOY_PATH/.well-known" ]; then
-            echo ".well-known : protected"
-          fi
-
-          if [ -f "$DEPLOY_PATH/404.html" ]; then
-            echo "404.html    : protected"
-          fi
-
-          if [ -f "$DEPLOY_PATH/502.html" ]; then
-            echo "502.html    : protected"
-          fi
-
-      # ======================================================
-      # 14. CLEAN TEMP ENV
-      # ======================================================
-      - name: Remove temporary production env
+      - name: Cleanup downloaded artifact
         if: always()
+        shell: bash
         run: |
-          rm -f .env.production
+          if [[ "$ARTIFACT_PATH" == \
+            "${RUNNER_TEMP}/larissama-pwa-"* ]]; then
+            rm -rf -- "$ARTIFACT_PATH"
+          fi
 
-          echo "Temporary .env.production removed."
-
-      # ======================================================
-      # 15. FINISH
-      # ======================================================
       - name: Deployment completed
+        if: success()
         run: |
-          echo ""
-          echo "=========================================="
-          echo " LARISSAMA PWA DEPLOYMENT SUCCESS"
-          echo "=========================================="
-
-          echo ""
-          echo "Application:"
-          echo "Larissama"
-
-          echo ""
-          echo "Mode:"
-          echo "Quasar PWA"
-
-          echo ""
-          echo "Node:"
-          node -v
-
-          echo ""
-          echo "Production:"
-          echo "$DEPLOY_PATH"
-
-          echo ""
-          echo "API:"
-          echo "$QCLI_API_BASE_URL"
-
-          echo ""
-          echo "Deployment completed successfully."
+          echo "Larissama PWA deployed successfully."
+          echo "Production: $DEPLOY_PATH"
