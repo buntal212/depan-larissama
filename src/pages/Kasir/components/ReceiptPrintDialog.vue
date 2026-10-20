@@ -6,12 +6,11 @@
   >
     <q-card class="receipt-dialog-card" :style="{ '--receipt-paper-width': `${paperWidth}mm` }">
       <div class="receipt-paper">
-        <header class="receipt-store-header">
+        <header v-if="!printingTest" class="receipt-store-header">
           <img v-if="warung?.logo" :src="warung.logo" :alt="`Logo ${warung?.nama || 'warung'}`" class="receipt-store-logo" />
           <strong>{{ warung?.nama || 'Warung' }}</strong>
           <span v-if="warung?.alamat">{{ warung.alamat }}</span>
           <span v-if="warung?.telepon">{{ warung.telepon }}</span>
-          <b v-if="printingTest">TEST PRINT</b>
         </header>
         <div class="receipt-text" aria-label="Pratinjau isi struk">
           <div
@@ -47,7 +46,7 @@
         </div>
         <div class="receipt-print-buttons">
           <q-btn flat no-caps label="Tutup" @click="$emit('update:modelValue', false)" />
-          <q-btn outline no-caps icon="receipt_long" label="Test print" @click="printTestReceipt" />
+          <q-btn outline no-caps icon="receipt_long" label="Cetak diagnostik" @click="printTestReceipt" />
           <q-btn unelevated no-caps color="primary" icon="print" label="Cetak struk" @click="printReceipt" />
         </div>
       </q-card-actions>
@@ -165,22 +164,8 @@ function clampColumns(value, width = '80') {
 }
 
 function formatReceipt(sale, cashierName, columns, isTest) {
-  const sample = {
-    no_transaksi: 'PJ-20261020-00000000000000000001',
-    tanggal: new Date().toISOString(),
-    subtotal: '45000.00',
-    diskon: '0.00',
-    total: '45000.00',
-    metode_pembayaran: 'cash',
-    status_pembayaran: 'lunas',
-    bayar: '50000.00',
-    kembalian: '5000.00',
-    rincian: [
-      { nama_menu: 'Nasi Goreng Spesial dengan Telur dan Ayam', qty: '2.00', harga: '20000.00', subtotal: '40000.00' },
-      { nama_menu: 'Es Teh Manis', qty: '1.00', harga: '5000.00', subtotal: '5000.00' },
-    ],
-  }
-  const data = isTest ? sample : sale
+  if (isTest) return formatDiagnosticPrint(columns)
+  const data = sale
   if (!data) return []
 
   const lines = []
@@ -189,7 +174,6 @@ function formatReceipt(sale, cashierName, columns, isTest) {
   const divider = () => add('-'.repeat(columns), false, true)
   const addPair = (label, value, emphasis = false) => addWrapped(twoColumns(label, value, columns), emphasis)
 
-  if (isTest) addWrapped(alignCenter('TEST PRINT', columns), true)
   divider()
   addPair('No. transaksi', '')
   addWrapped(alignLeft(data.no_transaksi || '—', columns))
@@ -215,6 +199,25 @@ function formatReceipt(sale, cashierName, columns, isTest) {
   addWrapped(alignCenter(data.status_pembayaran === 'belum_lunas' ? 'Pesanan belum dibayar' : 'Terima kasih atas kunjungan Anda', columns))
   addWrapped(alignCenter('Dibuat oleh Udumbara Informatika', columns), false, true)
   return lines
+}
+
+function formatDiagnosticPrint(columns) {
+  return [
+    { text: '1234567890123456' },
+    { text: '123456789012345678901234' },
+    { text: '12345678901234567890123456789012' },
+    { text: '' },
+    { text: alignLeft('LEFT', 16)[0] },
+    { text: alignCenter('CENTER', 16)[0] },
+    { text: alignRight('RIGHT', 16)[0] },
+    { text: '' },
+    { text: 'SUBTOTAL' },
+    { text: alignRight('Rp 39.000', columns)[0] },
+    { text: 'TOTAL' },
+    { text: alignRight('Rp 39.000', columns)[0], emphasis: true },
+    { text: '' },
+    { text: 'END PRINT' },
+  ]
 }
 
 function alignLeft(text, width) {
