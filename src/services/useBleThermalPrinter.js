@@ -1,4 +1,4 @@
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, shallowRef } from 'vue'
 import {
   buildPrinterTestBytes,
   CANDIDATE_PRINTER_SERVICE_UUID,
@@ -15,15 +15,15 @@ export function useBleThermalPrinter() {
   const status = ref('disconnected')
   const statusMessage = ref('Printer belum terhubung.')
   const errorMessage = ref('')
-  const device = ref(null)
-  const selectedCharacteristic = ref(null)
+  const device = shallowRef(null)
+  const selectedCharacteristic = shallowRef(null)
   const debugCharacteristics = ref([])
   const delayMs = ref(40)
 
   const hasBluetoothApi = computed(() => typeof navigator !== 'undefined' && Boolean(navigator.bluetooth))
   const isSecureContext = computed(() => typeof window !== 'undefined' && window.isSecureContext)
   const canConnect = computed(() => hasBluetoothApi.value && isSecureContext.value)
-  const isConnected = computed(() => Boolean(device.value?.gatt?.connected && selectedCharacteristic.value))
+  const isConnected = computed(() => status.value === 'connected' && Boolean(selectedCharacteristic.value))
   const hasSelectedDevice = computed(() => Boolean(device.value))
 
   async function connectPrinter() {
@@ -118,7 +118,7 @@ export function useBleThermalPrinter() {
 
   async function testPrint() {
     const characteristic = selectedCharacteristic.value
-    if (!characteristic || !isConnected.value) {
+    if (!characteristic || status.value !== 'connected') {
       setError('Hubungkan printer dan temukan characteristic tulis sebelum test print.')
       return
     }
@@ -137,6 +137,7 @@ export function useBleThermalPrinter() {
       status.value = 'connected'
       statusMessage.value = 'Data test print sudah dikirim. Periksa hasil fisik printer.'
     } catch (error) {
+      selectedCharacteristic.value = null
       setError(`Pengiriman test print gagal: ${formatBleError(error)}`)
       if (!device.value?.gatt?.connected) handleDisconnect()
     }
