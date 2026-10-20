@@ -1117,17 +1117,12 @@ body {
 }
 
 @media print {
-  body.print-pos-receipt,
-  body.print-pos-receipt #q-app {
-    width: 80mm !important;
-    min-width: 0 !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
   body.print-pos-receipt * {
     visibility: hidden !important;
+  }
+
+  body.print-pos-receipt #q-app {
+    display: none !important;
   }
 
   body.print-pos-receipt .receipt-print-dialog {
@@ -1154,10 +1149,8 @@ body {
   }
 
   body.print-pos-receipt .receipt-dialog-card {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 80mm !important;
+    position: static !important;
+    width: var(--receipt-paper-width, 80mm) !important;
     max-width: none !important;
     max-height: none !important;
     margin: 0 !important;
@@ -1827,25 +1820,27 @@ body,
 .receipt-print-buttons { justify-content: flex-end; }
 
 @media print {
+  body.print-pos-receipt #q-app {
+    display: none !important;
+  }
+
   body.print-pos-receipt,
-  body.print-pos-receipt #q-app,
   body.print-pos-receipt-58,
   body.print-pos-receipt-80 {
+    width: var(--receipt-paper-width, 80mm) !important;
     min-width: 0 !important;
     min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
+    overflow: visible !important;
   }
 
-  body.print-pos-receipt.print-pos-receipt-58,
-  body.print-pos-receipt.print-pos-receipt-58 #q-app { width: 58mm !important; }
-  body.print-pos-receipt.print-pos-receipt-80,
-  body.print-pos-receipt.print-pos-receipt-80 #q-app { width: 80mm !important; }
+  body.print-pos-receipt.print-pos-receipt-58 { width: 58mm !important; }
+  body.print-pos-receipt.print-pos-receipt-80 { width: 80mm !important; }
 
   body.print-pos-receipt .receipt-dialog-card {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
+    position: static !important;
+    display: block !important;
     width: var(--receipt-paper-width, 80mm) !important;
     max-width: none !important;
     max-height: none !important;
@@ -1853,6 +1848,8 @@ body,
     overflow: visible !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+    break-after: avoid-page !important;
+    page-break-after: avoid !important;
   }
 
   body.print-pos-receipt .receipt-paper {
@@ -1868,6 +1865,7 @@ body,
     letter-spacing: normal !important;
     word-spacing: normal !important;
     line-height: 1.2 !important;
+    break-inside: auto !important;
   }
 
   body.print-pos-receipt .receipt-text {
