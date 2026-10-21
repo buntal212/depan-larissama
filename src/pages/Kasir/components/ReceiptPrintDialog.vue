@@ -156,6 +156,7 @@ function formatReceipt(sale, cashierName, columns) {
   addPair('No. transaksi', '')
   addWrapped(alignLeft(data.no_transaksi || '—', columns))
   addPair('Waktu', formatDate(data.tanggal))
+  if (data.nama_pelanggan) addPair('Meja / nama', data.nama_pelanggan)
   if (cashierName) addPair('Kasir', cashierName)
   divider()
   for (const item of data.rincian || []) {

@@ -13,6 +13,19 @@
       <q-btn v-if="sheet" flat round dense icon="close" color="grey-7" aria-label="Tutup keranjang" @click="$emit('close')" />
     </q-card-section>
     <q-separator />
+    <q-card-section v-if="!editing" class="order-label-section">
+      <q-input
+        :model-value="orderLabel"
+        outlined
+        dense
+        maxlength="150"
+        label="No. meja / nama"
+        placeholder="Contoh: Meja 22 - Budi"
+        hint="Opsional · bisa diisi nomor meja, nama, atau keduanya"
+        @update:model-value="$emit('update:order-label', $event)"
+      />
+    </q-card-section>
+    <q-separator v-if="!editing" />
     <q-card-section v-if="cart.length" :class="['cart-items', { 'sheet-cart-items': sheet }]">
       <div v-for="item in cart" :key="item.id" class="cart-item">
         <div class="cart-item-icon" :class="`art-${item.color || 'mint'}`"><q-icon :name="item.freeForm ? 'edit_note' : (item.icon || 'restaurant')" /></div>
@@ -82,13 +95,14 @@ defineProps({
   cart: { type: Array, required: true },
   cartQuantity: { type: Number, required: true },
   subtotal: { type: Number, required: true },
+  orderLabel: { type: String, default: '' },
   sheet: { type: Boolean, default: false },
   editing: { type: Boolean, default: false },
   hasChanges: { type: Boolean, default: false },
   saving: { type: Boolean, default: false },
   reason: { type: String, default: '' },
 })
-defineEmits(['change-quantity', 'clear', 'close', 'checkout', 'save-edit', 'update:reason'])
+defineEmits(['change-quantity', 'clear', 'close', 'checkout', 'save-edit', 'update:reason', 'update:order-label'])
 
 function formatPrice(value) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value)

@@ -59,6 +59,7 @@
         :cart="cart"
         :cart-quantity="cartQuantity"
         :subtotal="subtotal"
+        :order-label="orderLabel"
         :editing="Boolean(editingSale)"
         :has-changes="editHasChanges"
         :saving="savingEdit"
@@ -66,6 +67,7 @@
         @change-quantity="changeQuantity"
         @clear="clearCart"
         @checkout="editingSale ? startEditPayment() : (checkoutOpen = true)"
+        @update:order-label="orderLabel = $event"
         @save-edit="saveEditOnly"
         @update:reason="editReason = $event"
       />
@@ -87,6 +89,7 @@
         :cart="cart"
         :cart-quantity="cartQuantity"
         :subtotal="subtotal"
+        :order-label="orderLabel"
         :editing="Boolean(editingSale)"
         :has-changes="editHasChanges"
         :saving="savingEdit"
@@ -95,6 +98,7 @@
         @clear="clearCart"
         @close="cartOpen = false"
         @checkout="editingSale ? startEditPayment() : (checkoutOpen = true)"
+        @update:order-label="orderLabel = $event"
         @save-edit="saveEditOnly"
         @update:reason="editReason = $event"
       />
@@ -188,6 +192,7 @@ const router = useRouter()
 const search = ref('')
 const activeCategory = ref('Semua')
 const cart = ref([])
+const orderLabel = ref('')
 const cartOpen = ref(false)
 const freeItemDialogOpen = ref(false)
 const freeItemForm = reactive({ name: '', price: null, quantity: 1 })
@@ -349,6 +354,7 @@ async function completeTransaction(payment) {
   }
   if (!cart.value.length || submittingSale.value) return
   const saleInput = {
+    nama_pelanggan: orderLabel.value.trim() || null,
     diskon: toMoney(payment.discount),
     ...(!payment.deferred
       ? { bayar: toMoney(payment.paid), metode_pembayaran: payment.method }
@@ -392,6 +398,7 @@ async function completeTransaction(payment) {
       timeout: 3200,
     })
     cart.value = []
+    orderLabel.value = ''
     cartOpen.value = false
     checkoutOpen.value = false
     receiptOpen.value = !payment.deferred

@@ -1166,7 +1166,6 @@ body {
     overflow: visible !important;
     border-radius: 0 !important;
     box-shadow: none !important;
-    page: larisama-receipt;
   }
 
   body.print-pos-receipt .receipt-paper {
@@ -1227,10 +1226,6 @@ body {
   }
 }
 
-@page larisama-receipt {
-  size: 80mm auto;
-  margin: 0;
-}
 .mobile-bottom-nav {
   display: none;
 }
@@ -1861,6 +1856,8 @@ body,
 
   body.print-pos-receipt.print-pos-receipt-58 { width: 58mm !important; }
   body.print-pos-receipt.print-pos-receipt-80 { width: 80mm !important; }
+  body.print-pos-receipt.print-pos-receipt-58 { page: larisama-receipt-58; }
+  body.print-pos-receipt.print-pos-receipt-80 { page: larisama-receipt-80; }
 
   body.print-pos-receipt .receipt-dialog-card {
     position: static !important;
@@ -1955,8 +1952,6 @@ body,
 
   @page larisama-receipt-58 { size: 58mm auto; margin: 0; }
   @page larisama-receipt-80 { size: 80mm auto; margin: 0; }
-  body.print-pos-receipt.print-pos-receipt-58 .receipt-dialog-card { page: larisama-receipt-58; }
-  body.print-pos-receipt.print-pos-receipt-80 .receipt-dialog-card { page: larisama-receipt-80; }
 }
 
 @media (max-width: 520px) {

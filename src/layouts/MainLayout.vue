@@ -143,6 +143,7 @@ import { logout } from '@/services/auth.js'
 import { authSession, getSelectedWarungId, setSelectedWarung } from '@/stores/auth-session.js'
 import { products } from '@/stores/catalog.js'
 import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
+import { useBleThermalPrinter } from '@/services/useBleThermalPrinter.js'
 
 const drawerOpen = ref(false)
 const warungOptions = ref([])
@@ -152,6 +153,7 @@ const failedWarungLogo = ref(null)
 const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
+const { reconnectRememberedPrinter } = useBleThermalPrinter()
 const currentRoute = computed(() => {
   if (route.path === '/penjualan') return 'transactions'
   if (route.path.startsWith('/menu')) return 'menu'
@@ -176,6 +178,7 @@ function handleWarungLogoError() {
 }
 
 onMounted(async () => {
+  if (authSession.token && authSession.user) void reconnectRememberedPrinter()
   if (authSession.user?.role !== 'superadmin') return
   warungsLoading.value = true
   try {

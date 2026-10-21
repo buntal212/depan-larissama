@@ -7,7 +7,7 @@ import {
   PRINTER_WRITE_CHUNK_SIZE,
 } from '@/services/ble-thermal-printer.js'
 
-const CONNECT_TIMEOUT_MS = 15000
+const CONNECT_TIMEOUT_MS = 30000
 const DISCOVERY_TIMEOUT_MS = 10000
 const WRITE_TIMEOUT_MS = 8000
 
@@ -106,7 +106,7 @@ export function useBleThermalPrinter() {
     const server = await withTimeout(
       targetDevice.gatt.connect(),
       CONNECT_TIMEOUT_MS,
-      'Waktu koneksi GATT habis.',
+      'Waktu koneksi GATT habis setelah 30 detik. Pastikan printer menyala dan tidak sedang tersambung ke perangkat atau aplikasi lain, lalu coba sambungkan ulang.',
     )
     const services = await withTimeout(
       server.getPrimaryServices(),
