@@ -161,6 +161,7 @@
 
 <script setup>
 import { computed, reactive, ref } from 'vue'
+import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '@/services/api.js'
 import { login } from '@/services/auth.js'
@@ -175,6 +176,7 @@ import {
 
 const route = useRoute()
 const router = useRouter()
+const $q = useQuasar()
 const form = reactive({ username: '', password: '' })
 const registrationForm = reactive({
   warungNama: '',
@@ -214,9 +216,24 @@ const installInstructions = computed(() =>
 )
 
 async function installApp() {
+  if (installing.value) return
   installing.value = true
   try {
-    await requestAppInstall()
+    const accepted = await requestAppInstall()
+    if (accepted) {
+      $q.notify({
+        type: 'info',
+        message: 'Permintaan install diterima Chrome. Tunggu Larisama muncul di daftar aplikasi dan jangan tekan Install lagi selama proses berjalan.',
+        position: 'top',
+        timeout: 7000,
+      })
+    }
+  } catch {
+    $q.notify({
+      type: 'negative',
+      message: 'Chrome belum menyelesaikan permintaan install. Coba lagi setelah proses sebelumnya berhenti.',
+      position: 'top',
+    })
   } finally {
     installing.value = false
   }

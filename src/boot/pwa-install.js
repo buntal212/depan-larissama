@@ -40,10 +40,10 @@ export async function requestAppInstall() {
   if (!prompt) return false
 
   await prompt.prompt()
-  await prompt.userChoice
+  const choice = await prompt.userChoice
   deferredInstallPrompt.value = null
   dismissInstallPrompt()
-  return true
+  return choice.outcome === 'accepted'
 }
 
 export default async function registerPwaInstallPrompt() {

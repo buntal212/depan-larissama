@@ -2,6 +2,8 @@
   "name": "Larisama — Dagangan Laris, Sukses Bersama",
   "short_name": "Larisama",
   "description": "Aplikasi kasir dan pengelolaan menu untuk warung makan.",
+  "id": "/depan-larissama",
+  "start_url": "/",
   "orientation": "any",
   "background_color": "#f7f9f7",
   "theme_color": "#14623f",
