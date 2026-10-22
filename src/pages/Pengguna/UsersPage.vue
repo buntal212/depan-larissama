@@ -23,6 +23,7 @@
           <q-input v-model.trim="form.username" outlined label="Username" maxlength="100" :rules="[(value) => !!value || 'Username perlu diisi', (value) => !/[A-Z]/.test(value) || 'Gunakan huruf kecil']" />
           <q-input v-model.trim="form.email" outlined type="email" label="Email (opsional)" maxlength="150" :rules="[(value) => !value || !/[A-Z]/.test(value) || 'Gunakan huruf kecil']" />
           <q-input v-model="form.password" outlined type="password" :label="selectedUser ? 'Password baru (opsional)' : 'Password awal'" :hint="selectedUser ? 'Kosongkan jika tidak mengganti password.' : 'Minimal 8 karakter.'" :rules="[(value) => selectedUser && !value || value.length >= 8 || 'Minimal 8 karakter']" />
+          <q-input v-if="selectedUser" v-model="form.passwordConfirmation" outlined type="password" label="Konfirmasi password baru" hint="Wajib diisi jika password baru diganti." :rules="[(value) => !form.password || !!value || 'Konfirmasi password perlu diisi', (value) => !form.password || value === form.password || 'Konfirmasi password tidak sama']" />
           <q-select v-model="form.role" outlined emit-value map-options label="Peran" :options="roleOptions" />
           <q-toggle v-model="form.active" color="secondary" label="Akun aktif" />
           <div class="row justify-end q-gutter-sm q-mt-lg"><q-btn flat no-caps label="Batal" @click="formOpen = false" /><q-btn unelevated no-caps color="primary" label="Simpan pengguna" :loading="saving" type="submit" /></div>
@@ -55,7 +56,7 @@ const roleOptions = [
   { label: 'Manager', value: 'manager' },
   { label: 'Kasir', value: 'kasir' },
 ]
-const form = reactive({ name: '', username: '', email: '', password: '', role: 'kasir', active: true })
+const form = reactive({ name: '', username: '', email: '', password: '', passwordConfirmation: '', role: 'kasir', active: true })
 const columns = [
   { name: 'name', label: 'Nama', field: 'nama', align: 'left', sortable: true },
   { name: 'username', label: 'Username', field: 'username', align: 'left' },
@@ -73,7 +74,7 @@ onMounted(loadUsers)
 
 function openForm(user = null) {
   selectedUser.value = user
-  Object.assign(form, user ? { name: user.nama, username: user.username, email: user.email || '', password: '', role: user.role, active: user.aktif } : { name: '', username: '', email: '', password: '', role: 'kasir', active: true })
+  Object.assign(form, user ? { name: user.nama, username: user.username, email: user.email || '', password: '', passwordConfirmation: '', role: user.role, active: user.aktif } : { name: '', username: '', email: '', password: '', passwordConfirmation: '', role: 'kasir', active: true })
   formOpen.value = true
 }
 async function submitForm() {
@@ -81,8 +82,15 @@ async function submitForm() {
     $q.notify({ type: 'negative', message: 'Username dan email harus menggunakan huruf kecil.' })
     return
   }
+  if (selectedUser.value && form.password && form.passwordConfirmation !== form.password) {
+    $q.notify({ type: 'negative', message: form.passwordConfirmation ? 'Konfirmasi password tidak sama.' : 'Konfirmasi password perlu diisi.' })
+    return
+  }
   const body = { nama: form.name.trim(), username: form.username.trim(), email: form.email || null, role: form.role, aktif: form.active }
-  if (form.password) body.password = form.password
+  if (form.password) {
+    body.password = form.password
+    if (selectedUser.value) body.password_confirmation = form.passwordConfirmation
+  }
   saving.value = true
   try { await larisamaApi.saveUser(selectedUser.value?.id, body); await loadUsers(); formOpen.value = false; $q.notify({ type: 'positive', message: 'Pengguna tersimpan.' }) }
   catch (error) { $q.notify({ type: 'negative', message: displayApiError(error) }) }
