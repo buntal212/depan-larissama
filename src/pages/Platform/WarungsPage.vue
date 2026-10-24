@@ -15,20 +15,47 @@
                   <div class="col"><div class="text-weight-bold">{{ props.row.nama }}</div></div>
                   <q-badge :color="statusColor(props.row)">{{ statusText(props.row) }}</q-badge>
                 </div>
-                <div class="warung-mobile-meta"><span>Pemilik</span><strong>{{ props.row.owner?.nama || '—' }}</strong></div>
+                <div class="warung-mobile-meta"><span>Pemilik</span><strong>{{ ownerNames(props.row) }}</strong></div>
                 <div class="warung-mobile-meta"><span>Masa aktif</span><strong>{{ dateRange(props.row) }}</strong></div>
+                <div class="warung-mobile-sync q-mt-md">
+                  <div class="row items-center justify-between q-gutter-sm">
+                    <span class="text-caption text-grey-7">Sync UDEV</span>
+                    <q-badge :color="udevSyncColor(props.row.udev_customer_sync)">{{ udevSyncText(props.row.udev_customer_sync) }}</q-badge>
+                  </div>
+                  <div v-if="udevSyncDetail(props.row.udev_customer_sync)" class="text-caption text-grey-7 q-mt-xs">{{ udevSyncDetail(props.row.udev_customer_sync) }}</div>
+                  <div class="row justify-end q-gutter-xs q-mt-xs">
+                    <q-btn v-if="canRefreshUdevSync(props.row.udev_customer_sync)" flat dense no-caps icon="refresh" label="Perbarui" :loading="syncBusyId === props.row.id" @click="refreshUdevSync(props.row)" />
+                    <q-btn v-if="canRetryUdevSync(props.row.udev_customer_sync)" outline dense no-caps color="negative" icon="sync" label="Retry sync" :loading="syncBusyId === props.row.id" @click="retryUdevSync(props.row)" />
+                  </div>
+                </div>
                 <div class="row justify-end q-gutter-sm q-mt-md">
-                  <q-btn v-if="isPending(props.row)" unelevated no-caps color="primary" label="Setujui 30 hari" :loading="busyId === props.row.id" @click="approve(props.row)" />
-                  <q-btn v-else outline no-caps color="primary" label="Tambah 30 hari" :loading="busyId === props.row.id" @click="extend(props.row)" />
+                  <q-btn v-if="isPending(props.row)" unelevated no-caps color="primary" label="Setujui 30 hari" :loading="isActionBusy(props.row, 'approve')" @click="approve(props.row)" />
+                  <q-btn v-else outline no-caps color="primary" label="Tambah 30 hari" :loading="isActionBusy(props.row, 'extend')" @click="extend(props.row)" />
+                  <q-btn outline no-caps color="secondary" :label="threeDayActionLabel(props.row)" :loading="isActionBusy(props.row, 'activate-three-days')" @click="activateThreeDays(props.row)" />
                 </div>
               </q-card-section>
             </q-card>
           </div>
         </template>
         <template #body-cell-status="props"><q-td :props="props"><q-badge :color="statusColor(props.row)">{{ statusText(props.row) }}</q-badge></q-td></template>
+        <template #body-cell-udev_sync="props">
+          <q-td :props="props">
+            <div class="column items-start q-gutter-xs">
+              <q-badge :color="udevSyncColor(props.row.udev_customer_sync)">{{ udevSyncText(props.row.udev_customer_sync) }}</q-badge>
+              <div v-if="udevSyncDetail(props.row.udev_customer_sync)" class="text-caption text-grey-7">{{ udevSyncDetail(props.row.udev_customer_sync) }}</div>
+              <div class="row q-gutter-xs">
+                <q-btn v-if="canRefreshUdevSync(props.row.udev_customer_sync)" flat dense round icon="refresh" aria-label="Perbarui status UDEV" :loading="syncBusyId === props.row.id" @click.stop="refreshUdevSync(props.row)">
+                  <q-tooltip>Perbarui status UDEV</q-tooltip>
+                </q-btn>
+                <q-btn v-if="canRetryUdevSync(props.row.udev_customer_sync)" flat dense no-caps color="negative" label="Retry sync" :loading="syncBusyId === props.row.id" @click.stop="retryUdevSync(props.row)" />
+              </div>
+            </div>
+          </q-td>
+        </template>
         <template #body-cell-actions="props"><q-td :props="props" class="text-right">
-          <q-btn v-if="isPending(props.row)" flat dense no-caps color="primary" label="Setujui 30 hari" :loading="busyId === props.row.id" @click="approve(props.row)" />
-          <q-btn v-else flat dense no-caps color="primary" label="Tambah 30 hari" :loading="busyId === props.row.id" @click="extend(props.row)" />
+          <q-btn v-if="isPending(props.row)" flat dense no-caps color="primary" label="Setujui 30 hari" :loading="isActionBusy(props.row, 'approve')" @click="approve(props.row)" />
+          <q-btn v-else flat dense no-caps color="primary" label="Tambah 30 hari" :loading="isActionBusy(props.row, 'extend')" @click="extend(props.row)" />
+          <q-btn flat dense no-caps color="secondary" :label="threeDayActionLabel(props.row)" :loading="isActionBusy(props.row, 'activate-three-days')" @click="activateThreeDays(props.row)" />
         </q-td></template>
       </q-table>
     </q-card>
@@ -90,6 +117,7 @@ const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
 const busyId = ref(null)
+const syncBusyId = ref(null)
 const confirmationOpen = ref(false)
 const confirmation = ref(null)
 const filter = ref('pending')
@@ -102,17 +130,75 @@ const blankForm = () => ({ name: '', timezone: 'Asia/Jakarta', address: '', phon
 const form = reactive(blankForm())
 const columns = [
   { name: 'name', label: 'Warung', field: 'nama', align: 'left' },
-  { name: 'owner', label: 'Pemilik', field: (row) => row.owner?.nama || '—', align: 'left' },
+  { name: 'owner', label: 'Pemilik', field: ownerNames, align: 'left' },
   { name: 'subscription', label: 'Masa aktif', field: dateRange, align: 'left' },
   { name: 'status', label: 'Status', field: statusText, align: 'left' },
+  { name: 'udev_sync', label: 'Sync UDEV', field: (row) => row.udev_customer_sync?.status || 'none', align: 'left' },
   { name: 'actions', label: '', field: 'id', align: 'right' },
 ]
 function isPending(row) { return row.status_langganan === 'menunggu_persetujuan' }
+function isActionBusy(row, actionKey) { return busyId.value === row.id && confirmation.value?.actionKey === actionKey }
+function threeDayActionLabel(row) { return row.status_langganan === 'aktif' ? 'Tambah 3 hari' : 'Aktifkan 3 hari' }
 function statusText(row) { return isPending(row) ? 'Menunggu persetujuan' : row.status_langganan === 'aktif' ? 'Aktif' : row.status_langganan === 'kedaluwarsa' ? 'Kedaluwarsa' : 'Nonaktif' }
 function statusColor(row) { return isPending(row) ? 'orange-8' : row.status_langganan === 'aktif' ? 'positive' : 'grey-7' }
 function dateRange(row) { return row.tanggal_mulai && row.tanggal_berakhir ? `${row.tanggal_mulai} – ${row.tanggal_berakhir}` : 'Belum aktif' }
+function ownerNames(row) { return row.owners?.map((owner) => owner.nama).filter(Boolean).join(', ') || '—' }
+function udevSyncText(sync) {
+  if (!sync) return 'Belum ada data'
+  return ({ pending: 'Menunggu proses', retry_wait: 'Menunggu retry', synced: 'Tersinkron', failed: 'Gagal', blocked: 'Terblokir' })[sync.status] || 'Status tidak dikenal'
+}
+function udevSyncColor(sync) {
+  return ({ pending: 'blue-8', retry_wait: 'orange-8', synced: 'positive', failed: 'negative', blocked: 'grey-7' })[sync?.status] || 'grey-6'
+}
+function canRefreshUdevSync(sync) { return Boolean(sync) && sync.status !== 'synced' }
+function canRetryUdevSync(sync) { return ['failed', 'blocked', 'retry_wait'].includes(sync?.status) }
+function udevSyncDetail(sync) {
+  if (!sync) return ''
+  const details = []
+  if (sync.last_http_status) details.push(`HTTP ${sync.last_http_status}`)
+  if (sync.last_error_code) details.push(sync.last_error_code)
+  if (sync.status === 'synced' && sync.last_success_at) details.push(`Berhasil ${formatSyncTime(sync.last_success_at)}`)
+  else if (sync.status === 'retry_wait' && sync.next_attempt_at) details.push(`Retry berikutnya ${formatSyncTime(sync.next_attempt_at)}`)
+  else if (sync.last_attempt_at) details.push(`Percobaan ${formatSyncTime(sync.last_attempt_at)}`)
+  if (sync.attempt_count > 0) details.push(`${sync.attempt_count} percobaan`)
+  return details.join(' · ')
+}
+function formatSyncTime(value) {
+  const timestamp = new Date(value)
+  return Number.isNaN(timestamp.getTime()) ? '—' : new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jakarta' }).format(timestamp)
+}
+function syncSummary(sync) {
+  return {
+    status: sync.status,
+    attempt_count: sync.attempt_count,
+    last_http_status: sync.last_http_status,
+    last_error_code: sync.last_error_code,
+    last_attempt_at: sync.last_attempt_at,
+    last_success_at: sync.last_success_at,
+    next_attempt_at: sync.next_attempt_at,
+  }
+}
 async function loadWarungs() { loading.value = true; error.value = ''; try { warungs.value = await larisamaApi.listWarungs() } catch (e) { error.value = displayApiError(e) } finally { loading.value = false } }
 onMounted(loadWarungs)
+
+async function refreshUdevSync(row) {
+  syncBusyId.value = row.id
+  try {
+    row.udev_customer_sync = syncSummary(await larisamaApi.getWarungUdevCustomerSync(row.id))
+  } catch (e) {
+    $q.notify({ type: 'negative', message: displayApiError(e), position: 'top' })
+  } finally { syncBusyId.value = null }
+}
+
+async function retryUdevSync(row) {
+  syncBusyId.value = row.id
+  try {
+    row.udev_customer_sync = syncSummary(await larisamaApi.retryWarungUdevCustomerSync(row.id))
+    $q.notify({ type: 'positive', message: `Retry sync ${row.nama} sudah masuk antrean.`, position: 'top' })
+  } catch (e) {
+    $q.notify({ type: 'negative', message: displayApiError(e), position: 'top' })
+  } finally { syncBusyId.value = null }
+}
 
 async function runAction(row, action, successMessage) {
   busyId.value = row.id
@@ -131,6 +217,7 @@ function approve(row) {
   confirmation.value = {
     row,
     action: larisamaApi.approveWarung,
+    actionKey: 'approve',
     title: 'Setujui pendaftaran?',
     message: `${row.nama} akan aktif selama 30 hari.`,
     successMessage: 'Pendaftaran disetujui selama 30 hari.',
@@ -142,9 +229,25 @@ function extend(row) {
   confirmation.value = {
     row,
     action: larisamaApi.extendWarungSubscription,
+    actionKey: 'extend',
     title: 'Tambah masa aktif?',
     message: `Masa aktif ${row.nama} akan ditambah 30 hari.`,
     successMessage: 'Masa aktif ditambah 30 hari.',
+  }
+  confirmationOpen.value = true
+}
+
+function activateThreeDays(row) {
+  const currentlyActive = row.status_langganan === 'aktif'
+  confirmation.value = {
+    row,
+    action: larisamaApi.activateWarungForThreeDays,
+    actionKey: 'activate-three-days',
+    title: currentlyActive ? 'Tambah masa aktif 3 hari?' : 'Aktifkan warung 3 hari?',
+    message: currentlyActive
+      ? `Masa aktif ${row.nama} akan ditambah 3 hari setelah tanggal akhir saat ini.`
+      : `${row.nama} akan diaktifkan selama 3 hari mulai tanggal lokal saat ini.`,
+    successMessage: currentlyActive ? 'Masa aktif ditambah 3 hari.' : 'Warung diaktifkan selama 3 hari.',
   }
   confirmationOpen.value = true
 }
@@ -177,6 +280,7 @@ async function submitForm() {
 .warung-date-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
 .warung-mobile-meta { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; color: #718078; font-size: 12px; }
 .warung-mobile-meta strong { color: #254435; text-align: right; overflow-wrap: anywhere; }
+.warung-mobile-sync { padding-top: 10px; border-top: 1px solid #e7eee9; }
 @media (max-width: 599px) {
   .warung-filter-header { align-items: stretch; flex-direction: column; }
   .warung-filter-tabs { width: 100%; }
