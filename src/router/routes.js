@@ -13,6 +13,7 @@ const routes = [
       { path: 'laporan', component: () => import('@/pages/Laporan/ReportsPage.vue'), meta: { roles: ['owner', 'manager', 'superadmin'] } },
       { path: 'pengguna', component: () => import('@/pages/Pengguna/UsersPage.vue'), meta: { roles: ['owner', 'superadmin'] } },
       { path: 'warung', component: () => import('@/pages/ProfilWarung/WarungProfilePage.vue'), meta: { roles: ['owner', 'manager', 'kasir'] } },
+      { path: 'paket-langganan', component: () => import('@/pages/Langganan/SubscriptionPlansPage.vue'), meta: { roles: ['owner'] } },
       { path: 'pengaturan', component: () => import('@/pages/Pengaturan/SettingsPage.vue'), meta: { roles: ['owner', 'manager', 'kasir', 'superadmin'] } },
       { path: 'platform/warungs', component: () => import('@/pages/Platform/WarungsPage.vue'), meta: { roles: ['superadmin'] } },
     ],

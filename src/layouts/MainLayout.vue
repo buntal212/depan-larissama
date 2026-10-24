@@ -241,6 +241,7 @@ const navigation = computed(() => {
     ]
   return [
     dashboard,
+    { label: 'Paket langganan', icon: 'sell', to: '/paket-langganan' },
     { label: 'Kasir', icon: 'point_of_sale', to: '/transaksi' },
     catalog,
     salesHistory,

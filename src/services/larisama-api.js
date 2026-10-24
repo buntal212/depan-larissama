@@ -20,6 +20,7 @@ export const larisamaApi = {
   initiateWarungUdevCustomerSync: async (id, body) => (await apiRequest(`admin/warungs/${encodeURIComponent(id)}/udev-customer-sync`, { method: 'POST', body })).data,
   getWarungUdevCustomerSync: async (id) => (await apiRequest(`admin/warungs/${encodeURIComponent(id)}/udev-customer-sync`)).data,
   retryWarungUdevCustomerSync: async (id) => (await apiRequest(`admin/warungs/${encodeURIComponent(id)}/udev-customer-sync/retry`, { method: 'POST' })).data,
+  listSubscriptionPlans: async () => (await apiRequest('subscription-plans')).data,
 
   listUsers: async () => getAllPages('users'),
   saveUser: async (id, body) => (await apiRequest(id ? `users/${encodeURIComponent(id)}` : 'users', { method: id ? 'PATCH' : 'POST', body })).data,
