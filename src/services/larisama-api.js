@@ -17,6 +17,7 @@ export const larisamaApi = {
   approveWarung: async (id) => (await apiRequest(`admin/warungs/${encodeURIComponent(id)}/persetujuan`, { method: 'POST' })).data,
   activateWarungForThreeDays: async (id) => (await apiRequest(`admin/warungs/${encodeURIComponent(id)}/langganan/aktivasi-tiga-hari`, { method: 'POST' })).data,
   extendWarungSubscription: async (id) => (await apiRequest(`admin/warungs/${encodeURIComponent(id)}/langganan/perpanjangan`, { method: 'POST' })).data,
+  initiateWarungUdevCustomerSync: async (id, body) => (await apiRequest(`admin/warungs/${encodeURIComponent(id)}/udev-customer-sync`, { method: 'POST', body })).data,
   getWarungUdevCustomerSync: async (id) => (await apiRequest(`admin/warungs/${encodeURIComponent(id)}/udev-customer-sync`)).data,
   retryWarungUdevCustomerSync: async (id) => (await apiRequest(`admin/warungs/${encodeURIComponent(id)}/udev-customer-sync/retry`, { method: 'POST' })).data,
 

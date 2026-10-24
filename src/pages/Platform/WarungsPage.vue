@@ -24,6 +24,7 @@
                   </div>
                   <div v-if="udevSyncDetail(props.row.udev_customer_sync)" class="text-caption text-grey-7 q-mt-xs">{{ udevSyncDetail(props.row.udev_customer_sync) }}</div>
                   <div class="row justify-end q-gutter-xs q-mt-xs">
+                    <q-btn v-if="!props.row.udev_customer_sync && props.row.owners?.length" outline dense no-caps color="primary" icon="sync" label="Sync ke UDEV" :loading="syncBusyId === props.row.id" @click="openLegacySync(props.row)" />
                     <q-btn v-if="canRefreshUdevSync(props.row.udev_customer_sync)" flat dense no-caps icon="refresh" label="Perbarui" :loading="syncBusyId === props.row.id" @click="refreshUdevSync(props.row)" />
                     <q-btn v-if="canRetryUdevSync(props.row.udev_customer_sync)" outline dense no-caps color="negative" icon="sync" label="Retry sync" :loading="syncBusyId === props.row.id" @click="retryUdevSync(props.row)" />
                   </div>
@@ -44,6 +45,7 @@
               <q-badge :color="udevSyncColor(props.row.udev_customer_sync)">{{ udevSyncText(props.row.udev_customer_sync) }}</q-badge>
               <div v-if="udevSyncDetail(props.row.udev_customer_sync)" class="text-caption text-grey-7">{{ udevSyncDetail(props.row.udev_customer_sync) }}</div>
               <div class="row q-gutter-xs">
+                <q-btn v-if="!props.row.udev_customer_sync && props.row.owners?.length" outline dense no-caps color="primary" icon="sync" label="Sync ke UDEV" :loading="syncBusyId === props.row.id" @click.stop="openLegacySync(props.row)" />
                 <q-btn v-if="canRefreshUdevSync(props.row.udev_customer_sync)" flat dense round icon="refresh" aria-label="Perbarui status UDEV" :loading="syncBusyId === props.row.id" @click.stop="refreshUdevSync(props.row)">
                   <q-tooltip>Perbarui status UDEV</q-tooltip>
                 </q-btn>
@@ -59,6 +61,20 @@
         </q-td></template>
       </q-table>
     </q-card>
+
+    <q-dialog v-model="legacySyncDialogOpen" persistent>
+      <q-card class="product-form-dialog">
+        <q-card-section>
+          <div class="text-h6">Sinkronkan warung lama ke UDEV?</div>
+          <div class="q-mt-sm">Data warung dan owner terpilih akan dikirim ke UDEV Billing untuk pendaftaran customer dan pembuatan invoice paket langganan. Dengan melanjutkan, Anda mencatat bahwa pemberitahuan dan persetujuan owner sudah disampaikan; pemberitahuan verbal diperbolehkan. Aksi dan akun superadmin akan masuk audit.</div>
+          <q-select v-model="legacyOwnerId" class="q-mt-md" outlined emit-value map-options :options="legacyOwnerOptions" option-label="label" option-value="id" label="Owner yang didaftarkan ke UDEV" />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat no-caps label="Batal" :disable="Boolean(syncBusyId)" @click="legacySyncDialogOpen = false" />
+          <q-btn unelevated no-caps color="primary" label="Catat persetujuan dan sync" :loading="syncBusyId === legacySyncRow?.id" :disable="!legacyOwnerId" @click="initiateLegacySync" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <q-dialog v-model="confirmationOpen" persistent>
       <q-card class="product-form-dialog">
@@ -118,6 +134,10 @@ const saving = ref(false)
 const error = ref('')
 const busyId = ref(null)
 const syncBusyId = ref(null)
+const legacySyncDialogOpen = ref(false)
+const legacySyncRow = ref(null)
+const legacyOwnerId = ref(null)
+const legacyOwnerOptions = computed(() => (legacySyncRow.value?.owners || []).map((owner) => ({ ...owner, label: `${owner.nama} · ID ${owner.id}` })))
 const confirmationOpen = ref(false)
 const confirmation = ref(null)
 const filter = ref('pending')
@@ -195,6 +215,29 @@ async function retryUdevSync(row) {
   try {
     row.udev_customer_sync = syncSummary(await larisamaApi.retryWarungUdevCustomerSync(row.id))
     $q.notify({ type: 'positive', message: `Retry sync ${row.nama} sudah masuk antrean.`, position: 'top' })
+  } catch (e) {
+    $q.notify({ type: 'negative', message: displayApiError(e), position: 'top' })
+  } finally { syncBusyId.value = null }
+}
+
+function openLegacySync(row) {
+  if (!row.owners?.length) {
+    $q.notify({ type: 'negative', message: 'Warung ini belum memiliki akun owner untuk didaftarkan ke UDEV.', position: 'top' })
+    return
+  }
+  legacySyncRow.value = row
+  legacyOwnerId.value = row.owners.length === 1 ? row.owners[0].id : null
+  legacySyncDialogOpen.value = true
+}
+
+async function initiateLegacySync() {
+  const row = legacySyncRow.value
+  if (!row || !legacyOwnerId.value) return
+  syncBusyId.value = row.id
+  try {
+    row.udev_customer_sync = syncSummary(await larisamaApi.initiateWarungUdevCustomerSync(row.id, { owner_user_id: legacyOwnerId.value }))
+    legacySyncDialogOpen.value = false
+    $q.notify({ type: 'positive', message: `Sync ${row.nama} sudah masuk antrean.`, position: 'top' })
   } catch (e) {
     $q.notify({ type: 'negative', message: displayApiError(e), position: 'top' })
   } finally { syncBusyId.value = null }

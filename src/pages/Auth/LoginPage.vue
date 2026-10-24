@@ -131,7 +131,7 @@
             </q-input>
 
             <div class="registration-notice q-mt-md">
-              Larisama memakai data pemilik untuk membuat akun dan login. Nama warung, nama pemilik, email bila diisi, serta nomor telepon warung dikirim ke UDEV Billing untuk mendaftarkan customer penagihan. Password hanya dipakai Larisama dan tidak dikirim ke UDEV.
+              Larisama memakai data pemilik untuk membuat akun dan login. Nama warung, nama pemilik, email bila diisi, serta nomor telepon warung dikirim ke UDEV Billing untuk mendaftarkan customer dan membuat invoice paket langganan. Data ini digunakan untuk kebutuhan penagihan paket berikutnya. Password hanya dipakai Larisama dan tidak dikirim ke UDEV.
             </div>
             <q-checkbox
               v-model="registrationForm.dataConsent"
@@ -314,7 +314,7 @@ async function submitRegistration() {
       alamat: registrationForm.alamat.trim() || null,
       telepon: registrationForm.telepon.trim(),
       data_consent: true,
-      data_notice_version: '2026-10-24.v1',
+      data_notice_version: '2026-10-25.v2',
       owner: {
         nama: registrationForm.ownerNama.trim(),
         username: registrationForm.username.trim(),
