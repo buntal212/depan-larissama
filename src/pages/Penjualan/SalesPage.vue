@@ -79,8 +79,8 @@
               <q-card-section>
                 <div class="row items-center justify-between">
                   <strong>{{ props.row.no_transaksi }}</strong
-                  ><q-badge :color="props.row.status === 'selesai' ? 'positive' : 'grey-6'">{{
-                    props.row.status
+                  ><q-badge :color="saleStatusColor(props.row.status)">{{
+                    saleStatusLabel(props.row.status)
                   }}</q-badge>
                 </div>
                 <div class="panel-caption q-mt-sm">
@@ -90,6 +90,7 @@
                 <div class="sale-mobile-total">{{ formatPrice(props.row.total) }}</div>
                 <div class="row justify-end">
                   <q-btn
+                    v-if="canViewDetails(props.row)"
                     flat
                     no-caps
                     dense
@@ -134,12 +135,13 @@
               formatPrice(props.row.total)
             }}</q-td>
             <q-td key="status" :props="props"
-              ><q-badge :color="props.row.status === 'selesai' ? 'positive' : 'grey-6'">{{
-                props.row.status
+              ><q-badge :color="saleStatusColor(props.row.status)">{{
+                saleStatusLabel(props.row.status)
               }}</q-badge></q-td
             >
             <q-td key="actions" :props="props">
               <q-btn
+                v-if="canViewDetails(props.row)"
                 flat
                 round
                 dense
@@ -208,6 +210,24 @@
         </q-card-section>
         <q-separator />
         <q-card-section v-if="selectedSale">
+          <q-banner
+            v-if="selectedSale.status === 'batal'"
+            rounded
+            class="bg-red-1 text-negative q-mb-md cancellation-banner"
+          >
+            <div class="row no-wrap items-start q-gutter-sm">
+              <q-icon name="block" size="20px" class="q-mt-xs" />
+              <div class="col">
+                <strong>Transaksi dibatalkan</strong>
+                <div class="q-mt-xs">
+                  Alasan: {{ cancellationRecord?.alasan || 'Alasan pembatalan tidak tersedia dari server.' }}
+                </div>
+                <div v-if="cancellationRecord?.created_at" class="text-caption q-mt-xs">
+                  Dibatalkan {{ formatDate(cancellationRecord.created_at) }}
+                </div>
+              </div>
+            </div>
+          </q-banner>
           <q-list separator>
             <q-item v-for="(line, index) in selectedSale.rincian" :key="`${line.menu_id}-${index}`">
               <q-item-section
@@ -253,6 +273,7 @@
         <q-card-actions align="right">
           <q-btn flat no-caps label="Tutup" @click="detailOpen = false" />
           <q-btn
+            v-if="selectedSale?.status !== 'batal'"
             unelevated
             no-caps
             color="primary"
@@ -443,6 +464,9 @@ const paymentOpen = ref(false)
 const receiptOpen = ref(false)
 const paymentStatusFilter = ref('')
 const selectedSale = ref(null)
+const cancellationRecord = computed(() =>
+  selectedSale.value?.riwayat_koreksi?.find((record) => record.jenis === 'batalkan') || null,
+)
 const mutationOpen = ref(false)
 const mutationType = ref('correction')
 const savingMutation = ref(false)
@@ -588,6 +612,9 @@ function canEditPending(sale) {
     sale.status === 'menunggu_pembayaran' &&
     sale.status_pembayaran === 'belum_lunas'
   )
+}
+function canViewDetails(sale) {
+  return sale.status !== 'menunggu_pembayaran'
 }
 function canCancel(sale) {
   const role = authSession.user?.role
@@ -779,6 +806,24 @@ function moneyToCents(value) {
   const [whole = '0', fraction = ''] = source.replace(/^-/, '').split('.')
   const cents = BigInt(whole || '0') * 100n + BigInt(fraction.padEnd(2, '0').slice(0, 2) || '0')
   return negative ? -cents : cents
+}
+function saleStatusLabel(value) {
+  return {
+    selesai: 'Selesai',
+    menunggu_pembayaran: 'Belum lunas',
+    batal: 'Dibatalkan',
+    diretur_sebagian: 'Diretur sebagian',
+    diretur_penuh: 'Diretur penuh',
+  }[value] || value || 'Status tidak diketahui'
+}
+function saleStatusColor(value) {
+  return {
+    selesai: 'positive',
+    menunggu_pembayaran: 'warning',
+    batal: 'negative',
+    diretur_sebagian: 'deep-orange',
+    diretur_penuh: 'grey-7',
+  }[value] || 'grey-6'
 }
 function printHistory() { printPdfReport(salesHistoryPdfOptions()) }
 function saveHistoryPdf() { downloadPdfReport(salesHistoryPdfOptions()) }
