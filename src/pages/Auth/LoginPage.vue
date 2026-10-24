@@ -130,10 +130,18 @@
               </template>
             </q-input>
 
+            <div class="registration-notice q-mt-md">
+              Larisama memakai data pemilik untuk membuat akun dan login. Nama warung, nama pemilik, email bila diisi, serta nomor telepon warung dikirim ke UDEV Billing untuk mendaftarkan customer penagihan. Password hanya dipakai Larisama dan tidak dikirim ke UDEV.
+            </div>
+            <q-checkbox
+              v-model="registrationForm.dataConsent"
+              label="Saya memahami dan menyetujui penggunaan serta pengiriman data tersebut."
+            />
+
             <q-banner v-if="registrationMessage" rounded class="bg-blue-1 text-primary q-mt-sm">
               {{ registrationMessage }}
             </q-banner>
-            <q-btn class="full-width q-mt-md" unelevated no-caps color="primary" label="Kirim pendaftaran" type="submit" :loading="registrationSubmitting" />
+            <q-btn class="full-width q-mt-md" unelevated no-caps color="primary" label="Kirim pendaftaran" type="submit" :loading="registrationSubmitting" :disable="!registrationForm.dataConsent" />
             <q-btn class="full-width q-mt-sm" flat no-caps color="primary" label="Sudah punya akun? Masuk" @click="closeRegistration" />
           </q-form>
         </q-card>
@@ -187,6 +195,7 @@ const registrationForm = reactive({
   email: '',
   password: '',
   passwordConfirmation: '',
+  dataConsent: false,
 })
 const submitting = ref(false)
 const showPassword = ref(false)
@@ -280,12 +289,17 @@ function closeRegistration() {
     email: '',
     password: '',
     passwordConfirmation: '',
+    dataConsent: false,
   })
   isRegistering.value = false
 }
 
 async function submitRegistration() {
   registrationError.value = ''
+  if (!registrationForm.dataConsent) {
+    registrationError.value = 'Persetujuan penggunaan dan pengiriman data wajib diberikan.'
+    return
+  }
   if (/[A-Z]/.test(registrationForm.username) || (registrationForm.email && /[A-Z]/.test(registrationForm.email))) {
     registrationError.value = 'Username dan email harus menggunakan huruf kecil.'
     return
@@ -299,6 +313,8 @@ async function submitRegistration() {
       timezone,
       alamat: registrationForm.alamat.trim() || null,
       telepon: registrationForm.telepon.trim(),
+      data_consent: true,
+      data_notice_version: '2026-10-24.v1',
       owner: {
         nama: registrationForm.ownerNama.trim(),
         username: registrationForm.username.trim(),
@@ -308,7 +324,7 @@ async function submitRegistration() {
     })
     registrationSuccess.value = true
     Object.assign(registrationForm, {
-      warungNama: '', alamat: '', telepon: '', ownerNama: '', username: '', email: '', password: '', passwordConfirmation: '',
+      warungNama: '', alamat: '', telepon: '', ownerNama: '', username: '', email: '', password: '', passwordConfirmation: '', dataConsent: false,
     })
     showRegistrationPassword.value = false
     showPasswordConfirmation.value = false
