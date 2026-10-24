@@ -21,6 +21,10 @@
       Harga dan masa aktif ditampilkan dari katalog UDEV. Pembayaran dan pembuatan invoice belum
       tersedia di halaman ini.
     </q-banner>
+    <q-banner v-if="paymentOnly" rounded class="bg-orange-1 text-orange-10 q-mb-lg">
+      Masa aktif warung telah habis. Selama masa tenggang, hanya halaman paket langganan yang dapat
+      diakses. Hubungi admin untuk mengaktifkan kembali warung.
+    </q-banner>
 
     <q-card v-if="errorMessage" flat bordered class="state-card">
       <q-card-section class="row items-center q-gutter-md">
@@ -73,12 +77,14 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
+import { authSession } from '@/stores/auth-session.js'
 
 const plans = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
+const paymentOnly = computed(() => authSession.warung?.status_langganan === 'kedaluwarsa')
 
 async function loadPlans() {
   loading.value = true

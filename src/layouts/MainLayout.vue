@@ -121,6 +121,21 @@
 
     <q-footer class="mobile-bottom-nav">
       <q-tabs
+        v-if="paymentOnly"
+        dense
+        align="justify"
+        indicator-color="transparent"
+        active-color="primary"
+      >
+        <q-route-tab
+          to="/paket-langganan"
+          name="subscription"
+          icon="sell"
+          label="Paket langganan"
+        />
+      </q-tabs>
+      <q-tabs
+        v-else
         :model-value="currentRoute"
         dense
         align="justify"
@@ -153,6 +168,9 @@ const failedWarungLogo = ref(null)
 const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
+const paymentOnly = computed(
+  () => authSession.user?.role === 'owner' && authSession.warung?.status_langganan === 'kedaluwarsa',
+)
 const { reconnectRememberedPrinter } = useBleThermalPrinter()
 const currentRoute = computed(() => {
   if (route.path === '/penjualan') return 'transactions'
@@ -209,6 +227,9 @@ const navigation = computed(() => {
   const catalog = { label: 'Kategori & Menu', icon: 'restaurant_menu', to: '/menu' }
   const salesHistory = { label: 'Penjualan', icon: 'receipt_long', to: '/penjualan' }
   const role = authSession.user?.role
+  if (paymentOnly.value) {
+    return [{ label: 'Paket langganan', icon: 'sell', to: '/paket-langganan' }]
+  }
   if (role === 'superadmin')
     return [
       { label: 'Kelola Warung', icon: 'storefront', to: '/platform/warungs' },

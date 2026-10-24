@@ -133,6 +133,26 @@ export async function apiRequest(
       if (typeof window !== 'undefined')
         window.dispatchEvent(new CustomEvent('larisama:session-expired'))
     }
+    if (auth && token && error.response.status === 403) {
+      if (payload?.code === 'SUBSCRIPTION_PAYMENT_REQUIRED') {
+        if (authSession.user?.role === 'owner') {
+          if (authSession.warung) {
+            authSession.warung = { ...authSession.warung, status_langganan: 'kedaluwarsa' }
+          }
+          if (typeof window !== 'undefined')
+            window.dispatchEvent(new CustomEvent('larisama:subscription-payment-required'))
+        } else {
+          clearSession()
+          if (typeof window !== 'undefined')
+            window.dispatchEvent(new CustomEvent('larisama:session-expired'))
+        }
+      }
+      if (payload?.code === 'SUBSCRIPTION_GRACE_EXPIRED') {
+        clearSession()
+        if (typeof window !== 'undefined')
+          window.dispatchEvent(new CustomEvent('larisama:session-expired'))
+      }
+    }
     throw new ApiError(payload?.message || `Permintaan gagal (${error.response.status}).`, {
       status: error.response.status,
       code: payload?.code,
