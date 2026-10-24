@@ -151,7 +151,8 @@ export function listQuery(parameters = {}) {
   for (const [key, value] of Object.entries(parameters)) {
     if (value !== undefined && value !== null && value !== '') query.set(key, String(value))
   }
-  return query.size ? `?${query}` : ''
+  const serializedQuery = query.toString()
+  return serializedQuery ? `?${serializedQuery}` : ''
 }
 
 export async function getAllPages(path, parameters = {}) {
