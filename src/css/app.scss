@@ -998,14 +998,6 @@ body {
   font-size: 17px;
 }
 
-.receipt-store-logo {
-  width: 42px;
-  height: 42px;
-  margin-bottom: 1px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
 .receipt-store-header span,
 .receipt-muted,
 .receipt-footer small {
@@ -1179,12 +1171,6 @@ body {
   body.print-pos-receipt .receipt-store-header,
   body.print-pos-receipt .receipt-footer {
     gap: 2px;
-  }
-
-  body.print-pos-receipt .receipt-store-logo {
-    width: 34px;
-    height: 34px;
-    margin-bottom: 0;
   }
 
   body.print-pos-receipt .receipt-store-header strong {
@@ -1778,13 +1764,6 @@ body,
 .receipt-store-header strong,
 .receipt-store-header b { font-size: inherit; }
 
-.receipt-store-logo {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  object-fit: contain;
-}
-
 .receipt-store-header-lines {
   width: 100%;
   overflow: hidden;
@@ -1909,17 +1888,6 @@ body,
     gap: 0.5mm !important;
     text-align: center !important;
   }
-  body.print-pos-receipt .receipt-store-logo {
-    display: block !important;
-    flex: 0 0 6mm !important;
-    width: 6mm !important;
-    min-width: 6mm !important;
-    max-width: 6mm !important;
-    height: 6mm !important;
-    min-height: 6mm !important;
-    max-height: 6mm !important;
-    margin: 0 auto !important;
-  }
   body.print-pos-receipt .receipt-store-header strong,
   body.print-pos-receipt .receipt-store-header span,
   body.print-pos-receipt .receipt-store-header b {
@@ -1957,4 +1925,43 @@ body,
 @media (max-width: 520px) {
   .receipt-print-buttons { justify-content: stretch; width: 100%; }
   .receipt-print-buttons .q-btn { flex: 1 1 auto; }
+}
+
+.subscription-expiry-banner {
+  border-block: 1px solid #f2d3a8;
+  background: #fff3e1;
+  color: #713d19;
+}
+.subscription-expiry-banner .q-banner__content { min-width: 0; }
+.subscription-expiry-copy,
+.subscription-ticker { width: 100%; min-width: 0; overflow: hidden; }
+.subscription-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: subscription-ticker-scroll 24s linear infinite;
+}
+.subscription-ticker-track span {
+  flex: 0 0 auto;
+  padding-inline-end: 72px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.subscription-expiry-accessible {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@keyframes subscription-ticker-scroll {
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .subscription-ticker-track { display: block; width: auto; animation: none; }
+  .subscription-ticker-track span:first-child { display: block; white-space: normal; }
+  .subscription-ticker-track span:last-child { display: none; }
 }

@@ -7,7 +7,6 @@
     <q-card class="receipt-dialog-card" :style="{ '--receipt-paper-width': `${paperWidth}mm` }">
       <div class="receipt-paper">
         <header class="receipt-store-header">
-          <img v-if="warung?.logo" :src="warung.logo" :alt="`Logo ${warung?.nama || 'warung'}`" class="receipt-store-logo" />
           <div class="receipt-store-header-lines">
             <div
               v-for="(line, index) in storeHeaderLines"
@@ -44,7 +43,7 @@
 <script setup>
 import { computed, nextTick, ref } from 'vue'
 import { useBleThermalPrinter } from '@/services/useBleThermalPrinter.js'
-import { buildEscPosReceiptBytes, buildSmallLogoRaster } from '@/services/ble-thermal-printer.js'
+import { buildEscPosReceiptBytes } from '@/services/ble-thermal-printer.js'
 import { clampColumns, useReceiptPrinterSettings } from '@/services/receipt-printer-settings.js'
 
 const props = defineProps({
@@ -57,7 +56,7 @@ const emit = defineEmits(['update:modelValue'])
 
 const { isConnected: isBleConnected, sendBytes, status: printerStatus } = useBleThermalPrinter()
 const isPreparingBleReceipt = ref(false)
-const { paperWidth, columnsByPaper } = useReceiptPrinterSettings()
+const { paperWidth, columnsByPaper, footerText } = useReceiptPrinterSettings()
 const activeColumns = computed({
   get: () => columnsByPaper[paperWidth.value],
   set: (value) => {
@@ -116,9 +115,8 @@ async function printReceipt() {
   isPreparingBleReceipt.value = true
   try {
     const lines = [...storeHeaderLines.value, ...receiptLines.value]
-    const logoRaster = await buildSmallLogoRaster(props.warung?.logo)
     const sent = await sendBytes(
-      buildEscPosReceiptBytes(lines, logoRaster),
+      buildEscPosReceiptBytes(lines),
       'Struk berhasil dikirim ke printer BLE.',
       'Struk BLE gagal dikirim.',
     )
@@ -175,8 +173,13 @@ function formatReceipt(sale, cashierName, columns) {
   }
   if (data.catatan) addWrapped(alignLeft(`Catatan: ${data.catatan}`, columns), false, true)
   divider()
-  addWrapped(alignCenter(data.status_pembayaran === 'belum_lunas' ? 'Pesanan belum dibayar' : 'Terima kasih atas kunjungan Anda', columns), false, false, true, 'center')
-  addWrapped(alignCenter('Dibuat oleh Udumbara Informatika', columns), false, true, true, 'center')
+  if (data.status_pembayaran === 'belum_lunas') {
+    addWrapped(alignCenter('Pesanan belum dibayar', columns), false, false, true, 'center')
+  }
+  if (footerText.value.trim()) {
+    addWrapped(alignCenter(footerText.value.trim(), columns), false, false, true, 'center')
+  }
+  addWrapped(alignCenter('Powered by Udumbara Informatika', columns), false, true, true, 'center')
   return lines
 }
 

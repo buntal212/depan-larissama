@@ -116,6 +116,18 @@
     </q-drawer>
 
     <q-page-container>
+      <q-banner v-if="subscriptionDaysRemaining !== null" dense class="subscription-expiry-banner no-print">
+        <template #avatar><q-icon name="schedule" /></template>
+        <div class="subscription-expiry-copy" role="status" aria-live="polite">
+          <span class="subscription-expiry-accessible">{{ subscriptionMessage }}</span>
+          <div class="subscription-ticker" aria-hidden="true">
+            <div class="subscription-ticker-track">
+              <span>{{ subscriptionMessage }}</span>
+              <span>{{ subscriptionMessage }}</span>
+            </div>
+          </div>
+        </div>
+      </q-banner>
       <router-view />
     </q-page-container>
 
@@ -151,7 +163,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import { logout } from '@/services/auth.js'
@@ -168,8 +180,25 @@ const failedWarungLogo = ref(null)
 const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
+const warungToday = ref(getWarungLocalDate())
+let warungDateTimer
 const paymentOnly = computed(
   () => authSession.user?.role === 'owner' && authSession.warung?.status_langganan === 'kedaluwarsa',
+)
+const subscriptionDaysRemaining = computed(() => {
+  if (authSession.user?.role !== 'owner' || authSession.warung?.status_langganan !== 'aktif') return null
+  const expiryDate = authSession.warung?.tanggal_berakhir
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(expiryDate || '')) return null
+
+  const today = Date.parse(`${warungToday.value}T00:00:00Z`)
+  const expiry = Date.parse(`${expiryDate}T00:00:00Z`)
+  if (!Number.isFinite(today) || !Number.isFinite(expiry)) return null
+
+  const days = Math.round((expiry - today) / 86_400_000)
+  return days >= 1 && days <= 3 ? days : null
+})
+const subscriptionMessage = computed(
+  () => `Masa aktif langganan Larisama Anda tersisa ${subscriptionDaysRemaining.value} hari. Silakan lakukan pembayaran sebelum masa aktif habis.`,
 )
 const { reconnectRememberedPrinter } = useBleThermalPrinter()
 const currentRoute = computed(() => {
@@ -196,6 +225,9 @@ function handleWarungLogoError() {
 }
 
 onMounted(async () => {
+  warungDateTimer = window.setInterval(() => {
+    warungToday.value = getWarungLocalDate()
+  }, 60_000)
   if (authSession.token && authSession.user) void reconnectRememberedPrinter()
   if (authSession.user?.role !== 'superadmin') return
   warungsLoading.value = true
@@ -215,6 +247,24 @@ onMounted(async () => {
     warungsLoading.value = false
   }
 })
+
+onBeforeUnmount(() => window.clearInterval(warungDateTimer))
+
+watch(() => authSession.warung?.timezone, () => {
+  warungToday.value = getWarungLocalDate()
+})
+
+function getWarungLocalDate() {
+  const timeZone = authSession.warung?.timezone || 'Asia/Jakarta'
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+  const dateParts = Object.fromEntries(parts.map(({ type, value }) => [type, value]))
+  return `${dateParts.year}-${dateParts.month}-${dateParts.day}`
+}
 
 function changeWarung(id) {
   const selected = warungOptions.value.find((warung) => String(warung.id) === String(id))
