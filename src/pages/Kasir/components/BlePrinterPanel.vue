@@ -4,16 +4,17 @@
     default-opened
     expand-separator
     icon="bluetooth"
-    label="Printer Bluetooth BLE"
-    caption="Koneksi otomatis untuk printer yang sudah diizinkan"
+    label="Printer nirkabel"
+    caption="Koneksi otomatis ke printer yang pernah dipilih"
+    header-class="printer-panel-header"
     class="ble-printer-panel"
   >
     <div class="q-pa-md ble-printer-content">
       <q-banner v-if="!hasBluetoothApi || !isSecureContext" dense rounded class="bg-orange-1 text-dark q-mb-sm">
         <template #avatar><q-icon name="info" color="orange-9" /></template>
-        <div v-if="!hasBluetoothApi">Web Bluetooth tidak terdeteksi. Coba Chrome Android yang mendukung BLE.</div>
-        <div v-else>Web Bluetooth memerlukan HTTPS atau localhost. Origin ini belum secure.</div>
-        <div class="text-caption q-mt-xs">Dukungan: {{ hasBluetoothApi ? 'tersedia' : 'tidak tersedia' }} · Secure context: {{ isSecureContext ? 'ya' : 'tidak' }}</div>
+        <div v-if="!hasBluetoothApi">Browser ini belum mendukung koneksi printer. Coba gunakan Chrome Android.</div>
+        <div v-else>Koneksi printer memerlukan HTTPS atau localhost.</div>
+        <div class="text-caption q-mt-xs">Dukungan browser: {{ hasBluetoothApi ? 'tersedia' : 'tidak tersedia' }} · Koneksi aman: {{ isSecureContext ? 'ya' : 'tidak' }}</div>
       </q-banner>
 
       <q-banner dense rounded :class="statusBannerClass" class="q-mb-sm">
@@ -22,48 +23,47 @@
         <div class="text-caption">{{ statusMessage }}</div>
       </q-banner>
 
-      <div class="row q-col-gutter-sm items-center">
-        <div class="col-12 col-sm-auto">
+      <div class="printer-control-grid">
+        <div>
           <q-btn
             v-if="!isConnected"
             outline
             no-caps
             color="primary"
-            :label="hasSelectedDevice ? 'Sambungkan ulang' : 'Connect Printer'"
+            :label="hasSelectedDevice ? 'Sambungkan ulang' : 'Hubungkan printer'"
             :loading="status === 'connecting'"
             :disable="!canConnect || status === 'connecting' || status === 'printing'"
             @click="connectPrinter"
           />
-          <q-btn v-else outline no-caps color="negative" label="Putuskan" :disable="status === 'printing'" @click="disconnectPrinter" />
+          <q-btn v-else outline no-caps color="negative" label="Putuskan koneksi" :disable="status === 'printing'" @click="disconnectPrinter" />
         </div>
-        <div class="col-12 col-sm-auto">
+        <div>
           <q-btn
             unelevated
             no-caps
             color="primary"
             icon="receipt_long"
-            label="Test print BLE"
+            label="Tes printer"
             :loading="status === 'printing'"
             :disable="!isConnected || status === 'printing'"
             @click="testPrint"
           />
         </div>
-        <div class="col-12 col-sm-5">
-          <q-input v-model.number="delayMs" dense outlined type="number" label="Jeda antar chunk" suffix="ms" min="0" max="1000" :disable="status === 'printing'" />
+        <div class="printer-delay-field">
+          <q-input v-model.number="delayMs" dense outlined type="number" label="Jeda pengiriman" suffix="ms" min="0" max="1000" :disable="status === 'printing'" />
         </div>
-      </div>
-
-      <div class="text-caption text-grey-8 q-mt-sm">
-        Service kandidat: <code>{{ CANDIDATE_PRINTER_SERVICE_UUID }}</code> · chunk {{ PRINTER_WRITE_CHUNK_SIZE }} byte
       </div>
 
       <q-expansion-item
         v-if="debugCharacteristics.length"
         dense
         dense-toggle
-        label="Detail GATT untuk debugging"
+        label="Detail koneksi"
         class="q-mt-sm"
       >
+        <div class="text-caption text-grey-8 q-pa-sm">
+          UUID perangkat: <code>{{ CANDIDATE_PRINTER_SERVICE_UUID }}</code> · {{ PRINTER_WRITE_CHUNK_SIZE }} byte per kiriman
+        </div>
         <q-list dense separator>
           <q-item v-for="entry in debugCharacteristics" :key="`${entry.serviceUuid}-${entry.characteristicUuid}`">
             <q-item-section>
@@ -109,7 +109,7 @@ const statusLabel = computed(() => ({
   connecting: 'Menghubungkan',
   connected: 'Terhubung',
   disconnected: 'Terputus',
-  printing: 'Mengirim test print',
+  printing: 'Mencetak tes',
   error: 'Error',
 }[status.value] || 'Terputus'))
 const statusIcon = computed(() => ({
@@ -130,5 +130,14 @@ const statusBannerClass = computed(() => ({
 
 <style scoped>
 .ble-printer-content { min-width: 0; }
+.ble-printer-panel :deep(.printer-panel-header) { min-height: 64px; padding-block: 12px; }
+.printer-control-grid { display: grid; grid-template-columns: max-content max-content minmax(180px, 1fr); align-items: end; gap: 12px; }
+.printer-control-grid > div { min-width: 0; }
+.printer-control-grid :deep(.q-btn) { min-height: 42px; }
+.printer-delay-field { max-width: 320px; }
 .ble-uuid { overflow-wrap: anywhere; word-break: break-word; }
+@media (max-width: 700px) {
+  .printer-control-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .printer-control-grid > div, .printer-control-grid :deep(.q-btn), .printer-delay-field { width: 100%; max-width: none; }
+}
 </style>

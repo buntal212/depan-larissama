@@ -28,11 +28,11 @@ const hasSelectedDevice = computed(() => Boolean(device.value))
 export function useBleThermalPrinter() {
   async function connectPrinter() {
     if (!hasBluetoothApi.value) {
-      setError('Web Bluetooth tidak tersedia di browser ini. Gunakan Chrome Android yang mendukung BLE.')
+      setError('Browser ini belum mendukung koneksi printer. Coba gunakan Chrome Android.')
       return
     }
     if (!isSecureContext.value) {
-      setError('Koneksi BLE memerlukan HTTPS atau localhost. Alamat aplikasi saat ini bukan secure context.')
+      setError('Koneksi printer memerlukan HTTPS atau localhost. Alamat aplikasi saat ini belum aman.')
       return
     }
     if (status.value === 'connecting' || status.value === 'printing') return
@@ -67,7 +67,7 @@ export function useBleThermalPrinter() {
     const getDevices = navigator.bluetooth.getDevices
     if (typeof getDevices !== 'function') {
       status.value = 'disconnected'
-      statusMessage.value = 'Browser belum mendukung pemulihan perangkat tersimpan. Tekan Connect Printer.'
+      statusMessage.value = 'Browser belum mendukung penyambungan ulang otomatis. Tekan Hubungkan printer.'
       return
     }
 
@@ -85,7 +85,7 @@ export function useBleThermalPrinter() {
         device.value = null
         selectedCharacteristic.value = null
         status.value = 'disconnected'
-        statusMessage.value = 'Printer belum pernah diizinkan untuk situs ini. Tekan Connect Printer untuk memilihnya.'
+      statusMessage.value = 'Printer belum pernah dipilih di situs ini. Tekan Hubungkan printer untuk memilihnya.'
         return
       }
 
@@ -167,12 +167,12 @@ export function useBleThermalPrinter() {
   async function sendBytes(bytes, successMessage = 'Struk sudah dikirim ke printer.', failureMessage = 'Pengiriman struk gagal.') {
     const characteristic = selectedCharacteristic.value
     if (!characteristic || status.value !== 'connected') {
-      errorMessage.value = 'Hubungkan printer dari menu Pengaturan sebelum mencetak melalui BLE.'
+      errorMessage.value = 'Hubungkan printer dari menu Pengaturan sebelum mencetak secara nirkabel.'
       return false
     }
     status.value = 'printing'
     errorMessage.value = ''
-    statusMessage.value = 'Mengirim data ke printer melalui BLE…'
+    statusMessage.value = 'Mengirim data ke printer…'
     try {
       const pause = clampDelay(delayMs.value)
       for (let offset = 0; offset < bytes.length; offset += PRINTER_WRITE_CHUNK_SIZE) {

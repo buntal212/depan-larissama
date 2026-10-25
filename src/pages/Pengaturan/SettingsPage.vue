@@ -1,75 +1,125 @@
 <template>
-  <q-page class="settings-page page-shell">
-    <div class="page-heading">
+  <q-page class="page-shell settings-page" data-ui="settings">
+    <header class="page-heading settings-heading">
       <div>
-        <div class="eyebrow">PERANGKAT KASIR</div>
-        <h1>Pengaturan</h1>
-        <p>Hubungkan dan atur printer struk untuk perangkat ini.</p>
+        <h1 class="page-title">Pengaturan</h1>
+        <p class="page-subtitle">Profil warung, akun pengguna, dan perangkat kasir.</p>
       </div>
-    </div>
+    </header>
 
-    <q-card flat bordered class="settings-card">
-      <q-card-section>
-        <div class="text-h6 text-weight-bold">Printer struk</div>
-        <div class="text-body2 text-grey-7 q-mt-xs">
-          Koneksi disimpan oleh browser pada perangkat ini. Setelah tersambung, buka kasir dan cetak struk menggunakan printer BLE.
-        </div>
-      </q-card-section>
-      <q-separator />
-      <q-card-section class="row q-col-gutter-md">
-        <div class="col-12 col-sm-6">
-          <q-select
-            v-model="paperWidth"
-            outlined
-            dense
-            emit-value
-            map-options
-            label="Lebar kertas"
-            :options="paperOptions"
-          />
-        </div>
-        <div class="col-12 col-sm-6">
-          <q-input
-            v-model.number="activeColumns"
-            outlined
-            dense
-            type="number"
-            label="Karakter per baris"
-            min="20"
-            :max="paperWidth === '58' ? 32 : 48"
-          />
-        </div>
-      </q-card-section>
-      <q-separator />
-      <BlePrinterPanel active />
-    </q-card>
+    <q-tabs
+      :model-value="activeTab"
+      dense
+      no-caps
+      align="left"
+      active-color="primary"
+      indicator-color="secondary"
+      narrow-indicator
+      class="settings-tabs"
+      aria-label="Bagian pengaturan"
+    >
+      <q-route-tab
+        v-for="tab in tabs"
+        :key="tab.name"
+        :to="tab.to"
+        :name="tab.name"
+        :icon="tab.icon"
+        :label="tab.label"
+        exact
+      />
+    </q-tabs>
+
+    <div class="settings-tab-body">
+      <router-view #default="{ Component }">
+        <component :is="Component" />
+      </router-view>
+    </div>
   </q-page>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import BlePrinterPanel from '@/pages/Kasir/components/BlePrinterPanel.vue'
-import { clampColumns, useReceiptPrinterSettings } from '@/services/receipt-printer-settings.js'
+import { computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { authSession } from '@/stores/auth-session.js'
 
-const paperOptions = [
-  { label: '58 mm', value: '58' },
-  { label: '80 mm', value: '80' },
-]
-const { paperWidth, columnsByPaper } = useReceiptPrinterSettings()
-const activeColumns = computed({
-  get: () => columnsByPaper[paperWidth.value],
-  set: (value) => {
-    const parsed = Number.parseInt(value, 10)
-    if (Number.isInteger(parsed)) columnsByPaper[paperWidth.value] = clampColumns(parsed, paperWidth.value)
-  },
+const route = useRoute()
+const router = useRouter()
+const tabs = computed(() => {
+  const role = authSession.user?.role
+  const visibleTabs = []
+  if (['owner', 'manager', 'kasir'].includes(role)) {
+    visibleTabs.push({ name: 'profile', label: 'Profil warung', icon: 'storefront', to: '/pengaturan/profil' })
+  }
+  if (role === 'owner' || role === 'superadmin') {
+    visibleTabs.push({ name: 'users', label: 'Pengguna', icon: 'group', to: '/pengaturan/pengguna' })
+  }
+  visibleTabs.push({ name: 'printer', label: 'Printer', icon: 'print', to: '/pengaturan/printer' })
+  return visibleTabs
+})
+const activeTab = computed(() => {
+  const tab = tabs.value.find((entry) => entry.to === route.path)
+  return tab?.name || tabs.value[0]?.name || 'printer'
+})
+
+onMounted(() => {
+  if (route.path === '/pengaturan') {
+    void router.replace(tabs.value[0]?.to || '/pengaturan/printer')
+  }
 })
 </script>
 
 <style scoped>
-.settings-page { max-width: 1100px; margin: 0 auto; }
-.page-heading { margin-bottom: 24px; }
-.eyebrow { color: #71847b; font-size: 11px; font-weight: 700; letter-spacing: .14em; }
-h1 { margin: 6px 0; color: #104f39; font-size: clamp(26px, 4vw, 34px); line-height: 1.15; }
-p { margin: 0; color: #718078; }
-.settings-card { border-radius: 16px; }
+.settings-page {
+  width: min(100%, 1120px);
+  margin-inline: auto;
+}
+
+.settings-heading {
+  margin-bottom: 20px;
+}
+
+.settings-heading .page-title {
+  letter-spacing: -0.025em;
+}
+
+.settings-tabs {
+  min-height: 48px;
+  border-bottom: 1px solid #dfe8e2;
+}
+
+.settings-tabs :deep(.q-tab) {
+  min-height: 48px;
+  padding-inline: 18px;
+  color: #617169;
+}
+
+.settings-tabs :deep(.q-tab--active) {
+  color: #145c40;
+  font-weight: 700;
+}
+
+.settings-tabs :deep(.q-tab__indicator) {
+  background-color: #f36b35;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+}
+
+.settings-tab-body {
+  padding-top: 24px;
+}
+
+@media (max-width: 600px) {
+  .settings-heading {
+    margin-bottom: 12px;
+  }
+
+  .settings-tabs :deep(.q-tab) {
+    min-width: 0;
+    padding-inline: 12px;
+  }
+
+  .settings-tab-body {
+    padding-top: 18px;
+  }
+}
 </style>

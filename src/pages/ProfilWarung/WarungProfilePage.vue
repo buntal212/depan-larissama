@@ -1,8 +1,7 @@
 <template>
-  <q-page class="page-shell">
-    <div class="page-heading">
-      <div class="eyebrow">PENGATURAN WARUNG</div>
-      <h1 class="page-title">Profil Warung</h1>
+  <section class="settings-tab-page profile-settings-tab">
+    <div class="page-heading settings-section-heading">
+      <h2 class="page-title">Profil Warung</h2>
       <p class="page-subtitle">Kelola informasi dan logo warung.</p>
     </div>
 
@@ -39,9 +38,6 @@
             <q-input v-model.trim="form.nama" outlined maxlength="150" label="Nama warung" :disable="!canEdit || saving" :rules="[(value) => !!value || 'Nama warung wajib diisi']" />
             <q-input v-model.trim="form.alamat" outlined type="textarea" autogrow label="Alamat" :disable="!canEdit || saving" />
             <q-input v-model.trim="form.telepon" outlined maxlength="30" label="Nomor telepon" :disable="!canEdit || saving" />
-            <q-select v-model="form.timezone" outlined use-input input-debounce="0" label="Zona waktu warung"
-              :options="timezoneOptions" :disable="!canEdit || saving"
-              :rules="[(value) => !!value || 'Zona waktu wajib dipilih']" @filter="filterTimezones" />
             <div class="profile-meta-grid">
               <div class="profile-meta"><span>Kode warung</span><strong>{{ warung.kode || '—' }}</strong></div>
               <div class="profile-meta"><span>Status</span><strong>{{ subscriptionLabel(warung.status_langganan) }}</strong></div>
@@ -54,7 +50,7 @@
         </q-card-section>
       </template>
     </q-card>
-  </q-page>
+  </section>
 </template>
 
 <script setup>
@@ -73,8 +69,6 @@ const loadError = ref('')
 const logoFile = ref(null)
 const logoPreview = ref('')
 const form = reactive({ nama: '', alamat: '', telepon: '', timezone: '' })
-const commonTimezones = ['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura', 'Asia/Bangkok', 'Asia/Singapore', 'Asia/Kuala_Lumpur', 'UTC']
-const timezoneOptions = ref([...commonTimezones])
 const subscriptionPeriod = computed(() => {
   if (!warung.value?.tanggal_mulai && !warung.value?.tanggal_berakhir) return 'Tidak dibatasi'
   return formatDate(warung.value.tanggal_mulai) + ' – ' + formatDate(warung.value.tanggal_berakhir)
@@ -100,18 +94,6 @@ function setProfile(profile) {
     alamat: profile.alamat || '',
     telepon: profile.telepon || '',
     timezone: profile.timezone || 'Asia/Jakarta',
-  })
-  if (!timezoneOptions.value.includes(form.timezone)) timezoneOptions.value = [...timezoneOptions.value, form.timezone]
-}
-
-function filterTimezones(value, update) {
-  update(() => {
-    const needle = value.trim().toLowerCase()
-    const available = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : commonTimezones
-    timezoneOptions.value = needle
-      ? available.filter((timezone) => timezone.toLowerCase().includes(needle)).slice(0, 100)
-      : [...available]
-    if (form.timezone && !timezoneOptions.value.includes(form.timezone)) timezoneOptions.value.unshift(form.timezone)
   })
 }
 

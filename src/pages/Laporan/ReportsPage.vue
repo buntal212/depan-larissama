@@ -15,7 +15,15 @@
         </q-btn-dropdown>
       </div>
     </div>
-    <q-card flat bordered class="panel-card q-mb-lg no-print">
+    <div class="report-navigation no-print" aria-label="Navigasi laporan">
+      <q-tabs v-model="activeTab" dense no-caps align="left" active-color="primary" indicator-color="primary" class="report-tabs">
+        <q-tab name="summary" icon="space_dashboard" label="Ringkasan" />
+        <q-tab name="sales" icon="trending_up" label="Penjualan" />
+        <q-tab name="purchases" icon="shopping_cart" label="Pembelian" />
+        <q-tab name="unpaid" icon="pending_actions" label="Belum lunas" />
+      </q-tabs>
+    </div>
+    <q-card flat bordered class="panel-card q-mb-lg no-print report-filter-card">
       <q-card-section>
         <div class="row q-col-gutter-md items-end">
           <div class="col-12 col-sm-5"><q-input v-model="dateFrom" outlined dense type="date" label="Dari tanggal" /></div>
@@ -23,13 +31,6 @@
           <div class="col-12 col-sm-2"><q-btn unelevated no-caps color="primary" icon="filter_alt" label="Terapkan" class="full-width" :loading="loading" @click="loadActiveReport" /></div>
         </div>
       </q-card-section>
-      <q-separator />
-      <q-tabs v-model="activeTab" dense no-caps align="left" active-color="primary" indicator-color="primary" class="report-tabs">
-        <q-tab name="summary" icon="space_dashboard" label="Ringkasan" />
-        <q-tab name="sales" icon="trending_up" label="Penjualan" />
-        <q-tab name="purchases" icon="shopping_cart" label="Pembelian" />
-        <q-tab name="unpaid" icon="pending_actions" label="Belum lunas" />
-      </q-tabs>
     </q-card>
 
     <q-banner v-if="errors.length" rounded class="q-mb-lg bg-red-1 text-negative report-errors">
@@ -58,18 +59,18 @@
     <template v-else>
       <template v-if="activeTab === 'summary'">
         <div class="summary-grid">
-          <q-card flat bordered class="panel-card summary-card"><q-card-section class="row items-center justify-between"><div class="panel-title">Pendapatan setelah retur</div><q-icon name="payments" color="primary" size="24px" /></q-card-section><q-card-section><div class="report-total">{{ salesReport ? formatPrice(salesReport.total_pendapatan) : '—' }}</div><div class="panel-caption">{{ salesReport ? salesReport.jumlah_transaksi + ' transaksi lunas' : 'Data tidak tersedia' }}</div></q-card-section></q-card>
+          <q-card flat bordered class="panel-card summary-card"><q-card-section class="row items-center justify-between"><div class="panel-title">Pendapatan atas penjualan</div><q-icon name="payments" color="primary" size="24px" /></q-card-section><q-card-section><div class="report-total">{{ salesReport ? formatPrice(salesReport.total_penjualan) : '—' }}</div><div class="panel-caption">{{ salesReport ? salesReport.jumlah_transaksi + ' transaksi lunas' : 'Data tidak tersedia' }}</div></q-card-section></q-card>
           <q-card flat bordered class="panel-card summary-card"><q-card-section class="row items-center justify-between"><div class="panel-title">Rata-rata transaksi</div><q-icon name="receipt_long" color="primary" size="24px" /></q-card-section><q-card-section><div class="report-total">{{ salesReport ? formatPrice(salesReport.rata_rata_transaksi) : '—' }}</div><div class="panel-caption">Rata-rata transaksi lunas</div></q-card-section></q-card>
           <q-card flat bordered class="panel-card summary-card"><q-card-section class="row items-center justify-between"><div class="panel-title">Total pembelian</div><q-icon name="shopping_cart" color="accent" size="24px" /></q-card-section><q-card-section><div class="report-total">{{ purchaseReport ? formatPrice(purchaseReport.total_pembelian) : '—' }}</div><div class="panel-caption">{{ purchaseReport ? purchaseReport.jumlah_transaksi + ' pembelian tercatat' : 'Data tidak tersedia' }}</div></q-card-section></q-card>
           <q-card flat bordered class="panel-card summary-card"><q-card-section class="row items-center justify-between"><div class="panel-title">Pesanan belum lunas</div><q-icon name="pending_actions" color="orange" size="24px" /></q-card-section><q-card-section><div class="report-total">{{ unpaidReport ? formatPrice(unpaidReport.total_belum_lunas) : '—' }}</div><div class="panel-caption">{{ unpaidReport ? unpaidReport.jumlah_pesanan + ' pesanan saat ini' : 'Data tidak tersedia' }}</div></q-card-section></q-card>
         </div>
-        <q-card flat bordered class="panel-card q-mt-lg"><q-card-section><div class="panel-title">Pembayaran per metode</div><div class="panel-caption">Nilai transaksi sebelum alokasi retur.</div></q-card-section><q-separator /><q-card-section v-if="salesReport?.per_metode_pembayaran?.length" class="method-grid"><div v-for="method in salesReport.per_metode_pembayaran" :key="method.metode_pembayaran" class="method-card"><div class="method-name">{{ paymentLabel(method.metode_pembayaran) }}</div><strong>{{ formatPrice(method.total_penjualan) }}</strong><span>{{ method.jumlah_transaksi }} transaksi</span></div></q-card-section><q-card-section v-else class="panel-caption">{{ salesReport ? 'Belum ada pembayaran pada periode ini.' : 'Data laporan penjualan tidak tersedia.' }}</q-card-section></q-card>
+        <q-card flat bordered class="panel-card q-mt-lg"><q-card-section><div class="panel-title">Pembayaran per metode</div><div class="panel-caption">Nilai transaksi dikelompokkan berdasarkan metode pembayaran.</div></q-card-section><q-separator /><q-card-section v-if="salesReport?.per_metode_pembayaran?.length" class="method-grid"><div v-for="method in salesReport.per_metode_pembayaran" :key="method.metode_pembayaran" class="method-card"><div class="method-name">{{ paymentLabel(method.metode_pembayaran) }}</div><strong>{{ formatPrice(method.total_penjualan) }}</strong><span>{{ method.jumlah_transaksi }} transaksi</span></div></q-card-section><q-card-section v-else class="panel-caption">{{ salesReport ? 'Belum ada pembayaran pada periode ini.' : 'Data laporan penjualan tidak tersedia.' }}</q-card-section></q-card>
         <q-banner rounded class="q-mt-lg bg-orange-1 text-grey-9">Angka penjualan dan pembelian ditampilkan terpisah. API belum menyediakan data harga pokok dan klasifikasi biaya yang dibutuhkan untuk menghitung laba rugi.</q-banner>
       </template>
 
       <template v-else-if="activeTab === 'sales'">
-        <q-card flat bordered class="panel-card q-mb-lg"><q-card-section class="row items-center justify-between"><div><div class="panel-title">Pendapatan setelah retur</div><div class="panel-caption">Total penjualan setelah diskon dikurangi retur pada periode ini; belum dikurangi pembelian atau biaya operasional.</div></div><div class="report-total q-mb-none">{{ salesReport ? formatPrice(salesReport.total_pendapatan) : '—' }}</div></q-card-section><q-separator /><q-card-section v-if="salesReport?.per_metode_pembayaran?.length" class="method-grid"><div v-for="method in salesReport.per_metode_pembayaran" :key="method.metode_pembayaran" class="method-card"><div class="method-name">{{ paymentLabel(method.metode_pembayaran) }}</div><strong>{{ formatPrice(method.total_penjualan) }}</strong><span>{{ method.jumlah_transaksi }} transaksi</span></div></q-card-section><q-card-section v-else class="panel-caption">{{ salesReport ? 'Belum ada transaksi pada periode ini.' : 'Data laporan penjualan tidak tersedia.' }}</q-card-section></q-card>
-        <q-card flat bordered class="panel-card q-mb-lg"><q-card-section><div class="panel-title">Tren penjualan harian</div><div class="panel-caption">Pengelompokan berdasarkan tanggal pembayaran dan tanggal pencatatan retur.</div></q-card-section><q-separator /><q-card-section v-if="dailyReport?.length" class="daily-grid"><article v-for="day in dailyReport" :key="day.tanggal" class="daily-card"><header><strong>{{ formatDate(day.tanggal) }}</strong><span>{{ day.jumlah_transaksi }} transaksi</span></header><div class="daily-values"><div><span>Penjualan</span><strong>{{ formatPrice(day.total_penjualan) }}</strong></div><div><span>Retur</span><strong>{{ formatPrice(day.total_retur) }}</strong></div><div class="daily-net"><span>Pendapatan setelah retur</span><strong>{{ formatPrice(day.total_pendapatan) }}</strong></div><div><span>Jumlah retur</span><strong>{{ day.jumlah_retur }}</strong></div></div></article></q-card-section><q-card-section v-else class="panel-caption">{{ dailyReport ? 'Belum ada transaksi atau retur pada periode ini.' : 'Data tren penjualan tidak tersedia.' }}</q-card-section></q-card>
+        <q-card flat bordered class="panel-card q-mb-lg"><q-card-section class="row items-center justify-between"><div><div class="panel-title">Pendapatan atas penjualan</div><div class="panel-caption">Total transaksi lunas setelah diskon pada periode ini; belum dikurangi pembelian atau biaya operasional.</div></div><div class="report-total q-mb-none">{{ salesReport ? formatPrice(salesReport.total_penjualan) : '—' }}</div></q-card-section><q-separator /><q-card-section v-if="salesReport?.per_metode_pembayaran?.length" class="method-grid"><div v-for="method in salesReport.per_metode_pembayaran" :key="method.metode_pembayaran" class="method-card"><div class="method-name">{{ paymentLabel(method.metode_pembayaran) }}</div><strong>{{ formatPrice(method.total_penjualan) }}</strong><span>{{ method.jumlah_transaksi }} transaksi</span></div></q-card-section><q-card-section v-else class="panel-caption">{{ salesReport ? 'Belum ada transaksi pada periode ini.' : 'Data laporan penjualan tidak tersedia.' }}</q-card-section></q-card>
+        <q-card flat bordered class="panel-card q-mb-lg"><q-card-section><div class="panel-title">Tren penjualan harian</div><div class="panel-caption">Dikelompokkan berdasarkan tanggal pembayaran transaksi.</div></q-card-section><q-separator /><q-card-section v-if="dailyReport?.length" class="daily-grid"><article v-for="day in dailyReport" :key="day.tanggal" class="daily-card"><header><strong>{{ formatDate(day.tanggal) }}</strong><span>{{ day.jumlah_transaksi }} transaksi</span></header><div class="daily-values"><div class="daily-net"><span>Pendapatan atas penjualan</span><strong>{{ formatPrice(day.total_penjualan) }}</strong></div></div></article></q-card-section><q-card-section v-else class="panel-caption">{{ dailyReport ? 'Belum ada transaksi pada periode ini.' : 'Data tren penjualan tidak tersedia.' }}</q-card-section></q-card>
         <q-card flat bordered class="panel-card q-mb-lg"><q-card-section><div class="panel-title">5 Menu Terlaris</div><div class="panel-caption">Diurutkan berdasarkan jumlah terjual. Baris dengan harga berbeda digabung berdasarkan menu.</div></q-card-section><q-separator /><q-card-section v-if="topSellingMenus.length" class="top-menu-list"><article v-for="(item, index) in topSellingMenus" :key="item.menu_id" class="top-menu-item"><q-badge class="top-menu-rank" rounded color="primary">{{ index + 1 }}</q-badge><strong>{{ item.nama_item }}</strong><span>{{ formatQuantity(item.qtyScaled) }} terjual</span></article></q-card-section><q-card-section v-else class="panel-caption">{{ itemReport ? 'Belum ada menu katalog terjual pada periode ini.' : 'Data penjualan item tidak tersedia.' }}</q-card-section></q-card>
         <q-card flat bordered class="panel-card"><q-card-section><div class="panel-title">Penjualan per item</div><div class="panel-caption">Nama dan harga mengikuti snapshot transaksi. Retur dan diskon header tidak dialokasikan ke item.</div></q-card-section><q-separator /><q-card-section v-if="itemReport?.length" class="item-grid"><article v-for="(item, index) in itemReport" :key="item.menu_id || item.nama_item + '-' + item.harga_saat_transaksi + '-' + index" class="item-card"><div class="item-heading"><strong>{{ item.nama_item }}</strong><q-badge :color="item.jenis_item === 'menu' ? 'positive' : 'grey-7'">{{ item.jenis_item === 'menu' ? 'Menu' : 'Item bebas' }}</q-badge></div><div class="item-values"><div><span>Terjual</span><strong>{{ item.qty_terjual }}</strong></div><div><span>Harga saat transaksi</span><strong>{{ formatPrice(item.harga_saat_transaksi) }}</strong></div><div class="item-total"><span>Nilai item</span><strong>{{ formatPrice(item.nilai_item) }}</strong></div></div></article></q-card-section><q-card-section v-else class="panel-caption">{{ itemReport ? 'Belum ada item terjual pada periode ini.' : 'Data penjualan per item tidak tersedia.' }}</q-card-section></q-card>
       </template>
@@ -121,7 +122,7 @@ const reportSections = computed(() => {
   if (activeTab.value === 'summary') {
     const rows = []
     if (salesReport.value) {
-      rows.push(['Pendapatan setelah retur', formatPrice(salesReport.value.total_pendapatan)])
+      rows.push(['Pendapatan atas penjualan', formatPrice(salesReport.value.total_penjualan)])
       rows.push(['Jumlah transaksi lunas', String(salesReport.value.jumlah_transaksi)])
       rows.push(['Rata-rata transaksi', formatPrice(salesReport.value.rata_rata_transaksi)])
       for (const method of salesReport.value.per_metode_pembayaran || []) {
@@ -145,9 +146,7 @@ const reportSections = computed(() => {
         headers: ['Keterangan', 'Nilai'],
         rows: salesReport.value
           ? [
-              ['Total penjualan setelah diskon', formatPrice(salesReport.value.total_penjualan)],
-              ['Total retur periode', formatPrice(salesReport.value.total_retur)],
-              ['Pendapatan setelah retur', formatPrice(salesReport.value.total_pendapatan)],
+              ['Pendapatan atas penjualan', formatPrice(salesReport.value.total_penjualan)],
               ['Jumlah transaksi lunas', String(salesReport.value.jumlah_transaksi)],
               ...(salesReport.value.per_metode_pembayaran || []).map((method) => [
                 `Pembayaran ${paymentLabel(method.metode_pembayaran)}`,
@@ -163,13 +162,11 @@ const reportSections = computed(() => {
       },
       {
         title: 'Tren penjualan harian',
-        headers: ['Tanggal', 'Transaksi', 'Penjualan', 'Retur', 'Pendapatan setelah retur'],
+        headers: ['Tanggal', 'Transaksi', 'Pendapatan atas penjualan'],
         rows: (dailyReport.value || []).map((day) => [
           formatDate(day.tanggal),
           String(day.jumlah_transaksi),
           formatPrice(day.total_penjualan),
-          formatPrice(day.total_retur),
-          formatPrice(day.total_pendapatan),
         ]),
       },
       {
@@ -297,7 +294,23 @@ onMounted(loadActiveReport)
 .report-actions { display: flex; justify-content: flex-end; }
 .report-loading { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 180px; color: #68766e; }
 .report-print { display: none; }
-@media (max-width: 600px) { .report-actions { width: 100%; } .report-actions :deep(.q-btn-dropdown) { width: 100%; } .top-menu-item { grid-template-columns: 36px minmax(0, 1fr); } .top-menu-item > span { grid-column: 2; text-align: left; } }
+.report-navigation { margin: 0 0 12px; border-bottom: 1px solid #dfe7e1; }
+.report-tabs { min-height: 52px; }
+.report-tabs :deep(.q-tab) { min-height: 52px; padding: 0 18px; color: #53645a; }
+.report-tabs :deep(.q-tab--active) { color: #145f41 !important; font-weight: 700; }
+.report-tabs :deep(.q-tab__indicator) { height: 3px; border-radius: 3px 3px 0 0; background: #f47a35 !important; }
+.report-filter-card { margin-bottom: 24px; }
+@media (max-width: 600px) {
+  .report-actions { width: 100%; }
+  .report-actions :deep(.q-btn-dropdown) { width: 100%; }
+  .top-menu-item { grid-template-columns: 36px minmax(0, 1fr); }
+  .top-menu-item > span { grid-column: 2; text-align: left; }
+  .report-navigation { margin-right: -16px; margin-left: -16px; padding: 0 16px; }
+  .report-tabs { min-height: 48px; }
+  .report-tabs :deep(.q-tab) { min-height: 48px; min-width: auto; padding: 0 12px; }
+  .report-tabs :deep(.q-tab__icon) { display: none; }
+  .report-tabs :deep(.q-tab__label) { font-size: 13px; }
+}
 @media print {
   :global(body), :global(#q-app), :global(.q-layout), :global(.q-page-container) { min-width: 0 !important; width: auto !important; height: auto !important; overflow: visible !important; background: white !important; }
   :global(.q-header), :global(.q-drawer), :global(.q-footer), :global(.no-print), :global(.report-errors), .report-screen { display: none !important; }

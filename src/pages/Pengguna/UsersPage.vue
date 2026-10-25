@@ -1,7 +1,7 @@
 <template>
-  <q-page class="page-shell">
-    <div class="page-heading row items-end justify-between q-col-gutter-md">
-      <div class="col"><div class="eyebrow">PENGATURAN WARUNG</div><h1 class="page-title">Pengguna</h1><p class="page-subtitle">{{ canManage ? 'Kelola akun dan peran pengguna dalam warung ini.' : 'Daftar akun pada warung yang dipilih (hanya baca).' }}</p></div>
+  <section class="settings-tab-page users-settings-tab">
+    <div class="page-heading row items-end justify-between q-col-gutter-md settings-section-heading">
+      <div class="col"><h2 class="page-title">Pengguna</h2><p class="page-subtitle">{{ canManage ? 'Kelola akun dan peran pengguna dalam warung ini.' : 'Daftar akun pada warung yang dipilih (hanya baca).' }}</p></div>
       <div v-if="canManage" class="col-auto"><q-btn unelevated no-caps color="primary" icon="person_add" label="Tambah pengguna" @click="openForm()" /></div>
     </div>
     <q-card flat bordered class="panel-card">
@@ -30,7 +30,7 @@
         </q-form>
       </q-card>
     </q-dialog>
-  </q-page>
+  </section>
 </template>
 
 <script setup>

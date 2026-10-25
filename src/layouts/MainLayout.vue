@@ -96,7 +96,7 @@
             :key="item.label"
             clickable
             :to="item.to"
-            exact
+            :exact="item.to !== '/pengaturan'"
             active-class="nav-item-active"
             class="nav-item"
             @click="closeDrawerOnMobile"
@@ -239,7 +239,6 @@ const navigation = computed(() => {
       salesHistory,
       { label: 'Pembelian', icon: 'shopping_cart', to: '/pembelian' },
       { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
-      { label: 'Pengguna', icon: 'group', to: '/pengguna' },
       { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
     ]
   if (role === 'kasir')
@@ -257,7 +256,6 @@ const navigation = computed(() => {
       salesHistory,
       { label: 'Pembelian', icon: 'shopping_cart', to: '/pembelian' },
       { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
-      { label: 'Profil Warung', icon: 'storefront', to: '/warung' },
       { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
     ]
   return [
@@ -268,8 +266,6 @@ const navigation = computed(() => {
     salesHistory,
     { label: 'Pembelian', icon: 'shopping_cart', to: '/pembelian' },
     { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
-    { label: 'Pengguna', icon: 'group', to: '/pengguna' },
-    { label: 'Profil Warung', icon: 'storefront', to: '/warung' },
     { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
   ]
 })
