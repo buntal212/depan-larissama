@@ -3,8 +3,8 @@
     <div class="page-heading">
       <div>
         <div class="eyebrow">LANGGANAN WARUNG</div>
-        <h1>Paket langganan</h1>
-        <p>Lihat pilihan paket dan harga yang dikelola UDEV.</p>
+        <h1>Paket &amp; pembayaran</h1>
+        <p>Paket, harga, invoice, dan status pembayaran dikelola UDEV.</p>
       </div>
       <q-btn
         outline
@@ -13,85 +13,370 @@
         icon="refresh"
         label="Muat ulang"
         :loading="loading"
-        @click="loadPlans"
+        @click="loadPage"
       />
     </div>
 
     <q-banner rounded class="info-banner q-mb-lg">
-      Harga dan masa aktif ditampilkan dari katalog UDEV. Pembayaran dan pembuatan invoice belum
-      tersedia di halaman ini.
+      Pembayaran diproses melalui checkout UDEV. Status diperbarui otomatis setiap 30 detik selama
+      invoice masih menunggu pembayaran.
     </q-banner>
     <q-banner v-if="paymentOnly" rounded class="bg-orange-1 text-orange-10 q-mb-lg">
-      Masa aktif warung telah habis. Selama masa tenggang, hanya halaman paket langganan yang dapat
-      diakses. Hubungi admin untuk mengaktifkan kembali warung.
+      Masa aktif warung telah habis. Halaman pembayaran tetap bisa digunakan selama masa tenggang.
+    </q-banner>
+    <q-banner v-if="errorMessage" rounded class="bg-red-1 text-negative q-mb-lg">
+      {{ errorMessage }}
     </q-banner>
 
-    <q-card v-if="errorMessage" flat bordered class="state-card">
-      <q-card-section class="row items-center q-gutter-md">
-        <q-icon name="cloud_off" color="negative" size="32px" />
-        <div class="col">
-          <div class="text-weight-bold">Katalog paket belum bisa dimuat</div>
-          <div class="text-caption text-grey-7">{{ errorMessage }}</div>
+    <q-card v-if="loading && plans.length === 0" flat bordered class="state-card">
+      <q-card-section class="row items-center justify-center q-gutter-md">
+        <q-spinner color="primary" size="28px" />
+        <span>Memuat paket dan invoice…</span>
+      </q-card-section>
+    </q-card>
+
+    <section v-else>
+      <div class="section-heading">
+        <div>
+          <h2>Pilih paket</h2>
+          <p>Harga final dikonfirmasi UDEV sebelum invoice dibuat.</p>
+        </div>
+      </div>
+      <q-card v-if="plans.length === 0" flat bordered class="state-card">
+        <q-card-section class="text-center text-grey-7"
+          >Belum ada paket aktif untuk Larissama.</q-card-section
+        >
+      </q-card>
+      <div v-else class="plans-grid">
+        <q-card v-for="plan in plans" :key="plan.id" flat bordered class="plan-card">
+          <q-card-section>
+            <div class="plan-code">{{ plan.code }}</div>
+            <h3>{{ plan.name }}</h3>
+            <p v-if="plan.description" class="plan-description">{{ plan.description }}</p>
+            <div class="plan-price">{{ formatPlanPrice(plan.price, plan.currency) }}</div>
+            <div class="plan-duration">Masa aktif {{ plan.duration_days }} hari</div>
+            <q-btn
+              class="full-width q-mt-lg"
+              color="primary"
+              unelevated
+              no-caps
+              label="Lihat harga final"
+              :loading="previewingPlan === plan.code"
+              :disable="Boolean(previewingPlan)"
+              @click="previewPlan(plan)"
+            />
+          </q-card-section>
+        </q-card>
+      </div>
+    </section>
+
+    <section class="q-mt-xl">
+      <div class="section-heading">
+        <div>
+          <h2>Invoice dan pembayaran</h2>
+          <p>Status invoice dibaca langsung dari UDEV.</p>
         </div>
         <q-btn
           flat
           no-caps
           color="primary"
-          label="Coba lagi"
-          :loading="loading"
-          @click="loadPlans"
+          icon="sync"
+          label="Periksa status"
+          :loading="refreshingInvoices"
+          @click="refreshInvoices"
         />
-      </q-card-section>
-    </q-card>
+      </div>
 
-    <q-card v-else-if="loading" flat bordered class="state-card">
-      <q-card-section class="row items-center justify-center q-gutter-md">
-        <q-spinner color="primary" size="28px" />
-        <span>Memuat katalog paket dari UDEV…</span>
-      </q-card-section>
-    </q-card>
-
-    <q-card v-else-if="plans.length === 0" flat bordered class="state-card">
-      <q-card-section class="text-center text-grey-7">
-        Belum ada paket aktif untuk aplikasi Larissama.
-      </q-card-section>
-    </q-card>
-
-    <div v-else class="plans-grid">
-      <q-card v-for="plan in plans" :key="plan.id" flat bordered class="plan-card">
-        <q-card-section>
-          <div class="row items-start justify-between q-gutter-sm">
-            <div>
-              <div class="plan-code">{{ plan.code }}</div>
-              <h2>{{ plan.name }}</h2>
-            </div>
-            <q-badge color="positive" label="Aktif" />
-          </div>
-          <p v-if="plan.description" class="plan-description">{{ plan.description }}</p>
-          <div class="plan-price">{{ formatPlanPrice(plan.price, plan.currency) }}</div>
-          <div class="plan-duration">Masa aktif {{ plan.duration_days }} hari</div>
-        </q-card-section>
+      <q-card v-if="invoices.length === 0" flat bordered class="state-card">
+        <q-card-section class="text-center text-grey-7"
+          >Belum ada invoice langganan.</q-card-section
+        >
       </q-card>
-    </div>
+      <div v-else class="invoice-list">
+        <q-card
+          v-for="invoice in invoices"
+          :key="invoice.invoice_number"
+          flat
+          bordered
+          class="invoice-card"
+        >
+          <q-card-section>
+            <div class="row items-start justify-between q-gutter-md">
+              <div>
+                <div class="invoice-number">{{ invoice.invoice_number }}</div>
+                <div class="text-weight-bold q-mt-xs">
+                  {{ invoice.plan?.name || invoice.plan?.code || 'Paket langganan' }}
+                </div>
+                <div class="text-caption text-grey-7">
+                  {{
+                    formatPlanPrice(
+                      invoice.pricing?.final_price || '0.00',
+                      invoice.pricing?.currency || 'IDR',
+                    )
+                  }}
+                  <span v-if="invoice.due_at"> · Jatuh tempo {{ formatDate(invoice.due_at) }}</span>
+                </div>
+              </div>
+              <q-badge :color="invoiceStatusColor(invoice)" :label="invoiceStatusLabel(invoice)" />
+            </div>
+
+            <div v-if="invoice.status === 'pending'" class="row q-gutter-sm q-mt-md">
+              <q-btn
+                color="primary"
+                unelevated
+                no-caps
+                icon="payment"
+                :label="invoice.payment?.checkout_url ? 'Coba checkout lagi' : 'Siapkan checkout'"
+                :loading="checkingOut === invoice.invoice_number"
+                :disable="Boolean(checkingOut)"
+                @click="prepareCheckout(invoice)"
+              />
+              <q-btn
+                v-if="invoice.payment?.checkout_url && invoice.payment?.status === 'pending'"
+                outline
+                color="primary"
+                no-caps
+                icon="open_in_new"
+                label="Buka pembayaran"
+                :href="invoice.payment.checkout_url"
+                target="_blank"
+                rel="noopener noreferrer"
+              />
+              <q-btn
+                flat
+                color="primary"
+                no-caps
+                label="Cek sekarang"
+                :loading="checkingStatus === invoice.invoice_number"
+                @click="refreshInvoice(invoice.invoice_number)"
+              />
+            </div>
+            <div
+              v-if="invoice.payment?.checkout_status === 'processing'"
+              class="text-caption text-orange-9 q-mt-sm"
+            >
+              Checkout sedang disiapkan. Status akan diperiksa lagi.
+            </div>
+            <div
+              v-if="
+                invoice.status === 'paid' && invoice.tracking?.settlement_status !== 'completed'
+              "
+              class="text-caption text-orange-9 q-mt-sm"
+            >
+              Pembayaran diterima UDEV; pemrosesan masa aktif masih berlangsung.
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
+    </section>
+
+    <q-dialog v-model="previewDialog">
+      <q-card class="preview-card">
+        <q-card-section>
+          <div class="text-h6">Konfirmasi paket</div>
+          <div class="text-caption text-grey-7">Harga final berasal dari UDEV.</div>
+        </q-card-section>
+        <q-separator />
+        <q-card-section v-if="preview">
+          <q-banner v-if="referralLocked" rounded class="bg-green-1 text-positive q-mb-md">
+            Kode referral {{ preview.pricing?.referral_code || referralCode }} sudah terpasang dan
+            terkunci untuk pelanggan ini.
+          </q-banner>
+          <template v-else>
+            <div class="text-subtitle2 q-mb-sm">Kode referral (opsional)</div>
+            <div class="row items-start q-gutter-sm">
+              <q-input
+                v-model="referralCode"
+                class="col"
+                outlined
+                dense
+                no-caps
+                maxlength="10"
+                label="REF-XXXXXX"
+                :disable="Boolean(referralValidation) || validatingReferral || attachingReferral"
+              />
+              <q-btn
+                outline
+                no-caps
+                color="primary"
+                label="Validasi"
+                :loading="validatingReferral"
+                :disable="!referralCode.trim() || Boolean(referralValidation)"
+                @click="validateReferral"
+              />
+            </div>
+            <q-banner v-if="referralValidation" rounded class="bg-blue-1 text-primary q-mt-sm">
+              Kode valid menurut UDEV. Diskon
+              {{
+                formatPlanPrice(
+                  referralValidation.discount_amount,
+                  selectedPlan?.currency || 'IDR',
+                )
+              }}; harga hasil validasi referral
+              {{
+                formatPlanPrice(referralValidation.customer_price, selectedPlan?.currency || 'IDR')
+              }}.
+            </q-banner>
+            <div v-if="referralValidation" class="q-mt-sm">
+              <q-checkbox
+                v-model="referralLockAcknowledged"
+                label="Saya paham kode referral akan dikunci untuk pelanggan ini dan tidak dapat diganti."
+              />
+              <q-btn
+                class="q-mt-xs"
+                outline
+                no-caps
+                color="primary"
+                label="Kunci dan pakai kode referral"
+                :loading="attachingReferral"
+                :disable="!referralLockAcknowledged"
+                @click="attachReferral"
+              />
+            </div>
+          </template>
+          <q-banner v-if="referralError" rounded class="bg-red-1 text-negative q-mt-sm">
+            {{ referralError }}
+          </q-banner>
+          <div class="row justify-between q-mb-sm">
+            <span>Paket</span><strong>{{ preview.plan?.name }}</strong>
+          </div>
+          <div class="row justify-between q-mb-sm">
+            <span>Harga paket</span
+            ><strong>{{
+              formatPlanPrice(preview.pricing?.normal_price, preview.pricing?.currency)
+            }}</strong>
+          </div>
+          <div
+            v-if="preview.pricing?.discount_amount !== '0.00'"
+            class="row justify-between q-mb-sm"
+          >
+            <span>Diskon</span
+            ><strong>{{
+              formatPlanPrice(preview.pricing?.discount_amount, preview.pricing?.currency)
+            }}</strong>
+          </div>
+          <q-separator class="q-my-md" />
+          <div class="row justify-between text-weight-bold">
+            <span>Total invoice</span
+            ><span>{{
+              formatPlanPrice(preview.pricing?.final_price, preview.pricing?.currency)
+            }}</span>
+          </div>
+          <div class="text-caption text-grey-7 q-mt-sm">
+            Invoice jatuh tempo satu hari setelah dibuat, mengikuti contoh integrasi UDEV.
+          </div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat no-caps label="Batal" v-close-popup />
+          <q-btn
+            color="primary"
+            unelevated
+            no-caps
+            label="Buat invoice"
+            :loading="creatingInvoice"
+            :disable="Boolean(referralCode.trim()) && !referralLocked"
+            @click="createInvoice"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
+import { newIdempotencyKey } from '@/services/api.js'
 import { authSession } from '@/stores/auth-session.js'
 
 const plans = ref([])
+const invoices = ref([])
 const loading = ref(false)
+const refreshingInvoices = ref(false)
+const creatingInvoice = ref(false)
+const previewingPlan = ref('')
+const checkingOut = ref('')
+const checkingStatus = ref('')
 const errorMessage = ref('')
+const previewDialog = ref(false)
+const preview = ref(null)
+const selectedPlan = ref(null)
+const referralCode = ref('')
+const referralValidation = ref(null)
+const referralLocked = ref(false)
+const referralLockAcknowledged = ref(false)
+const validatingReferral = ref(false)
+const attachingReferral = ref(false)
+const referralError = ref('')
 const paymentOnly = computed(() => authSession.warung?.status_langganan === 'kedaluwarsa')
+const invoicePollKeys = new Map()
+const checkoutPollTimer = ref(null)
+let statusPollTimer = null
+let statusPollRunning = false
 
-async function loadPlans() {
+function savedKey(operation, subject) {
+  const storageKey = `larissama-billing-${operation}-${subject}`
+  try {
+    const existing = window.localStorage.getItem(storageKey)
+    if (existing) return existing
+    const value = newIdempotencyKey()
+    window.localStorage.setItem(storageKey, value)
+    return value
+  } catch {
+    if (!invoicePollKeys.has(storageKey)) invoicePollKeys.set(storageKey, newIdempotencyKey())
+    return invoicePollKeys.get(storageKey)
+  }
+}
+
+function clearSavedKey(operation, subject) {
+  const storageKey = `larissama-billing-${operation}-${subject}`
+  invoicePollKeys.delete(storageKey)
+  try {
+    window.localStorage.removeItem(storageKey)
+  } catch {
+    // Idempotency still works for the active page if storage is unavailable.
+  }
+}
+
+function invoiceIdempotencyKey(planCode) {
+  return savedKey('invoice', planCode)
+}
+
+function checkoutIdempotencyKey(invoiceNumber) {
+  return savedKey('checkout', invoiceNumber)
+}
+
+function referralIdempotencyKey(code) {
+  return savedKey('referral', `${authSession.user?.id || 'owner'}-${code}`)
+}
+
+async function loadPage() {
   loading.value = true
   errorMessage.value = ''
-
   try {
-    plans.value = await larisamaApi.listSubscriptionPlans()
+    const [planResult, invoiceResult] = await Promise.allSettled([
+      larisamaApi.listSubscriptionPlans(),
+      larisamaApi.listSubscriptionInvoices(),
+    ])
+    if (planResult.status === 'fulfilled') {
+      plans.value = planResult.value
+    } else {
+      errorMessage.value = `Katalog paket: ${displayApiError(planResult.reason)}`
+    }
+    if (invoiceResult.status === 'fulfilled') {
+      invoices.value = invoiceResult.value
+      updateStatusPolling()
+    } else {
+      const invoiceError = `Invoice: ${displayApiError(invoiceResult.reason)}`
+      errorMessage.value = errorMessage.value
+        ? `${errorMessage.value} ${invoiceError}`
+        : invoiceError
+    }
+    if (invoices.value.some(isSettledInvoice)) {
+      await applyUdevSubscription()
+      await refreshCurrentWarung()
+    }
+    updateStatusPolling()
   } catch (error) {
     errorMessage.value = displayApiError(error)
   } finally {
@@ -99,10 +384,291 @@ async function loadPlans() {
   }
 }
 
+async function refreshInvoices() {
+  refreshingInvoices.value = true
+  errorMessage.value = ''
+  try {
+    invoices.value = await larisamaApi.listSubscriptionInvoices()
+    updateStatusPolling()
+    if (invoices.value.some(isSettledInvoice)) {
+      await applyUdevSubscription()
+      await refreshCurrentWarung()
+    }
+    updateStatusPolling()
+  } catch (error) {
+    errorMessage.value = displayApiError(error)
+  } finally {
+    refreshingInvoices.value = false
+  }
+}
+
+async function previewPlan(plan) {
+  previewingPlan.value = plan.code
+  errorMessage.value = ''
+  try {
+    selectedPlan.value = plan
+    referralCode.value = ''
+    referralValidation.value = null
+    referralLockAcknowledged.value = false
+    referralError.value = ''
+    preview.value = await larisamaApi.previewSubscriptionInvoice({
+      subscription_plan_code: plan.code,
+    })
+    referralLocked.value = Boolean(preview.value.pricing?.referral_code)
+    if (referralLocked.value) referralCode.value = preview.value.pricing.referral_code
+    previewDialog.value = true
+  } catch (error) {
+    errorMessage.value = displayApiError(error)
+  } finally {
+    previewingPlan.value = ''
+  }
+}
+
+async function validateReferral() {
+  validatingReferral.value = true
+  referralError.value = ''
+  try {
+    const result = await larisamaApi.validateSubscriptionReferral({
+      referral_code: referralCode.value.trim().toUpperCase(),
+    })
+    referralCode.value = result.code
+    referralValidation.value = result
+  } catch (error) {
+    referralError.value = displayApiError(error)
+  } finally {
+    validatingReferral.value = false
+  }
+}
+
+async function attachReferral() {
+  if (!referralValidation.value || !referralLockAcknowledged.value) return
+  attachingReferral.value = true
+  referralError.value = ''
+  try {
+    await larisamaApi.attachSubscriptionReferral(
+      { referral_code: referralValidation.value.code },
+      referralIdempotencyKey(referralValidation.value.code),
+    )
+    clearSavedKey('referral', `${authSession.user?.id || 'owner'}-${referralValidation.value.code}`)
+    preview.value = await larisamaApi.previewSubscriptionInvoice({
+      subscription_plan_code: selectedPlan.value.code,
+    })
+    referralLocked.value = true
+    referralCode.value = referralValidation.value.code
+    referralValidation.value = null
+    referralLockAcknowledged.value = false
+  } catch (error) {
+    referralError.value = displayApiError(error)
+  } finally {
+    attachingReferral.value = false
+  }
+}
+
+async function createInvoice() {
+  if (!selectedPlan.value) return
+  creatingInvoice.value = true
+  errorMessage.value = ''
+  try {
+    const invoice = await larisamaApi.createSubscriptionInvoice(
+      { subscription_plan_code: selectedPlan.value.code },
+      invoiceIdempotencyKey(selectedPlan.value.code),
+    )
+    clearSavedKey('invoice', selectedPlan.value.code)
+    previewDialog.value = false
+    upsertInvoice(invoice)
+    await refreshInvoices()
+  } catch (error) {
+    errorMessage.value = displayApiError(error)
+  } finally {
+    creatingInvoice.value = false
+  }
+}
+
+async function prepareCheckout(invoice) {
+  checkingOut.value = invoice.invoice_number
+  errorMessage.value = ''
+  try {
+    const result = await larisamaApi.startSubscriptionCheckout(
+      invoice.invoice_number,
+      checkoutIdempotencyKey(invoice.invoice_number),
+    )
+    upsertInvoice(result)
+    if (result.payment?.checkout_status === 'ready') {
+      startStatusPolling()
+    } else {
+      await waitForCheckout(invoice.invoice_number)
+    }
+  } catch (error) {
+    errorMessage.value = displayApiError(error)
+    await refreshInvoice(invoice.invoice_number, false)
+  } finally {
+    checkingOut.value = ''
+  }
+}
+
+async function waitForCheckout(invoiceNumber) {
+  if (checkoutPollTimer.value) window.clearTimeout(checkoutPollTimer.value)
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await new Promise((resolve) => {
+      checkoutPollTimer.value = window.setTimeout(resolve, 3000)
+    })
+    try {
+      const result = await larisamaApi.startSubscriptionCheckout(
+        invoiceNumber,
+        checkoutIdempotencyKey(invoiceNumber),
+      )
+      upsertInvoice(result)
+      if (result.payment?.checkout_status === 'ready') {
+        startStatusPolling()
+        return
+      }
+    } catch (error) {
+      errorMessage.value = displayApiError(error)
+      return
+    }
+  }
+  errorMessage.value = 'Checkout masih diproses. Coba siapkan checkout lagi beberapa saat.'
+}
+
+async function refreshInvoice(invoiceNumber, showError = true) {
+  checkingStatus.value = invoiceNumber
+  try {
+    const invoice = await larisamaApi.getSubscriptionInvoice(invoiceNumber)
+    upsertInvoice(invoice)
+    const paymentStatus = invoice.payment?.status
+    if (['failed', 'expired', 'cancelled'].includes(paymentStatus)) {
+      clearSavedKey('checkout', invoiceNumber)
+    }
+    if (invoice.status === 'paid' && invoice.tracking?.settlement_status === 'completed') {
+      await applyUdevSubscription()
+      await refreshCurrentWarung()
+    }
+    if (showError) errorMessage.value = ''
+    return invoice
+  } catch (error) {
+    if (showError) errorMessage.value = displayApiError(error)
+    return null
+  } finally {
+    if (checkingStatus.value === invoiceNumber) checkingStatus.value = ''
+  }
+}
+
+async function applyUdevSubscription() {
+  try {
+    await larisamaApi.reconcileSubscription()
+  } catch (error) {
+    if (error.code !== 'UDEV_SUBSCRIPTION_NOT_ACTIVE') throw error
+  }
+}
+
+async function refreshCurrentWarung() {
+  const warung = await larisamaApi.currentWarung()
+  authSession.warung = warung
+}
+
+function upsertInvoice(invoice) {
+  if (!invoice?.invoice_number) return
+  const index = invoices.value.findIndex((row) => row.invoice_number === invoice.invoice_number)
+  if (index === -1) invoices.value.unshift(invoice)
+  else invoices.value[index] = invoice
+  updateStatusPolling()
+}
+
+function startStatusPolling() {
+  if (statusPollTimer) return
+  statusPollTimer = window.setInterval(async () => {
+    if (document.visibilityState === 'visible') await pollInvoiceStatuses()
+  }, 30000)
+}
+
+async function pollInvoiceStatuses() {
+  if (statusPollRunning) return
+  statusPollRunning = true
+  try {
+    invoices.value = await larisamaApi.listSubscriptionInvoices()
+    if (invoices.value.some(isSettledInvoice)) {
+      await applyUdevSubscription()
+      await refreshCurrentWarung()
+    }
+  } catch {
+    // A later poll or manual refresh can recover transient status errors.
+  } finally {
+    statusPollRunning = false
+    updateStatusPolling()
+  }
+}
+
+function isPollableInvoice(invoice) {
+  return (
+    invoice.status === 'pending' &&
+    invoice.payment !== null &&
+    !['failed', 'expired', 'cancelled', 'succeeded'].includes(invoice.payment?.status)
+  )
+}
+
+function updateStatusPolling() {
+  for (const invoice of invoices.value) {
+    if (['failed', 'expired', 'cancelled'].includes(invoice.payment?.status)) {
+      clearSavedKey('checkout', invoice.invoice_number)
+    }
+  }
+  if (invoices.value.some(isPollableInvoice)) {
+    startStatusPolling()
+  } else if (statusPollTimer) {
+    window.clearInterval(statusPollTimer)
+    statusPollTimer = null
+  }
+}
+
+function handleVisibilityChange() {
+  if (document.visibilityState === 'visible') {
+    if (invoices.value.some(isPollableInvoice)) void pollInvoiceStatuses()
+  }
+}
+
+function invoiceStatusLabel(invoice) {
+  if (invoice.status === 'paid' && invoice.tracking?.settlement_status === 'completed')
+    return 'Terbayar'
+  if (invoice.status === 'paid') return 'Pembayaran diproses'
+  if (invoice.status === 'expired') return 'Kedaluwarsa'
+  if (invoice.status === 'cancelled') return 'Dibatalkan'
+  if (invoice.payment?.status === 'failed') return 'Pembayaran ditolak'
+  if (invoice.payment?.status === 'expired') return 'Checkout kedaluwarsa'
+  if (invoice.payment?.status === 'cancelled') return 'Checkout dibatalkan'
+  return 'Menunggu pembayaran'
+}
+
+function isSettledInvoice(invoice) {
+  return invoice.status === 'paid' && invoice.tracking?.settlement_status === 'completed'
+}
+
+function invoiceStatusColor(invoice) {
+  if (invoice.status === 'paid' && invoice.tracking?.settlement_status === 'completed')
+    return 'positive'
+  if (invoice.status === 'paid') return 'warning'
+  if (
+    ['expired', 'cancelled'].includes(invoice.status) ||
+    ['failed', 'expired', 'cancelled'].includes(invoice.payment?.status)
+  )
+    return 'negative'
+  return 'orange-8'
+}
+
+function formatDate(value) {
+  const timestamp = Date.parse(value)
+  return Number.isFinite(timestamp)
+    ? new Intl.DateTimeFormat('id-ID', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'Asia/Jakarta',
+      }).format(timestamp)
+    : value
+}
+
 function formatPlanPrice(price, currency) {
+  if (typeof price !== 'string') return `${currency || 'IDR'} ${price || ''}`
   const match = /^([0-9]+)(?:\.([0-9]+))?$/.exec(price)
   if (!match) return `${currency} ${price}`
-
   const whole = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(
     BigInt(match[1]),
   )
@@ -110,11 +676,19 @@ function formatPlanPrice(price, currency) {
   const decimalSeparator =
     new Intl.NumberFormat('id-ID').formatToParts(1.1).find((part) => part.type === 'decimal')
       ?.value || ','
-
   return `${currency} ${whole}${fraction ? `${decimalSeparator}${fraction}` : ''}`
 }
 
-onMounted(loadPlans)
+onMounted(() => {
+  void loadPage()
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+})
+
+onBeforeUnmount(() => {
+  if (statusPollTimer) window.clearInterval(statusPollTimer)
+  if (checkoutPollTimer.value) window.clearTimeout(checkoutPollTimer.value)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+})
 </script>
 
 <style scoped>
@@ -122,12 +696,28 @@ onMounted(loadPlans)
   max-width: 1100px;
   margin: 0 auto;
 }
-.page-heading {
+.page-heading,
+.section-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
+}
+.page-heading {
   margin-bottom: 24px;
+}
+.section-heading {
+  margin-bottom: 14px;
+}
+.section-heading h2 {
+  margin: 0;
+  color: #104f39;
+  font-size: 21px;
+}
+.section-heading p {
+  margin: 4px 0 0;
+  color: #718078;
+  font-size: 13px;
 }
 .eyebrow {
   color: #71847b;
@@ -154,24 +744,31 @@ h1 {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: 16px;
 }
+.invoice-list {
+  display: grid;
+  gap: 12px;
+}
 .plan-card,
+.invoice-card,
 .state-card {
   border-radius: 16px;
 }
-.plan-code {
+.plan-code,
+.invoice-number {
   color: #71847b;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
+  overflow-wrap: anywhere;
 }
-.plan-card h2 {
+.plan-card h3 {
   margin: 6px 0 0;
   color: #104f39;
   font-size: 20px;
 }
 .plan-description {
   min-height: 40px;
-  margin: 16px 0 0;
+  margin: 14px 0 0;
   color: #718078;
 }
 .plan-price {
@@ -185,8 +782,12 @@ h1 {
   color: #718078;
   font-size: 13px;
 }
+.preview-card {
+  width: min(100%, 480px);
+}
 @media (max-width: 599px) {
-  .page-heading {
+  .page-heading,
+  .section-heading {
     align-items: flex-start;
     flex-direction: column;
   }

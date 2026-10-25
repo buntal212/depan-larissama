@@ -131,7 +131,7 @@
           to="/paket-langganan"
           name="subscription"
           icon="sell"
-          label="Paket langganan"
+          label="Pembayaran"
         />
       </q-tabs>
       <q-tabs
@@ -228,7 +228,7 @@ const navigation = computed(() => {
   const salesHistory = { label: 'Penjualan', icon: 'receipt_long', to: '/penjualan' }
   const role = authSession.user?.role
   if (paymentOnly.value) {
-    return [{ label: 'Paket langganan', icon: 'sell', to: '/paket-langganan' }]
+    return [{ label: 'Pembayaran', icon: 'sell', to: '/paket-langganan' }]
   }
   if (role === 'superadmin')
     return [
@@ -260,7 +260,7 @@ const navigation = computed(() => {
     ]
   return [
     dashboard,
-    { label: 'Paket langganan', icon: 'sell', to: '/paket-langganan' },
+    { label: 'Pembayaran', icon: 'sell', to: '/paket-langganan' },
     { label: 'Kasir', icon: 'point_of_sale', to: '/transaksi' },
     catalog,
     salesHistory,
