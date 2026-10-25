@@ -1,15 +1,20 @@
 import { reactive, ref, watch } from 'vue'
 
 const storageKey = 'larisama:receipt-printer'
-const defaults = { paperWidth: '58', columnsByPaper: { 58: 31, 80: 42 } }
+const defaults = {
+  paperWidth: '58',
+  columnsByPaper: { 58: 31, 80: 42 },
+  footerText: 'Terima kasih atas kunjungan Anda',
+}
 const saved = readSettings()
 const paperWidth = ref(saved.paperWidth)
 const columnsByPaper = reactive(saved.columnsByPaper)
+const footerText = ref(saved.footerText)
 
-watch([paperWidth, columnsByPaper], saveSettings, { deep: true })
+watch([paperWidth, columnsByPaper, footerText], saveSettings, { deep: true })
 
 export function useReceiptPrinterSettings() {
-  return { paperWidth, columnsByPaper }
+  return { paperWidth, columnsByPaper, footerText }
 }
 
 export function clampColumns(value, width = '80') {
@@ -27,6 +32,7 @@ function readSettings() {
         58: clampColumns(stored.columnsByPaper?.[58] ?? defaults.columnsByPaper[58], '58'),
         80: clampColumns(stored.columnsByPaper?.[80] ?? defaults.columnsByPaper[80], '80'),
       },
+      footerText: typeof stored.footerText === 'string' ? stored.footerText.slice(0, 120) : defaults.footerText,
     }
   } catch {
     return defaults
@@ -35,7 +41,7 @@ function readSettings() {
 
 function saveSettings() {
   try {
-    localStorage.setItem(storageKey, JSON.stringify({ paperWidth: paperWidth.value, columnsByPaper }))
+    localStorage.setItem(storageKey, JSON.stringify({ paperWidth: paperWidth.value, columnsByPaper, footerText: footerText.value }))
   } catch {
     // Storage is optional; printer settings remain available for this session.
   }

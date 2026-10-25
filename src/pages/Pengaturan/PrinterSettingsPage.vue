@@ -34,6 +34,18 @@
         </div>
       </q-card-section>
       <q-separator />
+      <q-card-section>
+        <q-input
+          v-model="footerText"
+          outlined
+          type="textarea"
+          autogrow
+          maxlength="120"
+          label="Teks penutup struk"
+          counter
+        />
+      </q-card-section>
+      <q-separator />
       <BlePrinterPanel active />
     </q-card>
   </section>
@@ -48,7 +60,7 @@ const paperOptions = [
   { label: '58 mm', value: '58' },
   { label: '80 mm', value: '80' },
 ]
-const { paperWidth, columnsByPaper } = useReceiptPrinterSettings()
+const { paperWidth, columnsByPaper, footerText } = useReceiptPrinterSettings()
 const activeColumns = computed({
   get: () => columnsByPaper[paperWidth.value],
   set: (value) => {
