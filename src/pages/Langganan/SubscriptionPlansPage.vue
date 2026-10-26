@@ -62,7 +62,11 @@
               color="primary"
               unelevated
               no-caps
-              :label="plan.duration_days === 30 ? 'Lihat harga final' : 'Paket tidak tersedia untuk invoice periode'"
+              :label="
+                plan.duration_days === 30
+                  ? 'Lihat harga final'
+                  : 'Paket tidak tersedia untuk invoice periode'
+              "
               :loading="previewingPlan === plan.code"
               :disable="plan.duration_days !== 30 || Boolean(previewingPlan)"
               @click="previewPlan(plan)"
@@ -125,18 +129,29 @@
             </div>
 
             <div v-if="invoice.status === 'pending'" class="row q-gutter-sm q-mt-md">
+              <q-btn-toggle
+                :model-value="paymentMethod(invoice)"
+                :options="paymentMethodOptions"
+                :disable="checkingOut === invoice.invoice_number"
+                color="blue-grey-1"
+                text-color="blue-grey-9"
+                toggle-color="blue-grey-8"
+                toggle-text-color="white"
+                unelevated
+                @update:model-value="(method) => selectPaymentMethod(invoice, method)"
+              />
               <q-btn
                 color="primary"
                 unelevated
                 no-caps
                 icon="payment"
-                :label="invoice.payment?.checkout_url ? 'Coba checkout lagi' : 'Siapkan checkout'"
+                :label="checkoutButtonLabel(invoice)"
                 :loading="checkingOut === invoice.invoice_number"
-                :disable="Boolean(checkingOut)"
+                :disable="Boolean(checkingOut) || checkoutMatchesSelection(invoice)"
                 @click="prepareCheckout(invoice)"
               />
               <q-btn
-                v-if="invoice.payment?.checkout_url && invoice.payment?.status === 'pending'"
+                v-if="actualPaymentMethod(invoice) === 'dana_wallet' && hasActiveCheckout(invoice)"
                 outline
                 color="primary"
                 no-caps
@@ -156,10 +171,80 @@
               />
             </div>
             <div
+              v-if="
+                invoice.payment?.status === 'pending' &&
+                hasActiveCheckout(invoice) &&
+                paymentMethod(invoice) !== actualPaymentMethod(invoice)
+              "
+              class="text-caption text-orange-9 q-mt-sm"
+            >
+              Checkout aktif dari UDEV menggunakan
+              {{ paymentMethodLabel(actualPaymentMethod(invoice)) }}. Menyiapkan
+              {{ paymentMethodLabel(paymentMethod(invoice)) }} akan membatalkan checkout itu.
+            </div>
+            <div
+              v-else-if="
+                invoice.payment?.status === 'pending' &&
+                paymentMethod(invoice) !== actualPaymentMethod(invoice)
+              "
+              class="text-caption text-orange-9 q-mt-sm"
+            >
+              Checkout lama akan dibatalkan UDEV setelah metode baru disiapkan.
+            </div>
+            <div
+              v-if="
+                actualPaymentMethod(invoice) === 'qris' &&
+                hasActiveCheckout(invoice) &&
+                qrContent(invoice)
+              "
+              class="qris-panel q-mt-md"
+            >
+              <img
+                v-if="qrCodeImages[invoice.invoice_number]"
+                :src="qrCodeImages[invoice.invoice_number]"
+                :alt="`Kode QRIS untuk invoice ${invoice.invoice_number}`"
+                class="qris-image"
+              />
+              <q-spinner
+                v-else-if="!qrCodeErrors[invoice.invoice_number]"
+                color="primary"
+                size="28px"
+              />
+              <div class="qris-instructions">
+                <strong>Bayar dengan QRIS</strong>
+                <span>Scan kode ini menggunakan aplikasi pembayaran yang mendukung QRIS.</span>
+                <span v-if="invoice.payment?.checkout_expires_at">
+                  Berlaku sampai {{ formatDate(invoice.payment.checkout_expires_at) }}
+                </span>
+                <span v-if="qrCodeErrors[invoice.invoice_number]" class="text-negative">
+                  Kode QR belum dapat ditampilkan. Coba muat ulang halaman.
+                </span>
+              </div>
+            </div>
+            <div
+              v-if="
+                invoice.status === 'pending' &&
+                invoice.payment?.checkout_status === 'ready' &&
+                !qrContent(invoice) &&
+                !invoice.payment?.checkout_url
+              "
+              class="text-caption text-negative q-mt-sm"
+            >
+              UDEV menandai checkout siap tetapi belum mengirim QR atau tautan pembayaran. Muat
+              ulang status atau hubungi admin.
+            </div>
+            <div
               v-if="invoice.payment?.checkout_status === 'processing'"
               class="text-caption text-orange-9 q-mt-sm"
             >
               Checkout sedang disiapkan. Status akan diperiksa lagi.
+            </div>
+            <div
+              v-if="invoice.payment?.checkout_status === 'failed'"
+              class="text-caption text-negative q-mt-sm"
+            >
+              UDEV gagal menyiapkan sesi pembayaran. QR atau tautan belum tersedia; klik tombol coba
+              lagi. Jika berulang, admin perlu memeriksa log UDEV.
             </div>
             <div
               v-if="
@@ -250,7 +335,9 @@
             label="Jumlah bulan langganan"
             hint="Setiap periode dihitung tetap 30 hari, sesuai UDEV."
             :options="periodOptions"
-            :disable="refreshingPreview || creatingInvoice || validatingReferral || attachingReferral"
+            :disable="
+              refreshingPreview || creatingInvoice || validatingReferral || attachingReferral
+            "
             @update:model-value="refreshPreviewForPeriod"
           />
           <q-banner v-if="previewError" rounded class="bg-red-1 text-negative q-mb-md">
@@ -311,7 +398,11 @@
             no-caps
             label="Buat invoice"
             :loading="creatingInvoice"
-            :disable="refreshingPreview || Boolean(previewError) || (Boolean(referralCode.trim()) && !referralLocked)"
+            :disable="
+              refreshingPreview ||
+              Boolean(previewError) ||
+              (Boolean(referralCode.trim()) && !referralLocked)
+            "
             @click="createInvoice"
           />
         </q-card-actions>
@@ -321,13 +412,17 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import QRCode from 'qrcode'
 import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
 import { newIdempotencyKey } from '@/services/api.js'
 import { authSession } from '@/stores/auth-session.js'
 
 const plans = ref([])
 const invoices = ref([])
+const qrCodeImages = ref({})
+const qrCodeErrors = ref({})
+const selectedPaymentMethods = ref({})
 const loading = ref(false)
 const refreshingInvoices = ref(false)
 const creatingInvoice = ref(false)
@@ -345,6 +440,10 @@ const periodOptions = Array.from({ length: 12 }, (_, index) => {
   const count = index + 1
   return { label: `${count} bulan (${count * 30} hari)`, value: count }
 })
+const paymentMethodOptions = [
+  { label: 'QRIS', value: 'qris' },
+  { label: 'DANA Wallet', value: 'dana_wallet' },
+]
 const referralCode = ref('')
 const referralValidation = ref(null)
 const referralLocked = ref(false)
@@ -357,6 +456,114 @@ const invoicePollKeys = new Map()
 const checkoutPollTimer = ref(null)
 let statusPollTimer = null
 let statusPollRunning = false
+const qrCodeSources = new Map()
+
+function qrContent(invoice) {
+  return (
+    invoice.payment?.qr_content ||
+    invoice.payment?.payment_code ||
+    invoice.payment?.payment_instruction?.payment_code ||
+    ''
+  )
+}
+
+function paymentMethod(invoice) {
+  return (
+    selectedPaymentMethods.value[invoice.invoice_number] || actualPaymentMethod(invoice) || 'qris'
+  )
+}
+
+function actualPaymentMethod(invoice) {
+  return (
+    invoice.payment?.payment_method ||
+    (qrContent(invoice) ? 'qris' : invoice.payment?.checkout_url ? 'dana_wallet' : '')
+  )
+}
+
+function paymentMethodLabel(method) {
+  return method === 'dana_wallet' ? 'DANA Wallet' : 'QRIS'
+}
+
+function selectPaymentMethod(invoice, method) {
+  if (!paymentMethodOptions.some((option) => option.value === method)) return
+
+  const invoiceNumber = invoice.invoice_number
+  if (paymentMethod(invoice) === method) return
+
+  selectedPaymentMethods.value = { ...selectedPaymentMethods.value, [invoiceNumber]: method }
+  clearCheckoutKeys(invoiceNumber)
+}
+
+function hasActiveCheckout(invoice) {
+  if (invoice.status !== 'pending') return false
+  if (!['initiated', 'pending'].includes(invoice.payment?.status)) return false
+
+  return actualPaymentMethod(invoice) === 'qris'
+    ? Boolean(qrContent(invoice))
+    : actualPaymentMethod(invoice) === 'dana_wallet' && Boolean(invoice.payment?.checkout_url)
+}
+
+function checkoutMatchesSelection(invoice) {
+  return hasActiveCheckout(invoice) && paymentMethod(invoice) === actualPaymentMethod(invoice)
+}
+
+function checkoutButtonLabel(invoice) {
+  if (invoice.payment?.checkout_status === 'failed') {
+    return `Coba ${paymentMethodLabel(paymentMethod(invoice))} lagi`
+  }
+
+  if (hasActiveCheckout(invoice)) {
+    if (paymentMethod(invoice) !== actualPaymentMethod(invoice)) {
+      return `Ganti ke ${paymentMethodLabel(paymentMethod(invoice))}`
+    }
+
+    return `${paymentMethodLabel(actualPaymentMethod(invoice))} aktif`
+  }
+
+  return paymentMethod(invoice) === 'qris' ? 'Siapkan QRIS' : 'Siapkan DANA Wallet'
+}
+
+watch(
+  invoices,
+  (rows) => {
+    const invoiceNumbers = new Set(rows.map((invoice) => invoice.invoice_number))
+    for (const invoiceNumber of qrCodeSources.keys()) {
+      if (!invoiceNumbers.has(invoiceNumber)) {
+        qrCodeSources.delete(invoiceNumber)
+        delete qrCodeImages.value[invoiceNumber]
+        delete qrCodeErrors.value[invoiceNumber]
+      }
+    }
+
+    for (const invoice of rows) {
+      const invoiceNumber = invoice.invoice_number
+      const content = qrContent(invoice)
+      if (!content) {
+        qrCodeSources.delete(invoiceNumber)
+        delete qrCodeImages.value[invoiceNumber]
+        delete qrCodeErrors.value[invoiceNumber]
+        continue
+      }
+      if (qrCodeSources.get(invoiceNumber) === content) continue
+
+      qrCodeSources.set(invoiceNumber, content)
+      delete qrCodeImages.value[invoiceNumber]
+      delete qrCodeErrors.value[invoiceNumber]
+      QRCode.toDataURL(content, { errorCorrectionLevel: 'M', margin: 2, width: 240 })
+        .then((image) => {
+          if (qrCodeSources.get(invoiceNumber) === content) {
+            qrCodeImages.value[invoiceNumber] = image
+          }
+        })
+        .catch(() => {
+          if (qrCodeSources.get(invoiceNumber) === content) {
+            qrCodeErrors.value[invoiceNumber] = true
+          }
+        })
+    }
+  },
+  { deep: true, immediate: true },
+)
 
 function savedKey(operation, subject) {
   const storageKey = `larissama-billing-${operation}-${subject}`
@@ -386,8 +593,15 @@ function invoiceIdempotencyKey(planCode, count) {
   return savedKey('invoice', `${planCode}-${count}`)
 }
 
-function checkoutIdempotencyKey(invoiceNumber) {
-  return savedKey('checkout', invoiceNumber)
+function checkoutIdempotencyKey(invoiceNumber, method) {
+  return savedKey('checkout', `${invoiceNumber}-${method}`)
+}
+
+function clearCheckoutKeys(invoiceNumber) {
+  clearSavedKey('checkout', invoiceNumber)
+  for (const method of ['qris', 'dana_wallet']) {
+    clearSavedKey('checkout', `${invoiceNumber}-${method}`)
+  }
 }
 
 function referralIdempotencyKey(code) {
@@ -559,16 +773,20 @@ async function createInvoice() {
 async function prepareCheckout(invoice) {
   checkingOut.value = invoice.invoice_number
   errorMessage.value = ''
+  const method = paymentMethod(invoice)
   try {
     const result = await larisamaApi.startSubscriptionCheckout(
       invoice.invoice_number,
-      checkoutIdempotencyKey(invoice.invoice_number),
+      checkoutIdempotencyKey(invoice.invoice_number, method),
+      method,
     )
     upsertInvoice(result)
     if (result.payment?.checkout_status === 'ready') {
       startStatusPolling()
+    } else if (result.payment?.checkout_status === 'failed') {
+      errorMessage.value = checkoutFailureMessage(invoice.invoice_number)
     } else {
-      await waitForCheckout(invoice.invoice_number)
+      await waitForCheckout(invoice.invoice_number, method)
     }
   } catch (error) {
     errorMessage.value = displayApiError(error)
@@ -578,7 +796,7 @@ async function prepareCheckout(invoice) {
   }
 }
 
-async function waitForCheckout(invoiceNumber) {
+async function waitForCheckout(invoiceNumber, method) {
   if (checkoutPollTimer.value) window.clearTimeout(checkoutPollTimer.value)
   for (let attempt = 0; attempt < 5; attempt += 1) {
     await new Promise((resolve) => {
@@ -587,11 +805,16 @@ async function waitForCheckout(invoiceNumber) {
     try {
       const result = await larisamaApi.startSubscriptionCheckout(
         invoiceNumber,
-        checkoutIdempotencyKey(invoiceNumber),
+        checkoutIdempotencyKey(invoiceNumber, method),
+        method,
       )
       upsertInvoice(result)
       if (result.payment?.checkout_status === 'ready') {
         startStatusPolling()
+        return
+      }
+      if (result.payment?.checkout_status === 'failed') {
+        errorMessage.value = checkoutFailureMessage(invoiceNumber)
         return
       }
     } catch (error) {
@@ -602,6 +825,10 @@ async function waitForCheckout(invoiceNumber) {
   errorMessage.value = 'Checkout masih diproses. Coba siapkan checkout lagi beberapa saat.'
 }
 
+function checkoutFailureMessage(invoiceNumber) {
+  return `UDEV gagal menyiapkan checkout untuk invoice ${invoiceNumber}. Belum ada QR atau tautan pembayaran. Coba lagi; jika berulang, minta admin memeriksa log UDEV.`
+}
+
 async function refreshInvoice(invoiceNumber, showError = true) {
   checkingStatus.value = invoiceNumber
   try {
@@ -609,7 +836,7 @@ async function refreshInvoice(invoiceNumber, showError = true) {
     upsertInvoice(invoice)
     const paymentStatus = invoice.payment?.status
     if (['failed', 'expired', 'cancelled'].includes(paymentStatus)) {
-      clearSavedKey('checkout', invoiceNumber)
+      clearCheckoutKeys(invoiceNumber)
     }
     if (invoice.status === 'paid' && invoice.tracking?.settlement_status === 'completed') {
       await applyUdevSubscription()
@@ -681,7 +908,7 @@ function isPollableInvoice(invoice) {
 function updateStatusPolling() {
   for (const invoice of invoices.value) {
     if (['failed', 'expired', 'cancelled'].includes(invoice.payment?.status)) {
-      clearSavedKey('checkout', invoice.invoice_number)
+      clearCheckoutKeys(invoice.invoice_number)
     }
   }
   if (invoices.value.some(isPollableInvoice)) {
@@ -704,6 +931,7 @@ function invoiceStatusLabel(invoice) {
   if (invoice.status === 'paid') return 'Pembayaran diproses'
   if (invoice.status === 'expired') return 'Kedaluwarsa'
   if (invoice.status === 'cancelled') return 'Dibatalkan'
+  if (invoice.payment?.checkout_status === 'failed') return 'Checkout gagal disiapkan'
   if (invoice.payment?.status === 'failed') return 'Pembayaran ditolak'
   if (invoice.payment?.status === 'expired') return 'Checkout kedaluwarsa'
   if (invoice.payment?.status === 'cancelled') return 'Checkout dibatalkan'
@@ -720,7 +948,8 @@ function invoiceStatusColor(invoice) {
   if (invoice.status === 'paid') return 'warning'
   if (
     ['expired', 'cancelled'].includes(invoice.status) ||
-    ['failed', 'expired', 'cancelled'].includes(invoice.payment?.status)
+    ['failed', 'expired', 'cancelled'].includes(invoice.payment?.status) ||
+    invoice.payment?.checkout_status === 'failed'
   )
     return 'negative'
   return 'orange-8'
@@ -820,6 +1049,35 @@ h1 {
   display: grid;
   gap: 12px;
 }
+.qris-panel {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 12px;
+  border: 1px solid #dce9e0;
+  border-radius: 12px;
+  background: #f7fbf8;
+}
+.qris-image {
+  width: 200px;
+  max-width: 45vw;
+  aspect-ratio: 1;
+  image-rendering: pixelated;
+  background: white;
+}
+.qris-instructions {
+  display: grid;
+  gap: 5px;
+  max-width: 280px;
+  color: #526158;
+  font-size: 13px;
+}
+.qris-instructions strong {
+  color: #104f39;
+  font-size: 15px;
+}
 .plan-card,
 .invoice-card,
 .state-card {
@@ -862,6 +1120,14 @@ h1 {
   .section-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+  .qris-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .qris-image {
+    width: min(200px, 70vw);
+    max-width: 100%;
   }
 }
 </style>

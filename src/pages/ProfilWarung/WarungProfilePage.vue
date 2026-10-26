@@ -41,7 +41,8 @@
             <div class="profile-meta-grid">
               <div class="profile-meta"><span>Kode warung</span><strong>{{ warung.kode || '—' }}</strong></div>
               <div class="profile-meta"><span>Status</span><strong>{{ subscriptionLabel(warung.status_langganan) }}</strong></div>
-              <div class="profile-meta"><span>Masa aktif</span><strong>{{ subscriptionPeriod }}</strong></div>
+              <div class="profile-meta"><span>Aktif sejak</span><strong>{{ subscriptionStart }}</strong></div>
+              <div class="profile-meta"><span>Aktif sampai</span><strong>{{ subscriptionEnd }}</strong></div>
             </div>
             <div v-if="canEdit" class="row justify-end q-mt-md">
               <q-btn unelevated no-caps color="primary" icon="save" label="Simpan perubahan" :loading="saving" type="submit" />
@@ -69,10 +70,8 @@ const loadError = ref('')
 const logoFile = ref(null)
 const logoPreview = ref('')
 const form = reactive({ nama: '', alamat: '', telepon: '', timezone: '' })
-const subscriptionPeriod = computed(() => {
-  if (!warung.value?.tanggal_mulai && !warung.value?.tanggal_berakhir) return 'Tidak dibatasi'
-  return formatDate(warung.value.tanggal_mulai) + ' – ' + formatDate(warung.value.tanggal_berakhir)
-})
+const subscriptionStart = computed(() => formatDate(warung.value?.tanggal_mulai))
+const subscriptionEnd = computed(() => formatDate(warung.value?.tanggal_berakhir))
 
 async function loadProfile() {
   loading.value = true
@@ -177,7 +176,7 @@ onBeforeUnmount(() => {
 .profile-store-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .logo-controls { display: grid; gap: 12px; }
 .profile-form { display: grid; gap: 14px; }
-.profile-meta-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.profile-meta-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .profile-meta { display: grid; gap: 4px; min-width: 0; padding: 12px; border-radius: 10px; background: #f4f7f5; }
 .profile-meta span { color: #6a7770; font-size: 12px; }
 .profile-meta strong { overflow-wrap: anywhere; }

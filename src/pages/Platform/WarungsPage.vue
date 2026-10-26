@@ -16,7 +16,8 @@
                   <q-badge :color="statusColor(props.row)">{{ statusText(props.row) }}</q-badge>
                 </div>
                 <div class="warung-mobile-meta"><span>Pemilik</span><strong>{{ ownerNames(props.row) }}</strong></div>
-                <div class="warung-mobile-meta"><span>Masa aktif</span><strong>{{ dateRange(props.row) }}</strong></div>
+                <div class="warung-mobile-meta"><span>Aktif sejak</span><strong>{{ props.row.tanggal_mulai || '—' }}</strong></div>
+                <div class="warung-mobile-meta"><span>Aktif sampai</span><strong>{{ props.row.tanggal_berakhir || '—' }}</strong></div>
                 <div class="warung-mobile-sync q-mt-md">
                   <div class="row items-center justify-between q-gutter-sm">
                     <span class="text-caption text-grey-7">Sync UDEV</span>
@@ -151,7 +152,8 @@ const form = reactive(blankForm())
 const columns = [
   { name: 'name', label: 'Warung', field: 'nama', align: 'left' },
   { name: 'owner', label: 'Pemilik', field: ownerNames, align: 'left' },
-  { name: 'subscription', label: 'Masa aktif', field: dateRange, align: 'left' },
+  { name: 'subscription_start', label: 'Aktif sejak', field: (row) => row.tanggal_mulai || '—', align: 'left' },
+  { name: 'subscription_end', label: 'Aktif sampai', field: (row) => row.tanggal_berakhir || '—', align: 'left' },
   { name: 'status', label: 'Status', field: statusText, align: 'left' },
   { name: 'udev_sync', label: 'Sync UDEV', field: (row) => row.udev_customer_sync?.status || 'none', align: 'left' },
   { name: 'actions', label: '', field: 'id', align: 'right' },
@@ -161,7 +163,6 @@ function isActionBusy(row, actionKey) { return busyId.value === row.id && confir
 function threeDayActionLabel(row) { return row.status_langganan === 'aktif' ? 'Tambah 3 hari' : 'Aktifkan 3 hari' }
 function statusText(row) { return isPending(row) ? 'Menunggu persetujuan' : row.status_langganan === 'aktif' ? 'Aktif' : row.status_langganan === 'kedaluwarsa' ? 'Kedaluwarsa' : 'Nonaktif' }
 function statusColor(row) { return isPending(row) ? 'orange-8' : row.status_langganan === 'aktif' ? 'positive' : 'grey-7' }
-function dateRange(row) { return row.tanggal_mulai && row.tanggal_berakhir ? `${row.tanggal_mulai} – ${row.tanggal_berakhir}` : 'Belum aktif' }
 function ownerNames(row) { return row.owners?.map((owner) => owner.nama).filter(Boolean).join(', ') || '—' }
 function udevSyncText(sync) {
   if (!sync) return 'Belum ada data'

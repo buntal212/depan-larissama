@@ -27,7 +27,7 @@ export const larisamaApi = {
   createSubscriptionInvoice: async (body, key) => (await apiRequest('subscription-invoices', { method: 'POST', body, idempotency: key })).data,
   listSubscriptionInvoices: async () => (await apiRequest('subscription-invoices')).data,
   getSubscriptionInvoice: async (invoiceNumber) => (await apiRequest(`subscription-invoices/${encodeURIComponent(invoiceNumber)}`)).data,
-  startSubscriptionCheckout: async (invoiceNumber, key) => (await apiRequest(`subscription-invoices/${encodeURIComponent(invoiceNumber)}/checkout`, { method: 'POST', idempotency: key })).data,
+  startSubscriptionCheckout: async (invoiceNumber, key, paymentMethod = 'qris') => (await apiRequest(`subscription-invoices/${encodeURIComponent(invoiceNumber)}/checkout`, { method: 'POST', body: { payment_method: paymentMethod }, idempotency: key })).data,
   reconcileSubscription: async () => (await apiRequest('subscription/reconcile', { method: 'POST' })).data,
 
   listUsers: async () => getAllPages('users'),
