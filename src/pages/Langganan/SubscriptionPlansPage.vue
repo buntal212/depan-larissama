@@ -53,16 +53,18 @@
             <div class="plan-code">{{ plan.code }}</div>
             <h3>{{ plan.name }}</h3>
             <p v-if="plan.description" class="plan-description">{{ plan.description }}</p>
-            <div class="plan-price">{{ formatPlanPrice(plan.price, plan.currency) }}</div>
-            <div class="plan-duration">Masa aktif {{ plan.duration_days }} hari</div>
+            <div class="plan-price">
+              {{ formatPlanPrice(plan.price, plan.currency) }} / periode 30 hari
+            </div>
+            <div class="plan-duration">Durasi dasar {{ plan.duration_days }} hari</div>
             <q-btn
               class="full-width q-mt-lg"
               color="primary"
               unelevated
               no-caps
-              label="Lihat harga final"
+              :label="plan.duration_days === 30 ? 'Lihat harga final' : 'Paket tidak tersedia untuk invoice periode'"
               :loading="previewingPlan === plan.code"
-              :disable="Boolean(previewingPlan)"
+              :disable="plan.duration_days !== 30 || Boolean(previewingPlan)"
               @click="previewPlan(plan)"
             />
           </q-card-section>
@@ -108,6 +110,8 @@
                   {{ invoice.plan?.name || invoice.plan?.code || 'Paket langganan' }}
                 </div>
                 <div class="text-caption text-grey-7">
+                  {{ invoice.plan?.period_count || invoice.period_count || 1 }} periode ·
+                  {{ invoice.plan?.duration_days || 30 }} hari ·
                   {{
                     formatPlanPrice(
                       invoice.pricing?.final_price || '0.00',
@@ -212,7 +216,7 @@
                   referralValidation.discount_amount,
                   selectedPlan?.currency || 'IDR',
                 )
-              }}; harga hasil validasi referral
+              }}; harga hasil validasi referral per periode
               {{
                 formatPlanPrice(referralValidation.customer_price, selectedPlan?.currency || 'IDR')
               }}.
@@ -237,11 +241,44 @@
           <q-banner v-if="referralError" rounded class="bg-red-1 text-negative q-mt-sm">
             {{ referralError }}
           </q-banner>
+          <q-select
+            v-model="periodCount"
+            class="q-mt-md q-mb-lg"
+            outlined
+            emit-value
+            map-options
+            label="Jumlah bulan langganan"
+            hint="Setiap periode dihitung tetap 30 hari, sesuai UDEV."
+            :options="periodOptions"
+            :disable="refreshingPreview || creatingInvoice || validatingReferral || attachingReferral"
+            @update:model-value="refreshPreviewForPeriod"
+          />
+          <q-banner v-if="previewError" rounded class="bg-red-1 text-negative q-mb-md">
+            Preview periode: {{ previewError }}
+          </q-banner>
           <div class="row justify-between q-mb-sm">
             <span>Paket</span><strong>{{ preview.plan?.name }}</strong>
           </div>
           <div class="row justify-between q-mb-sm">
-            <span>Harga paket</span
+            <span>Masa aktif</span
+            ><strong
+              >{{ preview.plan?.duration_days || periodCount * 30 }} hari ({{
+                preview.plan?.period_count || periodCount
+              }}
+              periode)</strong
+            >
+          </div>
+          <div class="row justify-between q-mb-sm">
+            <span>Harga per periode</span
+            ><strong>{{
+              formatPlanPrice(
+                preview.pricing?.unit_price || selectedPlan?.price,
+                preview.pricing?.currency || selectedPlan?.currency,
+              )
+            }}</strong>
+          </div>
+          <div class="row justify-between q-mb-sm">
+            <span>Total harga paket</span
             ><strong>{{
               formatPlanPrice(preview.pricing?.normal_price, preview.pricing?.currency)
             }}</strong>
@@ -274,7 +311,7 @@
             no-caps
             label="Buat invoice"
             :loading="creatingInvoice"
-            :disable="Boolean(referralCode.trim()) && !referralLocked"
+            :disable="refreshingPreview || Boolean(previewError) || (Boolean(referralCode.trim()) && !referralLocked)"
             @click="createInvoice"
           />
         </q-card-actions>
@@ -295,12 +332,19 @@ const loading = ref(false)
 const refreshingInvoices = ref(false)
 const creatingInvoice = ref(false)
 const previewingPlan = ref('')
+const refreshingPreview = ref(false)
 const checkingOut = ref('')
 const checkingStatus = ref('')
 const errorMessage = ref('')
 const previewDialog = ref(false)
 const preview = ref(null)
+const previewError = ref('')
 const selectedPlan = ref(null)
+const periodCount = ref(1)
+const periodOptions = Array.from({ length: 12 }, (_, index) => {
+  const count = index + 1
+  return { label: `${count} bulan (${count * 30} hari)`, value: count }
+})
 const referralCode = ref('')
 const referralValidation = ref(null)
 const referralLocked = ref(false)
@@ -338,8 +382,8 @@ function clearSavedKey(operation, subject) {
   }
 }
 
-function invoiceIdempotencyKey(planCode) {
-  return savedKey('invoice', planCode)
+function invoiceIdempotencyKey(planCode, count) {
+  return savedKey('invoice', `${planCode}-${count}`)
 }
 
 function checkoutIdempotencyKey(invoiceNumber) {
@@ -407,12 +451,15 @@ async function previewPlan(plan) {
   errorMessage.value = ''
   try {
     selectedPlan.value = plan
+    periodCount.value = 1
     referralCode.value = ''
     referralValidation.value = null
     referralLockAcknowledged.value = false
     referralError.value = ''
+    previewError.value = ''
     preview.value = await larisamaApi.previewSubscriptionInvoice({
       subscription_plan_code: plan.code,
+      period_count: periodCount.value,
     })
     referralLocked.value = Boolean(preview.value.pricing?.referral_code)
     if (referralLocked.value) referralCode.value = preview.value.pricing.referral_code
@@ -421,6 +468,24 @@ async function previewPlan(plan) {
     errorMessage.value = displayApiError(error)
   } finally {
     previewingPlan.value = ''
+  }
+}
+
+async function refreshPreviewForPeriod(count) {
+  periodCount.value = count
+  if (!selectedPlan.value) return
+
+  refreshingPreview.value = true
+  previewError.value = ''
+  try {
+    preview.value = await larisamaApi.previewSubscriptionInvoice({
+      subscription_plan_code: selectedPlan.value.code,
+      period_count: periodCount.value,
+    })
+  } catch (error) {
+    previewError.value = displayApiError(error)
+  } finally {
+    refreshingPreview.value = false
   }
 }
 
@@ -452,7 +517,9 @@ async function attachReferral() {
     clearSavedKey('referral', `${authSession.user?.id || 'owner'}-${referralValidation.value.code}`)
     preview.value = await larisamaApi.previewSubscriptionInvoice({
       subscription_plan_code: selectedPlan.value.code,
+      period_count: periodCount.value,
     })
+    previewError.value = ''
     referralLocked.value = true
     referralCode.value = referralValidation.value.code
     referralValidation.value = null
@@ -466,14 +533,19 @@ async function attachReferral() {
 
 async function createInvoice() {
   if (!selectedPlan.value) return
+  if (refreshingPreview.value || previewError.value) return
   creatingInvoice.value = true
   errorMessage.value = ''
   try {
+    const invoiceKeySubject = `${selectedPlan.value.code}-${periodCount.value}`
     const invoice = await larisamaApi.createSubscriptionInvoice(
-      { subscription_plan_code: selectedPlan.value.code },
-      invoiceIdempotencyKey(selectedPlan.value.code),
+      {
+        subscription_plan_code: selectedPlan.value.code,
+        period_count: periodCount.value,
+      },
+      invoiceIdempotencyKey(selectedPlan.value.code, periodCount.value),
     )
-    clearSavedKey('invoice', selectedPlan.value.code)
+    clearSavedKey('invoice', invoiceKeySubject)
     previewDialog.value = false
     upsertInvoice(invoice)
     await refreshInvoices()
