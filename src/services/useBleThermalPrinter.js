@@ -10,6 +10,7 @@ import {
 const CONNECT_TIMEOUT_MS = 30000
 const DISCOVERY_TIMEOUT_MS = 10000
 const WRITE_TIMEOUT_MS = 8000
+let intentionallyDisconnectedDevice = null
 
 // Keep the GATT connection alive while users navigate between settings and cashier.
 const status = ref('disconnected')
@@ -174,14 +175,26 @@ export function useBleThermalPrinter() {
     }
   }
 
-  function handleDisconnect() {
+  function handleDisconnect(event) {
+    const isIntentionalDisconnect = event?.target === intentionallyDisconnectedDevice
+    if (isIntentionalDisconnect) intentionallyDisconnectedDevice = null
+
     selectedCharacteristic.value = null
     status.value = 'disconnected'
     statusMessage.value = 'Printer terputus. Tekan Sambungkan ulang untuk mencoba kembali.'
+
+    if (!isIntentionalDisconnect && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('larisama:printer-disconnected'))
+    }
   }
 
   function disconnectPrinter() {
-    if (device.value?.gatt?.connected) device.value.gatt.disconnect()
+    const targetDevice = device.value
+    intentionallyDisconnectedDevice = null
+    if (targetDevice?.gatt?.connected) {
+      intentionallyDisconnectedDevice = targetDevice
+      targetDevice.gatt.disconnect()
+    }
     selectedCharacteristic.value = null
     status.value = 'disconnected'
     statusMessage.value = 'Printer terputus.'

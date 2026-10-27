@@ -9,7 +9,14 @@ export default function registerPrinterReconnect() {
     }
   }
 
+  function reconnectAfterDisconnect() {
+    if (document.visibilityState === 'visible') {
+      void reconnectRememberedPrinter()
+    }
+  }
+
   void reconnectRememberedPrinter()
   document.addEventListener('visibilitychange', reconnectWhenVisible)
   window.addEventListener('focus', reconnectWhenVisible)
+  window.addEventListener('larisama:printer-disconnected', reconnectAfterDisconnect)
 }
