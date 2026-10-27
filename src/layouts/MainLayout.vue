@@ -228,6 +228,8 @@ onMounted(async () => {
   warungDateTimer = window.setInterval(() => {
     warungToday.value = getWarungLocalDate()
   }, 60_000)
+  document.addEventListener('visibilitychange', reconnectPrinterWhenVisible)
+  window.addEventListener('focus', reconnectPrinterWhenVisible)
   if (authSession.token && authSession.user) void reconnectRememberedPrinter()
   if (authSession.user?.role !== 'superadmin') return
   warungsLoading.value = true
@@ -248,7 +250,11 @@ onMounted(async () => {
   }
 })
 
-onBeforeUnmount(() => window.clearInterval(warungDateTimer))
+onBeforeUnmount(() => {
+  window.clearInterval(warungDateTimer)
+  document.removeEventListener('visibilitychange', reconnectPrinterWhenVisible)
+  window.removeEventListener('focus', reconnectPrinterWhenVisible)
+})
 
 watch(() => authSession.warung?.timezone, () => {
   warungToday.value = getWarungLocalDate()
@@ -264,6 +270,12 @@ function getWarungLocalDate() {
   }).formatToParts(new Date())
   const dateParts = Object.fromEntries(parts.map(({ type, value }) => [type, value]))
   return `${dateParts.year}-${dateParts.month}-${dateParts.day}`
+}
+
+function reconnectPrinterWhenVisible() {
+  if (authSession.token && document.visibilityState === 'visible') {
+    void reconnectRememberedPrinter()
+  }
 }
 
 function changeWarung(id) {

@@ -22,7 +22,9 @@ const delayMs = ref(40)
 const hasBluetoothApi = computed(() => typeof navigator !== 'undefined' && Boolean(navigator.bluetooth))
 const isSecureContext = computed(() => typeof window !== 'undefined' && window.isSecureContext)
 const canConnect = computed(() => hasBluetoothApi.value && isSecureContext.value)
-const isConnected = computed(() => status.value === 'connected' && Boolean(selectedCharacteristic.value))
+const isConnected = computed(
+  () => status.value === 'connected' && Boolean(selectedCharacteristic.value) && Boolean(device.value?.gatt?.connected),
+)
 const hasSelectedDevice = computed(() => Boolean(device.value))
 
 export function useBleThermalPrinter() {
@@ -62,10 +64,17 @@ export function useBleThermalPrinter() {
 
   async function reconnectRememberedPrinter() {
     if (!hasBluetoothApi.value || !isSecureContext.value) return
-    if (status.value === 'connecting' || status.value === 'connected' || status.value === 'printing') return
+    if (status.value === 'connecting' || status.value === 'printing') return
+    if (status.value === 'connected' && selectedCharacteristic.value && device.value?.gatt?.connected) return
+
+    if (status.value === 'connected') {
+      selectedCharacteristic.value = null
+      status.value = 'disconnected'
+    }
 
     const getDevices = navigator.bluetooth.getDevices
-    if (typeof getDevices !== 'function') {
+    let remembered = normalizeDeviceName(device.value?.name) === 'RPP02N' ? device.value : null
+    if (typeof getDevices !== 'function' && !remembered) {
       status.value = 'disconnected'
       statusMessage.value = 'Browser belum mendukung penyambungan ulang otomatis. Tekan Hubungkan printer.'
       return
@@ -75,21 +84,23 @@ export function useBleThermalPrinter() {
     errorMessage.value = ''
     statusMessage.value = 'Mencari printer RPP02N yang pernah diizinkan…'
     try {
-      const devices = await withTimeout(
-        getDevices.call(navigator.bluetooth),
-        DISCOVERY_TIMEOUT_MS,
-        'Waktu pencarian perangkat tersimpan habis.',
-      )
-      const remembered = devices.find((candidate) => normalizeDeviceName(candidate.name) === 'RPP02N')
+      if (!remembered && typeof getDevices === 'function') {
+        const devices = await withTimeout(
+          getDevices.call(navigator.bluetooth),
+          DISCOVERY_TIMEOUT_MS,
+          'Waktu pencarian perangkat tersimpan habis.',
+        )
+        remembered = devices.find((candidate) => normalizeDeviceName(candidate.name) === 'RPP02N') || null
+      }
       if (!remembered) {
         device.value = null
         selectedCharacteristic.value = null
         status.value = 'disconnected'
-      statusMessage.value = 'Printer belum pernah dipilih di situs ini. Tekan Hubungkan printer untuk memilihnya.'
+        statusMessage.value = 'Printer belum pernah dipilih di situs ini. Tekan Hubungkan printer untuk memilihnya.'
         return
       }
 
-      await connectDevice(remembered)
+      await connectRememberedDevice(remembered)
     } catch (error) {
       selectedCharacteristic.value = null
       setError(`Sambung ulang otomatis gagal: ${formatBleError(error)}`)
@@ -145,6 +156,22 @@ export function useBleThermalPrinter() {
     selectedCharacteristic.value = writable.characteristic
     status.value = 'connected'
     statusMessage.value = `Terhubung ke ${targetDevice.name || 'printer'}; characteristic tulis ditemukan.`
+  }
+
+  async function connectRememberedDevice(targetDevice) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await connectDevice(targetDevice)
+        return
+      } catch (error) {
+        selectedCharacteristic.value = null
+        if (attempt === 2 || !isTransientBleError(error)) throw error
+
+        status.value = 'connecting'
+        statusMessage.value = `Sambungan printer belum siap. Mencoba lagi (${attempt + 2}/3)…`
+        await wait(1000 * (attempt + 1))
+      }
+    }
   }
 
   function handleDisconnect() {
@@ -236,6 +263,10 @@ function clampDelay(value) {
 
 function normalizeDeviceName(value) {
   return String(value || '').trim().toUpperCase()
+}
+
+function isTransientBleError(error) {
+  return ['NetworkError', 'NotFoundError', 'InvalidStateError', 'AbortError'].includes(error?.name)
 }
 
 function wait(milliseconds) {
