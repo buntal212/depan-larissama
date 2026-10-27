@@ -170,7 +170,6 @@ import { logout } from '@/services/auth.js'
 import { authSession, getSelectedWarungId, setSelectedWarung } from '@/stores/auth-session.js'
 import { products } from '@/stores/catalog.js'
 import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
-import { useBleThermalPrinter } from '@/services/useBleThermalPrinter.js'
 
 const drawerOpen = ref(false)
 const warungOptions = ref([])
@@ -200,7 +199,6 @@ const subscriptionDaysRemaining = computed(() => {
 const subscriptionMessage = computed(
   () => `Masa aktif langganan Larisama Anda tersisa ${subscriptionDaysRemaining.value} hari. Silakan lakukan pembayaran sebelum masa aktif habis.`,
 )
-const { reconnectRememberedPrinter } = useBleThermalPrinter()
 const currentRoute = computed(() => {
   if (route.path === '/penjualan') return 'transactions'
   if (route.path.startsWith('/menu')) return 'menu'
@@ -228,9 +226,6 @@ onMounted(async () => {
   warungDateTimer = window.setInterval(() => {
     warungToday.value = getWarungLocalDate()
   }, 60_000)
-  document.addEventListener('visibilitychange', reconnectPrinterWhenVisible)
-  window.addEventListener('focus', reconnectPrinterWhenVisible)
-  if (authSession.token && authSession.user) void reconnectRememberedPrinter()
   if (authSession.user?.role !== 'superadmin') return
   warungsLoading.value = true
   try {
@@ -252,8 +247,6 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.clearInterval(warungDateTimer)
-  document.removeEventListener('visibilitychange', reconnectPrinterWhenVisible)
-  window.removeEventListener('focus', reconnectPrinterWhenVisible)
 })
 
 watch(() => authSession.warung?.timezone, () => {
@@ -270,12 +263,6 @@ function getWarungLocalDate() {
   }).formatToParts(new Date())
   const dateParts = Object.fromEntries(parts.map(({ type, value }) => [type, value]))
   return `${dateParts.year}-${dateParts.month}-${dateParts.day}`
-}
-
-function reconnectPrinterWhenVisible() {
-  if (authSession.token && document.visibilityState === 'visible') {
-    void reconnectRememberedPrinter()
-  }
 }
 
 function changeWarung(id) {
