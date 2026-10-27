@@ -129,15 +129,18 @@
             </div>
 
             <div v-if="invoice.status === 'pending'" class="row q-gutter-sm q-mt-md">
-              <q-btn-toggle
+              <q-select
+                class="payment-method-select"
                 :model-value="paymentMethod(invoice)"
                 :options="paymentMethodOptions"
+                dense
+                outlined
+                emit-value
+                map-options
+                color="blue-grey-8"
+                bg-color="blue-grey-1"
+                label="Metode pembayaran"
                 :disable="checkingOut === invoice.invoice_number"
-                color="blue-grey-1"
-                text-color="blue-grey-9"
-                toggle-color="blue-grey-8"
-                toggle-text-color="white"
-                unelevated
                 @update:model-value="(method) => selectPaymentMethod(invoice, method)"
               />
               <q-btn
@@ -223,15 +226,86 @@
             </div>
             <div
               v-if="
+                actualPaymentMethod(invoice) === 'qris' &&
+                hasActiveCheckout(invoice) &&
+                paymentCode(invoice) &&
+                !qrContent(invoice)
+              "
+              class="payment-code-panel q-mt-md"
+            >
+              <div class="payment-code-heading">
+                <strong>Kode pembayaran QRIS</strong>
+                <span
+                  >Payload QR belum terverifikasi; kode tetap tersedia untuk digunakan sesuai
+                  instruksi UDEV.</span
+                >
+              </div>
+              <code class="payment-code-value">{{ paymentCode(invoice) }}</code>
+              <div v-if="paymentInstructionMessage(invoice)" class="text-body2">
+                {{ paymentInstructionMessage(invoice) }}
+              </div>
+              <div v-if="invoice.payment?.checkout_expires_at" class="text-caption text-grey-7">
+                Berlaku sampai {{ formatDate(invoice.payment.checkout_expires_at) }}
+              </div>
+              <q-btn
+                outline
+                no-caps
+                color="blue-grey-8"
+                icon="content_copy"
+                label="Salin kode"
+                @click="copyPaymentCode(invoice)"
+              />
+            </div>
+            <div
+              v-if="isVirtualAccount(actualPaymentMethod(invoice)) && hasActiveCheckout(invoice)"
+              class="payment-code-panel virtual-account-panel q-mt-md"
+            >
+              <div class="payment-code-heading">
+                <strong>{{ paymentInstructionLabel(invoice) }}</strong>
+                <span>Bayar ke nomor Virtual Account ini sesuai instruksi UDEV.</span>
+              </div>
+              <div class="virtual-account-number">
+                <code class="payment-code-value">{{ paymentCode(invoice) }}</code>
+                <q-btn
+                  outline
+                  no-caps
+                  color="blue-grey-8"
+                  icon="content_copy"
+                  label="Salin nomor VA"
+                  @click="copyPaymentCode(invoice)"
+                />
+              </div>
+              <div v-if="paymentInstructionMessage(invoice)" class="text-body2">
+                {{ paymentInstructionMessage(invoice) }}
+              </div>
+              <div v-if="invoice.payment?.checkout_expires_at" class="text-caption text-grey-7">
+                Berlaku sampai {{ formatDate(invoice.payment.checkout_expires_at) }}
+              </div>
+            </div>
+            <div
+              v-if="
                 invoice.status === 'pending' &&
                 invoice.payment?.checkout_status === 'ready' &&
                 !qrContent(invoice) &&
+                !paymentCode(invoice) &&
                 !invoice.payment?.checkout_url
               "
               class="text-caption text-negative q-mt-sm"
             >
-              UDEV menandai checkout siap tetapi belum mengirim QR atau tautan pembayaran. Muat
-              ulang status atau hubungi admin.
+              UDEV menandai checkout siap tetapi belum mengirim instruksi pembayaran. Muat ulang
+              status atau hubungi admin.
+            </div>
+            <div
+              v-if="
+                invoice.status === 'pending' &&
+                invoice.payment?.checkout_status === 'ready' &&
+                isVirtualAccount(actualPaymentMethod(invoice)) &&
+                !hasActiveCheckout(invoice)
+              "
+              class="text-caption text-negative q-mt-sm"
+            >
+              Checkout VA ditandai siap, tetapi nomor VA atau tipe instruksinya tidak lengkap.
+              Hubungi admin untuk memeriksa respons UDEV.
             </div>
             <div
               v-if="invoice.payment?.checkout_status === 'processing'"
@@ -413,6 +487,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useQuasar } from 'quasar'
 import QRCode from 'qrcode'
 import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
 import { newIdempotencyKey } from '@/services/api.js'
@@ -443,6 +518,10 @@ const periodOptions = Array.from({ length: 12 }, (_, index) => {
 const paymentMethodOptions = [
   { label: 'QRIS', value: 'qris' },
   { label: 'DANA Wallet', value: 'dana_wallet' },
+  { label: 'Virtual Account BRI', value: 'va_bri' },
+  { label: 'Virtual Account PANI', value: 'va_pani' },
+  { label: 'Virtual Account CIMB', value: 'va_cimb' },
+  { label: 'Virtual Account BTPN', value: 'va_btpn' },
 ]
 const referralCode = ref('')
 const referralValidation = ref(null)
@@ -457,14 +536,105 @@ const checkoutPollTimer = ref(null)
 let statusPollTimer = null
 let statusPollRunning = false
 const qrCodeSources = new Map()
+const $q = useQuasar()
 
 function qrContent(invoice) {
+  const explicitQrContent = invoice.payment?.qr_content
+  if (typeof explicitQrContent === 'string' && explicitQrContent !== '') return explicitQrContent
+
+  const method = invoice.payment?.payment_method || paymentInstruction(invoice).method
+  const candidate = paymentCode(invoice)
+
+  return method === 'qris' && isValidQrisPayload(candidate) ? candidate : ''
+}
+
+function paymentInstruction(invoice) {
+  const instruction = invoice.payment?.payment_instruction
+  return instruction && typeof instruction === 'object' ? instruction : {}
+}
+
+function paymentCode(invoice) {
+  const code = paymentInstruction(invoice).payment_code || invoice.payment?.payment_code
+  return typeof code === 'string' ? code : ''
+}
+
+function isValidQrisPayload(value) {
+  if (!value.startsWith('000201')) return false
+
+  const crcOffset = value.lastIndexOf('6304')
+  if (crcOffset < 0 || crcOffset !== value.length - 8) return false
+
+  const expectedCrc = value.slice(-4).toUpperCase()
+  if (!/^[0-9A-F]{4}$/.test(expectedCrc) || calculateCrc16(value.slice(0, -4)) !== expectedCrc) {
+    return false
+  }
+
+  const fields = new Map()
+  let offset = 0
+  while (offset < crcOffset) {
+    if (offset + 4 > crcOffset) return false
+
+    const tag = value.slice(offset, offset + 2)
+    const lengthText = value.slice(offset + 2, offset + 4)
+    if (!/^\d{2}$/.test(tag) || !/^\d{2}$/.test(lengthText)) return false
+
+    const length = Number.parseInt(lengthText, 10)
+    const valueOffset = offset + 4
+    const nextOffset = valueOffset + length
+    if (nextOffset > crcOffset) return false
+
+    fields.set(tag, value.slice(valueOffset, nextOffset))
+    offset = nextOffset
+  }
+
+  const hasMerchantAccount = [...fields.keys()].some((tag) => {
+    const tagNumber = Number.parseInt(tag, 10)
+    return tagNumber >= 26 && tagNumber <= 51
+  })
+
   return (
-    invoice.payment?.qr_content ||
-    invoice.payment?.payment_code ||
-    invoice.payment?.payment_instruction?.payment_code ||
-    ''
+    offset === crcOffset &&
+    fields.get('00') === '01' &&
+    ['11', '12'].includes(fields.get('01')) &&
+    fields.get('53') === '360' &&
+    fields.get('58') === 'ID' &&
+    hasMerchantAccount
   )
+}
+
+function calculateCrc16(value) {
+  let crc = 0xffff
+  for (let index = 0; index < value.length; index += 1) {
+    crc ^= value.charCodeAt(index) << 8
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = crc & 0x8000 ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff
+    }
+  }
+
+  return crc.toString(16).padStart(4, '0').toUpperCase()
+}
+
+function paymentInstructionMessage(invoice) {
+  const instruction = paymentInstruction(invoice)
+  return instruction.message || ''
+}
+
+function paymentInstructionLabel(invoice) {
+  const instruction = paymentInstruction(invoice)
+  return instruction.label || paymentMethodLabel(actualPaymentMethod(invoice))
+}
+
+function isVirtualAccount(method) {
+  return typeof method === 'string' && method.startsWith('va_')
+}
+
+async function copyPaymentCode(invoice) {
+  try {
+    await navigator.clipboard.writeText(paymentCode(invoice))
+    $q.notify({ type: 'positive', message: 'Kode pembayaran berhasil disalin.' })
+  } catch {
+    $q.notify({ type: 'warning', message: 'Salin kode pembayaran secara manual.' })
+  }
 }
 
 function paymentMethod(invoice) {
@@ -476,12 +646,15 @@ function paymentMethod(invoice) {
 function actualPaymentMethod(invoice) {
   return (
     invoice.payment?.payment_method ||
+    paymentInstruction(invoice).method ||
     (qrContent(invoice) ? 'qris' : invoice.payment?.checkout_url ? 'dana_wallet' : '')
   )
 }
 
 function paymentMethodLabel(method) {
-  return method === 'dana_wallet' ? 'DANA Wallet' : 'QRIS'
+  return (
+    paymentMethodOptions.find((option) => option.value === method)?.label || 'Metode pembayaran'
+  )
 }
 
 function selectPaymentMethod(invoice, method) {
@@ -498,9 +671,14 @@ function hasActiveCheckout(invoice) {
   if (invoice.status !== 'pending') return false
   if (!['initiated', 'pending'].includes(invoice.payment?.status)) return false
 
-  return actualPaymentMethod(invoice) === 'qris'
-    ? Boolean(qrContent(invoice))
-    : actualPaymentMethod(invoice) === 'dana_wallet' && Boolean(invoice.payment?.checkout_url)
+  const method = actualPaymentMethod(invoice)
+  if (method === 'qris') return Boolean(qrContent(invoice) || paymentCode(invoice))
+  if (method === 'dana_wallet') return Boolean(invoice.payment?.checkout_url)
+  return (
+    isVirtualAccount(method) &&
+    paymentInstruction(invoice).type === 'virtual_account' &&
+    Boolean(paymentCode(invoice))
+  )
 }
 
 function checkoutMatchesSelection(invoice) {
@@ -520,7 +698,7 @@ function checkoutButtonLabel(invoice) {
     return `${paymentMethodLabel(actualPaymentMethod(invoice))} aktif`
   }
 
-  return paymentMethod(invoice) === 'qris' ? 'Siapkan QRIS' : 'Siapkan DANA Wallet'
+  return `Siapkan ${paymentMethodLabel(paymentMethod(invoice))}`
 }
 
 watch(
@@ -599,7 +777,7 @@ function checkoutIdempotencyKey(invoiceNumber, method) {
 
 function clearCheckoutKeys(invoiceNumber) {
   clearSavedKey('checkout', invoiceNumber)
-  for (const method of ['qris', 'dana_wallet']) {
+  for (const { value: method } of paymentMethodOptions) {
     clearSavedKey('checkout', `${invoiceNumber}-${method}`)
   }
 }
@@ -1077,6 +1255,51 @@ h1 {
 .qris-instructions strong {
   color: #104f39;
   font-size: 15px;
+}
+.payment-method-select {
+  min-width: 220px;
+}
+.payment-code-panel {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 14px;
+  border: 1px solid #d4e0e5;
+  border-radius: 12px;
+  background: #f5f8fa;
+}
+.payment-code-heading {
+  display: grid;
+  gap: 4px;
+}
+.payment-code-heading strong {
+  color: #263e4a;
+  font-size: 15px;
+}
+.payment-code-heading span {
+  color: #5f717b;
+  font-size: 13px;
+}
+.payment-code-value {
+  display: block;
+  max-width: 100%;
+  padding: 10px 12px;
+  overflow-wrap: anywhere;
+  border-radius: 8px;
+  background: white;
+  color: #172b36;
+  font-size: 16px;
+  font-weight: 700;
+  user-select: all;
+}
+.virtual-account-number {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
 }
 .plan-card,
 .invoice-card,
