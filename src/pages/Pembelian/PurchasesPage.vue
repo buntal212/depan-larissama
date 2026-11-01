@@ -66,7 +66,7 @@
       }}</q-banner>
       <q-card-section class="history-total row items-center justify-between"
         ><div>
-          <strong>Total pengeluaran tercatat</strong>
+          <strong>Total Pengeluaran</strong>
           <div class="panel-caption">Transaksi dibatalkan tidak masuk hitungan.</div>
         </div>
         <div class="history-total-value">{{ recordedPurchasesTotal }}</div></q-card-section
