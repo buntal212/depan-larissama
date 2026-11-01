@@ -101,6 +101,9 @@ export function useBleThermalPrinter() {
         return
       }
 
+      statusMessage.value = remembered.gatt?.connected
+        ? 'Printer masih terhubung. Memeriksa kanal cetak…'
+        : 'Printer terputus. Mencoba menyambungkan ulang…'
       await connectRememberedDevice(remembered)
     } catch (error) {
       selectedCharacteristic.value = null

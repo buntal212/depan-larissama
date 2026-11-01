@@ -74,8 +74,9 @@ export async function apiRequest(
   const tenantWrite =
     auth &&
     ['POST', 'PATCH'].includes(method) &&
-    /^(users|kategori-menus|menus|penjualans|pembelians)(?:\/|$)/.test(resourcePath)
+    /^(users|kategori-menus|menus|penjualans|pembelians|pengeluarans)(?:\/|$)/.test(resourcePath)
   if (tenantWrite && authSession.user?.role === 'superadmin') {
+    await authSession.waitForTenantSelectionReady()
     const selectedWarungId = getSelectedWarungId()
     if (!selectedWarungId) throw new ApiError('Pilih warung terlebih dahulu untuk menyimpan data.')
     requestBody = { ...body, warung_id: String(selectedWarungId) }
@@ -84,10 +85,11 @@ export async function apiRequest(
     method === 'GET' &&
     auth &&
     authSession.user?.role === 'superadmin' &&
-    /^(users(?:\/|$)|kategori-menus(?:\/|$)|menus(?:\/|$)|penjualans(?:\/|$)|pembelians(?:\/|$)|laporan\/)/.test(
+    /^(users(?:\/|$)|kategori-menus(?:\/|$)|menus(?:\/|$)|penjualans(?:\/|$)|pembelians(?:\/|$)|pengeluarans(?:\/|$)|laporan\/)/.test(
       resourcePath,
     )
   if (tenantRead) {
+    await authSession.waitForTenantSelectionReady()
     const warungId = getSelectedWarungId()
     if (!warungId) throw new ApiError('Pilih warung terlebih dahulu untuk membaca datanya.')
     const queryParameters = new URLSearchParams(query)

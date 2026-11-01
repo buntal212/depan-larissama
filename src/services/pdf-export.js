@@ -81,13 +81,33 @@ async function createReportDocument({ title, subtitle, sections, warung }) {
     autoTable(document, {
       startY: cursorY + 4,
       head: [section.headers],
-      body: section.rows.length ? section.rows : [['Tidak ada data', ...Array(section.headers.length - 1).fill('')]],
+      body: section.rows.length
+        ? section.rows
+        : [['Tidak ada data', ...Array(section.headers.length - 1).fill('')]],
       foot: section.foot ? [section.foot] : undefined,
       theme: 'grid',
       margin: { left: margin, right: margin, bottom: 14 },
-      styles: { font: 'helvetica', fontSize: 12, cellPadding: 1.5, overflow: 'linebreak', valign: 'middle' },
-      headStyles: { fillColor: [23, 98, 66], textColor: 255, fontSize: 12, halign: 'center', valign: 'middle' },
-      footStyles: { fillColor: [232, 239, 234], textColor: [23, 35, 27], fontStyle: 'bold', fontSize: 12, valign: 'middle' },
+      styles: {
+        font: 'helvetica',
+        fontSize: 12,
+        cellPadding: 1.5,
+        overflow: 'linebreak',
+        valign: 'middle',
+      },
+      headStyles: {
+        fillColor: [23, 98, 66],
+        textColor: 255,
+        fontSize: 12,
+        halign: 'center',
+        valign: 'middle',
+      },
+      footStyles: {
+        fillColor: [232, 239, 234],
+        textColor: [23, 35, 27],
+        fontStyle: 'bold',
+        fontSize: 12,
+        valign: 'middle',
+      },
       columnStyles,
       alternateRowStyles: { fillColor: [243, 247, 244] },
     })
@@ -99,7 +119,12 @@ async function createReportDocument({ title, subtitle, sections, warung }) {
     document.setPage(page)
     document.setFont('helvetica', 'normal')
     document.setFontSize(12)
-    document.text(`Halaman ${page} dari ${pageCount}`, pageWidth - margin, document.internal.pageSize.getHeight() - 7, { align: 'right' })
+    document.text(
+      `Halaman ${page} dari ${pageCount}`,
+      pageWidth - margin,
+      document.internal.pageSize.getHeight() - 7,
+      { align: 'right' },
+    )
   }
 
   return document
@@ -108,7 +133,7 @@ async function createReportDocument({ title, subtitle, sections, warung }) {
 function isNominalColumn(header) {
   const label = String(header).trim()
   if (/^(no\.?|nomor)\s/i.test(label)) return false
-  return /nilai|nominal|harga|total|penjualan|retur|pendapatan|pembelian|belum lunas/i.test(label)
+  return /nilai|nominal|harga|total|penjualan|retur|pendapatan|pengeluaran|belum lunas/i.test(label)
 }
 
 function loadImageData(source) {
@@ -137,5 +162,11 @@ function loadImageData(source) {
 }
 
 function sanitizeFilename(value) {
-  return String(value || 'laporan').trim().replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'laporan'
+  return (
+    String(value || 'laporan')
+      .trim()
+      .replace(/[^a-z0-9_-]+/gi, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase() || 'laporan'
+  )
 }

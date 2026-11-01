@@ -116,7 +116,11 @@
     </q-drawer>
 
     <q-page-container>
-      <q-banner v-if="subscriptionDaysRemaining !== null" dense class="subscription-expiry-banner no-print">
+      <q-banner
+        v-if="subscriptionDaysRemaining !== null"
+        dense
+        class="subscription-expiry-banner no-print"
+      >
         <template #avatar><q-icon name="schedule" /></template>
         <div class="subscription-expiry-copy" role="status" aria-live="polite">
           <span class="subscription-expiry-accessible">{{ subscriptionMessage }}</span>
@@ -139,12 +143,7 @@
         indicator-color="transparent"
         active-color="primary"
       >
-        <q-route-tab
-          to="/paket-langganan"
-          name="subscription"
-          icon="sell"
-          label="Pembayaran"
-        />
+        <q-route-tab to="/paket-langganan" name="subscription" icon="sell" label="Pembayaran" />
       </q-tabs>
       <q-tabs
         v-else
@@ -182,10 +181,12 @@ const router = useRouter()
 const warungToday = ref(getWarungLocalDate())
 let warungDateTimer
 const paymentOnly = computed(
-  () => authSession.user?.role === 'owner' && authSession.warung?.status_langganan === 'kedaluwarsa',
+  () =>
+    authSession.user?.role === 'owner' && authSession.warung?.status_langganan === 'kedaluwarsa',
 )
 const subscriptionDaysRemaining = computed(() => {
-  if (authSession.user?.role !== 'owner' || authSession.warung?.status_langganan !== 'aktif') return null
+  if (authSession.user?.role !== 'owner' || authSession.warung?.status_langganan !== 'aktif')
+    return null
   const expiryDate = authSession.warung?.tanggal_berakhir
   if (!/^\d{4}-\d{2}-\d{2}$/.test(expiryDate || '')) return null
 
@@ -197,7 +198,8 @@ const subscriptionDaysRemaining = computed(() => {
   return days >= 1 && days <= 3 ? days : null
 })
 const subscriptionMessage = computed(
-  () => `Masa aktif langganan Larisama Anda tersisa ${subscriptionDaysRemaining.value} hari. Silakan lakukan pembayaran sebelum masa aktif habis.`,
+  () =>
+    `Masa aktif langganan Larisama Anda tersisa ${subscriptionDaysRemaining.value} hari. Silakan lakukan pembayaran sebelum masa aktif habis.`,
 )
 const currentRoute = computed(() => {
   if (route.path === '/penjualan') return 'transactions'
@@ -227,6 +229,7 @@ onMounted(async () => {
     warungToday.value = getWarungLocalDate()
   }, 60_000)
   if (authSession.user?.role !== 'superadmin') return
+  authSession.setTenantSelectionReady(false)
   warungsLoading.value = true
   try {
     warungOptions.value = await larisamaApi.listWarungs()
@@ -242,6 +245,7 @@ onMounted(async () => {
     $q.notify({ type: 'negative', message: displayApiError(error), position: 'top' })
   } finally {
     warungsLoading.value = false
+    authSession.setTenantSelectionReady(true)
   }
 })
 
@@ -249,9 +253,12 @@ onBeforeUnmount(() => {
   window.clearInterval(warungDateTimer)
 })
 
-watch(() => authSession.warung?.timezone, () => {
-  warungToday.value = getWarungLocalDate()
-})
+watch(
+  () => authSession.warung?.timezone,
+  () => {
+    warungToday.value = getWarungLocalDate()
+  },
+)
 
 function getWarungLocalDate() {
   const timeZone = authSession.warung?.timezone || 'Asia/Jakarta'
@@ -286,7 +293,7 @@ const navigation = computed(() => {
       catalog,
       { label: 'Kasir', icon: 'point_of_sale', to: '/transaksi' },
       salesHistory,
-      { label: 'Pembelian', icon: 'shopping_cart', to: '/pembelian' },
+      { label: 'Pengeluaran', icon: 'shopping_cart', to: '/pengeluaran' },
       { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
       { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
     ]
@@ -303,7 +310,7 @@ const navigation = computed(() => {
       dashboard,
       catalog,
       salesHistory,
-      { label: 'Pembelian', icon: 'shopping_cart', to: '/pembelian' },
+      { label: 'Pengeluaran', icon: 'shopping_cart', to: '/pengeluaran' },
       { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
       { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
     ]
@@ -313,7 +320,7 @@ const navigation = computed(() => {
     { label: 'Kasir', icon: 'point_of_sale', to: '/transaksi' },
     catalog,
     salesHistory,
-    { label: 'Pembelian', icon: 'shopping_cart', to: '/pembelian' },
+    { label: 'Pengeluaran', icon: 'shopping_cart', to: '/pengeluaran' },
     { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
     { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
   ]

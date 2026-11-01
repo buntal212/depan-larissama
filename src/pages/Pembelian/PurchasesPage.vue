@@ -3,8 +3,8 @@
     <div class="page-heading history-page-heading no-print">
       <div class="history-heading-copy">
         <div class="eyebrow">OPERASIONAL WARUNG</div>
-        <h1 class="page-title">Pembelian</h1>
-        <p class="page-subtitle">Catat pengeluaran berdasarkan rincian barang yang dibeli.</p>
+        <h1 class="page-title">Pengeluaran</h1>
+        <p class="page-subtitle">Catat pengeluaran berdasarkan rincian barang / jasa.</p>
       </div>
       <div v-if="canManage" class="history-heading-actions">
         <q-btn-dropdown
@@ -30,7 +30,7 @@
           no-caps
           color="primary"
           icon="add"
-          label="Catat pembelian"
+          label="Catat pengeluaran"
           @click="formOpen = true"
         />
       </div>
@@ -38,8 +38,7 @@
     <q-card flat bordered class="panel-card no-print">
       <q-card-section class="row items-center justify-between"
         ><div>
-          <div class="panel-title">Riwayat pembelian</div>
-          <div class="panel-caption">Daftar transaksi dari server.</div>
+          <div class="panel-title">Riwayat pengeluaran</div>
         </div>
         <q-chip class="demo-chip">Data server</q-chip></q-card-section
       >
@@ -67,7 +66,7 @@
       }}</q-banner>
       <q-card-section class="history-total row items-center justify-between"
         ><div>
-          <strong>Total pembelian tercatat</strong>
+          <strong>Total pengeluaran tercatat</strong>
           <div class="panel-caption">Transaksi dibatalkan tidak masuk hitungan.</div>
         </div>
         <div class="history-total-value">{{ recordedPurchasesTotal }}</div></q-card-section
@@ -80,7 +79,7 @@
         :loading="loading"
         :pagination="{ rowsPerPage: 10 }"
         :grid="$q.screen.lt.sm"
-        no-data-label="Belum ada pembelian."
+        no-data-label="Belum ada pengeluaran."
       >
         <template #item="props">
           <div class="q-pa-xs col-12">
@@ -100,7 +99,7 @@
                     round
                     dense
                     icon="edit"
-                    aria-label="Koreksi pembelian"
+                    aria-label="Koreksi pengeluaran"
                     :disable="props.row.status !== 'tercatat' || loadingCorrection"
                     :loading="loadingCorrection && selectedPurchase?.id === props.row.id"
                     @click="openCorrection(props.row)"
@@ -111,7 +110,7 @@
                     dense
                     color="negative"
                     icon="block"
-                    aria-label="Batalkan pembelian"
+                    aria-label="Batalkan pengeluaran"
                     :disable="props.row.status !== 'tercatat'"
                     @click="openCancellation(props.row)"
                   />
@@ -143,7 +142,7 @@
               round
               dense
               icon="edit"
-              aria-label="Koreksi pembelian"
+              aria-label="Koreksi pengeluaran"
               :disable="props.row.status !== 'tercatat' || loadingCorrection"
               :loading="loadingCorrection && selectedPurchase?.id === props.row.id"
               @click="openCorrection(props.row)" /><q-btn
@@ -153,7 +152,7 @@
               dense
               color="negative"
               icon="block"
-              aria-label="Batalkan pembelian"
+              aria-label="Batalkan pengeluaran"
               :disable="props.row.status !== 'tercatat'"
               @click="openCancellation(props.row)" /></q-td
         ></template>
@@ -176,7 +175,7 @@
             </div>
           </div>
           <div class="document-info">
-            <h1>Riwayat Pembelian</h1>
+            <h1>Riwayat Pengeluaran</h1>
             <p>Periode {{ formatDate(appliedDateFrom) }} – {{ formatDate(appliedDateTo) }}</p>
           </div>
         </div>
@@ -187,7 +186,7 @@
       <table class="history-print-table">
         <thead>
           <tr>
-            <th>No. pembelian</th>
+            <th>No. pengeluaran</th>
             <th>Tanggal</th>
             <th>Status</th>
             <th>Total</th>
@@ -203,7 +202,7 @@
         </tbody>
         <tfoot>
           <tr>
-            <th colspan="3">Total pembelian tercatat</th>
+            <th colspan="3">Total pengeluaran tercatat</th>
             <th class="print-money">{{ recordedPurchasesTotal }}</th>
           </tr>
         </tfoot>
@@ -214,10 +213,10 @@
       <q-card class="product-form-dialog">
         <q-card-section class="dialog-header"
           ><div class="dialog-header-copy">
-            <div class="dialog-eyebrow">PEMBELIAN</div>
-            <div class="text-h6 dialog-title">Catat pembelian</div>
+            <div class="dialog-eyebrow">PENGELUARAN</div>
+            <div class="text-h6 dialog-title">Catat pengeluaran</div>
             <div class="dialog-subtitle">
-              Masukkan barang dan jumlahnya. Rincian tidak terhubung ke master stok.
+              Masukkan rincian pengeluaran atas outlet ini, baik barang maupun jasa.
             </div>
           </div>
           <q-btn
@@ -239,7 +238,7 @@
             :rules="[(value) => !!value || 'Tanggal perlu diisi']"
           />
           <div v-for="(line, index) in form.lines" :key="index" class="purchase-line">
-            <q-input v-model.trim="line.name" outlined dense label="Nama barang" />
+            <q-input v-model.trim="line.name" outlined dense label="Nama Barang/Jasa" />
             <div class="row q-col-gutter-sm">
               <div class="col-12 col-sm-4">
                 <q-input
@@ -283,7 +282,7 @@
             type="textarea"
             autogrow
             maxlength="2000"
-            label="Catatan pembelian (opsional)"
+            label="Catatan pengeluaran (opsional)"
             class="q-mt-md"
           />
           <div class="purchase-preview">
@@ -294,7 +293,7 @@
               unelevated
               no-caps
               color="primary"
-              label="Simpan pembelian"
+              label="Simpan pengeluaran"
               :loading="saving"
               type="submit"
             />
@@ -307,9 +306,9 @@
       <q-card class="product-form-dialog">
         <q-card-section class="dialog-header">
           <div class="dialog-header-copy">
-            <div class="dialog-eyebrow">PEMBELIAN</div>
+            <div class="dialog-eyebrow">PENGELUARAN</div>
             <div class="text-h6 dialog-title">
-              {{ mutationType === 'correction' ? 'Koreksi pembelian' : 'Batalkan pembelian' }}
+              {{ mutationType === 'correction' ? 'Koreksi pengeluaran' : 'Batalkan pengeluaran' }}
             </div>
             <div class="dialog-subtitle">
               {{ selectedPurchase?.no_transaksi }} · perubahan dicatat di server
@@ -328,7 +327,7 @@
         <q-separator />
         <q-form class="q-pa-lg" @submit.prevent="submitMutation">
           <template v-if="mutationType === 'correction'">
-            <q-input v-model="mutationForm.date" outlined type="date" label="Tanggal pembelian" />
+            <q-input v-model="mutationForm.date" outlined type="date" label="Tanggal pengeluaran" />
             <q-input
               v-model.trim="mutationForm.note"
               outlined
@@ -412,7 +411,7 @@
               unelevated
               no-caps
               :color="mutationType === 'correction' ? 'primary' : 'negative'"
-              :label="mutationType === 'correction' ? 'Simpan koreksi' : 'Batalkan pembelian'"
+              :label="mutationType === 'correction' ? 'Simpan koreksi' : 'Batalkan pengeluaran'"
               :loading="saving"
               type="submit"
             />
@@ -470,7 +469,7 @@ const form = reactive({
   lines: [blankLine()],
 })
 const columns = [
-  { name: 'no_transaksi', label: 'No. pembelian', field: 'no_transaksi', align: 'left' },
+  { name: 'no_transaksi', label: 'No. Pengeluaran', field: 'no_transaksi', align: 'left' },
   { name: 'tanggal', label: 'Tanggal', field: 'tanggal', align: 'left', sortable: true },
   { name: 'total', label: 'Total', field: 'total', align: 'right', sortable: true },
   { name: 'status', label: 'Status', field: 'status', align: 'left' },
@@ -558,21 +557,21 @@ function saveHistoryPdf() {
 }
 function purchasesHistoryPdfOptions() {
   return {
-    filename: `riwayat-pembelian-${appliedDateFrom.value}-${appliedDateTo.value}`,
-    title: 'Riwayat Pembelian',
+    filename: `riwayat-pengeluaran-${appliedDateFrom.value}-${appliedDateTo.value}`,
+    title: 'Riwayat Pengeluaran',
     subtitle: `Periode ${formatDate(appliedDateFrom.value)} - ${formatDate(appliedDateTo.value)}`,
     warung: authSession.warung,
     sections: [
       {
-        title: 'Daftar pembelian',
-        headers: ['No. pembelian', 'Tanggal', 'Status', 'Total'],
+        title: 'Daftar pengeluaran',
+        headers: ['No. pengeluaran', 'Tanggal', 'Status', 'Total'],
         rows: purchases.value.map((purchase) => [
           purchase.no_transaksi,
           formatDate(purchase.tanggal),
           purchase.status,
           formatPrice(purchase.total),
         ]),
-        foot: ['Total pembelian tercatat', '', '', recordedPurchasesTotal.value],
+        foot: ['Total pengeluaran tercatat', '', '', recordedPurchasesTotal.value],
       },
     ],
   }
@@ -667,7 +666,7 @@ async function submitMutation() {
     if (Object.keys(payload).length === 1)
       return $q.notify({
         type: 'warning',
-        message: 'Ubah tanggal, catatan, atau rincian barang untuk mengoreksi pembelian.',
+        message: 'Ubah tanggal, catatan, atau rincian barang untuk mengoreksi pengeluaran.',
       })
   }
   saving.value = true
@@ -681,7 +680,7 @@ async function submitMutation() {
     mutationOpen.value = false
     pendingKey.value = null
     await loadPurchases()
-    $q.notify({ type: 'positive', message: 'Perubahan pembelian tersimpan.' })
+    $q.notify({ type: 'positive', message: 'Perubahan pengeluaran tersimpan.' })
   } catch (error) {
     if (error.status && error.status < 500 && error.status !== 429) pendingKey.value = null
     $q.notify({ type: 'negative', message: displayApiError(error) })
@@ -719,7 +718,7 @@ async function submitPurchase() {
   try {
     await larisamaApi.createPurchase(payload, pendingKey.value.key)
     await loadPurchases()
-    $q.notify({ type: 'positive', message: 'Pembelian tersimpan.' })
+    $q.notify({ type: 'positive', message: 'Pengeluaran tersimpan.' })
     pendingKey.value = null
     Object.assign(form, {
       date: new Date().toISOString().slice(0, 10),

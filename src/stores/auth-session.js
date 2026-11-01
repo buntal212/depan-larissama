@@ -31,6 +31,20 @@ export const useAuthSessionStore = defineStore('auth-session', () => {
   const selectedWarungId = ref(savedWarung?.id ? String(savedWarung.id) : null)
   const selectedWarung = ref(savedWarung)
   const ready = ref(false)
+  const tenantSelectionReady = ref(false)
+  let tenantSelectionWaiters = []
+
+  function setTenantSelectionReady(value) {
+    tenantSelectionReady.value = Boolean(value)
+    if (!tenantSelectionReady.value) return
+    tenantSelectionWaiters.forEach((resolve) => resolve())
+    tenantSelectionWaiters = []
+  }
+
+  function waitForTenantSelectionReady() {
+    if (tenantSelectionReady.value) return Promise.resolve()
+    return new Promise((resolve) => tenantSelectionWaiters.push(resolve))
+  }
 
   function setSelectedWarung(value) {
     selectedWarung.value = value || null
@@ -61,6 +75,7 @@ export const useAuthSessionStore = defineStore('auth-session', () => {
     token.value = accessToken
     user.value = sessionUser
     warung.value = sessionWarung || (sessionUser?.role === 'superadmin' ? selectedWarung.value : null)
+    setTenantSelectionReady(sessionUser?.role !== 'superadmin')
     ready.value = true
     if (typeof window !== 'undefined') window.localStorage.setItem(STORAGE_KEY, accessToken)
   }
@@ -68,6 +83,7 @@ export const useAuthSessionStore = defineStore('auth-session', () => {
   function updateSessionProfile({ user: sessionUser, warung: sessionWarung }) {
     user.value = sessionUser
     warung.value = sessionWarung || (sessionUser?.role === 'superadmin' ? selectedWarung.value : null)
+    setTenantSelectionReady(sessionUser?.role !== 'superadmin')
     ready.value = true
   }
 
@@ -77,6 +93,7 @@ export const useAuthSessionStore = defineStore('auth-session', () => {
     warung.value = null
     selectedWarungId.value = null
     selectedWarung.value = null
+    setTenantSelectionReady(false)
     ready.value = true
     if (typeof window !== 'undefined') {
       window.localStorage.removeItem(STORAGE_KEY)
@@ -91,6 +108,9 @@ export const useAuthSessionStore = defineStore('auth-session', () => {
     selectedWarungId,
     selectedWarung,
     ready,
+    tenantSelectionReady,
+    setTenantSelectionReady,
+    waitForTenantSelectionReady,
     setSelectedWarung,
     getSelectedWarungId,
     getAccessToken,

@@ -44,10 +44,10 @@ Hasil build berada di `dist/pwa`. Sajikan melalui HTTP/HTTPS untuk mencoba insta
 
 ## Fungsi prototipe
 
-- Dashboard, katalog, kasir, riwayat penjualan, pembelian, laporan, pengguna, dan pendaftaran warung menggunakan endpoint API. Owner juga dapat melihat katalog paket dan harga yang dibaca backend dari UDEV; invoice dan pembayaran online belum tersedia.
+- Dashboard, katalog, kasir, riwayat penjualan, pengeluaran, laporan, pengguna, dan pendaftaran warung menggunakan endpoint API. Owner juga dapat melihat katalog paket dan harga yang dibaca backend dari UDEV; invoice dan pembayaran online belum tersedia.
 - Login menggunakan username/password API; role dipakai untuk mengatur navigasi dan aksi di UI, sementara otorisasi tetap tanggung jawab backend.
 - Kasir mengirim ID menu, jumlah, pembayaran, dan `Idempotency-Key`; nama/harga serta total final berasal dari response server.
-- Pembelian mendukung bentuk nominal ringkas dan rincian qty/satuan/harga sesuai schema API.
+- Pengeluaran mendukung bentuk nominal ringkas dan rincian qty/satuan/harga sesuai schema API.
 - Profil warung bersifat baca-saja sampai API menyediakan endpoint edit profil/upload logo.
 
 Jika API gagal, halaman menampilkan pesan kegagalan dan tidak menganggap data yang belum termuat sebagai nominal nol. Token sesi disimpan pada key `larisama-access-token-v1`.
