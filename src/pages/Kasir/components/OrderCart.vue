@@ -13,7 +13,7 @@
       <q-btn v-if="sheet" flat round dense icon="close" color="grey-7" aria-label="Tutup keranjang" @click="$emit('close')" />
     </q-card-section>
     <q-separator />
-    <q-card-section v-if="!editing" class="order-label-section">
+    <q-card-section class="order-label-section">
       <q-input
         :model-value="orderLabel"
         outlined
@@ -25,7 +25,7 @@
         @update:model-value="$emit('update:order-label', $event)"
       />
     </q-card-section>
-    <q-separator v-if="!editing" />
+    <q-separator />
     <q-card-section v-if="cart.length" :class="['cart-items', { 'sheet-cart-items': sheet }]">
       <div v-for="item in cart" :key="item.id" class="cart-item">
         <div class="cart-item-icon" :class="`art-${item.color || 'mint'}`"><q-icon :name="item.freeForm ? 'edit_note' : (item.icon || 'restaurant')" /></div>

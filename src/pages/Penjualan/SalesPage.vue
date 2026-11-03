@@ -70,7 +70,7 @@
         row-key="id"
         :loading="loading"
         :pagination="{ rowsPerPage: 10 }"
-        :grid="$q.screen.lt.sm"
+        :grid="$q.screen.lt.md"
         no-data-label="Belum ada transaksi."
       >
         <template #item="props">
@@ -86,6 +86,9 @@
                 <div class="panel-caption q-mt-sm">
                   {{ formatDate(props.row.tanggal || props.row.created_at) }} ·
                   {{ paymentLabel(props.row.metode_pembayaran) }}
+                </div>
+                <div v-if="props.row.nama_pelanggan" class="sale-order-label">
+                  Meja / nama: {{ props.row.nama_pelanggan }}
                 </div>
                 <div class="sale-mobile-total">{{ formatPrice(props.row.total) }}</div>
                 <div class="row justify-end">
@@ -128,6 +131,7 @@
             <q-td key="tanggal" :props="props">{{
               formatDate(props.row.tanggal || props.row.created_at)
             }}</q-td>
+            <q-td key="nama_pelanggan" :props="props">{{ props.row.nama_pelanggan || '—' }}</q-td>
             <q-td key="metode_pembayaran" :props="props">{{
               paymentLabel(props.row.metode_pembayaran)
             }}</q-td>
@@ -185,7 +189,7 @@
         </div>
         <p class="document-print-notes">{{ filteredSales.length }} transaksi. Transaksi batal dikecualikan; pesanan belum lunas tetap masuk. Nilai retur belum dikurangi.</p>
       </header>
-      <table class="history-print-table"><thead><tr><th>No. transaksi / tanggal</th><th>Pembayaran</th><th>Status bayar</th><th>Total</th></tr></thead><tbody><tr v-for="sale in filteredSales" :key="sale.id"><td><strong>{{ sale.no_transaksi }}</strong><br />{{ formatDate(sale.tanggal || sale.created_at) }}</td><td>{{ paymentLabel(sale.metode_pembayaran) }}</td><td>{{ sale.status_pembayaran === 'belum_lunas' ? 'Belum lunas' : 'Lunas' }}</td><td class="print-money">{{ formatPrice(sale.total) }}</td></tr></tbody><tfoot><tr><th colspan="3">Total nilai transaksi tampil</th><th class="print-money">{{ visibleSalesTotal }}</th></tr></tfoot></table>
+      <table class="history-print-table"><thead><tr><th>No. transaksi / tanggal</th><th>Meja / nama</th><th>Pembayaran</th><th>Status bayar</th><th>Total</th></tr></thead><tbody><tr v-for="sale in filteredSales" :key="sale.id"><td><strong>{{ sale.no_transaksi }}</strong><br />{{ formatDate(sale.tanggal || sale.created_at) }}</td><td>{{ sale.nama_pelanggan || '—' }}</td><td>{{ paymentLabel(sale.metode_pembayaran) }}</td><td>{{ sale.status_pembayaran === 'belum_lunas' ? 'Belum lunas' : 'Lunas' }}</td><td class="print-money">{{ formatPrice(sale.total) }}</td></tr></tbody><tfoot><tr><th colspan="4">Total nilai transaksi tampil</th><th class="print-money">{{ visibleSalesTotal }}</th></tr></tfoot></table>
     </section>
 
     <q-dialog v-model="detailOpen">
@@ -229,6 +233,12 @@
             </div>
           </q-banner>
           <q-list separator>
+            <q-item v-if="selectedSale.nama_pelanggan">
+              <q-item-section>
+                <q-item-label caption>No. meja / nama</q-item-label>
+                <q-item-label>{{ selectedSale.nama_pelanggan }}</q-item-label>
+              </q-item-section>
+            </q-item>
             <q-item v-for="(line, index) in selectedSale.rincian" :key="`${line.menu_id}-${index}`">
               <q-item-section
                 ><q-item-label>{{ line.nama_menu }}</q-item-label
@@ -313,7 +323,8 @@
               v-model.trim="mutationForm.customer"
               outlined
               maxlength="150"
-              label="Nama pelanggan (opsional)"
+              label="No. meja / nama (opsional)"
+              placeholder="Contoh: Meja 22 - Budi"
             />
             <q-input
               v-model.trim="mutationForm.note"
@@ -512,6 +523,7 @@ const columns = [
     align: 'left',
     sortable: true,
   },
+  { name: 'nama_pelanggan', label: 'Meja / nama', field: 'nama_pelanggan', align: 'left' },
   { name: 'metode_pembayaran', label: 'Pembayaran', field: 'metode_pembayaran', align: 'left' },
   { name: 'total', label: 'Total', field: 'total', align: 'right', sortable: true },
   { name: 'status', label: 'Status', field: 'status', align: 'left' },
@@ -835,15 +847,16 @@ function salesHistoryPdfOptions() {
     warung: authSession.warung,
     sections: [{
       title: 'Daftar transaksi',
-      headers: ['No. transaksi / tanggal', 'Pembayaran', 'Status bayar', 'Total'],
-      columnWidths: [76, 34, 32, 40],
+      headers: ['No. transaksi / tanggal', 'Meja / nama', 'Pembayaran', 'Status bayar', 'Total'],
+      columnWidths: [62, 32, 30, 28, 30],
       rows: filteredSales.value.map((sale) => [
         `${sale.no_transaksi}\n${formatDate(sale.tanggal || sale.created_at)}`,
+        sale.nama_pelanggan || '—',
         paymentLabel(sale.metode_pembayaran),
         sale.status_pembayaran === 'belum_lunas' ? 'Belum lunas' : 'Lunas',
         formatPrice(sale.total),
       ]),
-      foot: ['Total nilai transaksi tampil', '', '', visibleSalesTotal.value],
+      foot: ['Total nilai transaksi tampil', '', '', '', visibleSalesTotal.value],
     }],
   }
 }
@@ -914,6 +927,7 @@ function paymentLabel(value) {
 }
 .history-total { border-top: 1px solid #e7ece8; border-bottom: 1px solid #e7ece8; gap: 12px; }
 .history-total-value { color: #1d5439; font-size: 19px; font-weight: 800; text-align: right; }
+.sale-order-label { margin-top: 5px; color: #52675a; font-size: 13px; overflow-wrap: anywhere; }
 .history-print { display: none; }
 @media print {
   :global(body), :global(#q-app), :global(.q-layout), :global(.q-page-container) { width: auto !important; min-width: 0 !important; height: auto !important; overflow: visible !important; background: white !important; }
@@ -927,10 +941,11 @@ function paymentLabel(value) {
   .history-print-table { box-sizing: border-box; width: calc(100% - 8mm); max-width: calc(100% - 8mm); table-layout: fixed; border-collapse: collapse; font-size: 12pt; }
   .history-print-table th, .history-print-table td { box-sizing: border-box; min-width: 0; padding: 4px 3px; border: 1px solid #bbc7bf; text-align: left; vertical-align: middle; overflow-wrap: anywhere; word-break: break-word; white-space: normal !important; }
   .history-print-table th { text-align: center; }
-  .history-print-table th:nth-child(1), .history-print-table td:nth-child(1) { width: 42%; }
-  .history-print-table th:nth-child(2), .history-print-table td:nth-child(2) { width: 18%; }
-  .history-print-table th:nth-child(3), .history-print-table td:nth-child(3) { width: 18%; }
-  .history-print-table th:nth-child(4), .history-print-table td:nth-child(4) { width: 22%; }
+  .history-print-table th:nth-child(1), .history-print-table td:nth-child(1) { width: 32%; }
+  .history-print-table th:nth-child(2), .history-print-table td:nth-child(2) { width: 20%; }
+  .history-print-table th:nth-child(3), .history-print-table td:nth-child(3) { width: 15%; }
+  .history-print-table th:nth-child(4), .history-print-table td:nth-child(4) { width: 15%; }
+  .history-print-table th:nth-child(5), .history-print-table td:nth-child(5) { width: 18%; }
   .history-print-table .print-money { text-align: right; }
   .history-print-table tfoot th { font-weight: 800; }
   @page { size: A4 portrait; margin: 10mm; }

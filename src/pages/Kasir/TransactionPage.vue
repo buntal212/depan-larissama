@@ -3,23 +3,43 @@
     <div class="page-heading row items-end justify-between q-col-gutter-md">
       <div class="col">
         <div class="eyebrow">KASIR WARUNG</div>
-        <h1 class="page-title">{{ editingSale ? 'Edit pesanan' : 'Pesanan baru' }}</h1>
-        <p class="page-subtitle">{{ editingSale ? editingSale.no_transaksi : 'Pilih menu untuk mulai mencatat pesanan.' }}</p>
+        <h1 class="page-title">{{ editRequested ? 'Edit pesanan' : 'Pesanan baru' }}</h1>
+        <p class="page-subtitle">
+          {{
+            editingSale?.no_transaksi ||
+            (editLoading
+              ? 'Memuat pesanan...'
+              : editRequested
+                ? ''
+                : 'Pilih menu untuk mulai mencatat pesanan.')
+          }}
+        </p>
       </div>
       <div class="col-auto"><q-chip class="demo-chip"><span class="status-dot"></span> Kasir tersambung</q-chip></div>
     </div>
-    <q-banner v-if="editingSale" rounded class="q-mb-md bg-orange-1 text-grey-9">
+    <q-banner v-if="editLoading" rounded class="q-mb-md bg-orange-1 text-grey-9">
+      <div class="row items-center q-gutter-sm">
+        <q-spinner-dots color="primary" size="24px" />
+        <span>Memuat pesanan dan isi keranjang...</span>
+      </div>
+    </q-banner>
+    <q-banner v-else-if="editingSale" rounded class="q-mb-md bg-orange-1 text-grey-9">
       <div class="row items-center q-gutter-sm">
         <span>Mode edit pesanan belum lunas. Perubahan item wajib disertai alasan.</span>
         <q-space />
         <q-btn flat no-caps label="Kembali" @click="cancelEdit" />
       </div>
     </q-banner>
-    <q-banner v-if="editError" rounded class="q-mb-md bg-red-1 text-negative">{{ editError }}</q-banner>
+    <q-banner v-if="editError" rounded class="q-mb-md bg-red-1 text-negative">
+      <div class="row items-center q-gutter-sm">
+        <span class="col">{{ editError }}</span>
+        <q-btn v-if="editRequested" flat no-caps label="Kembali" @click="cancelEdit" />
+      </div>
+    </q-banner>
     <q-banner v-if="loadError" rounded class="q-mb-md bg-red-1 text-negative">{{ loadError }}</q-banner>
-    <q-banner v-else-if="catalogState.loading" rounded class="q-mb-md bg-green-1 text-primary">Memuat menu...</q-banner>
+    <q-banner v-else-if="catalogState.loading && !editLoading" rounded class="q-mb-md bg-green-1 text-primary">Memuat menu...</q-banner>
 
-    <div class="pos-grid">
+    <div v-if="!editRequested || editingSale" class="pos-grid">
       <section class="pos-menu-column">
         <div class="row q-col-gutter-sm items-center">
           <div class="col-12 col-sm">
@@ -189,6 +209,7 @@ import { displayApiError, larisamaApi, toMoney, toQuantity } from '@/services/la
 const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
+const editRequested = computed(() => Boolean(route.query.edit))
 const search = ref('')
 const activeCategory = ref('Semua')
 const cart = ref([])
@@ -200,10 +221,12 @@ const checkoutOpen = ref(false)
 const receiptOpen = ref(false)
 const completedSale = ref(null)
 const loadError = ref('')
+const editLoading = ref(Boolean(route.query.edit))
 const submittingSale = ref(false)
 const pendingSaleAttempt = ref(null)
 const editingSale = ref(null)
 const originalEditLines = ref([])
+const originalOrderLabel = ref('')
 const editReason = ref('')
 const editError = ref('')
 const savingEdit = ref(false)
@@ -228,8 +251,13 @@ const editLines = computed(() => cart.value.map((item) => ({
   diskon: toMoney(item.discount || 0),
   catatan: item.note?.trim() || null,
 })))
-const editHasChanges = computed(() =>
-  Boolean(editingSale.value) && JSON.stringify(editLines.value) !== JSON.stringify(originalEditLines.value),
+const editLinesChanged = computed(
+  () => JSON.stringify(editLines.value) !== JSON.stringify(originalEditLines.value),
+)
+const editHasChanges = computed(
+  () =>
+    Boolean(editingSale.value) &&
+    (editLinesChanged.value || orderLabel.value.trim() !== originalOrderLabel.value),
 )
 
 function formatPrice(value) {
@@ -260,11 +288,14 @@ onMounted(async () => {
     $q.notify({ type: 'negative', message: loadError.value, position: 'top' })
   }
   if (route.query.edit) {
+    editLoading.value = true
     try {
       await loadSaleForEditing(String(route.query.edit))
     } catch (error) {
       editError.value = displayApiError(error)
       $q.notify({ type: 'negative', message: editError.value, position: 'top' })
+    } finally {
+      editLoading.value = false
     }
   }
 })
@@ -275,6 +306,8 @@ async function loadSaleForEditing(id) {
     throw new Error('Hanya pesanan yang belum lunas yang bisa diedit dari kasir.')
   }
   editingSale.value = sale
+  orderLabel.value = sale.nama_pelanggan || ''
+  originalOrderLabel.value = orderLabel.value
   cart.value = (sale.rincian || []).map((line, index) => {
     if (!line.menu_id) {
       return {
@@ -423,7 +456,9 @@ function correctedLinePayload() {
 async function persistEditChanges() {
   if (!editingSale.value) return false
   if (!editHasChanges.value) return true
-  if (!cart.value.length) {
+  const linesChanged = editLinesChanged.value
+  const orderLabelChanged = orderLabel.value.trim() !== originalOrderLabel.value
+  if (linesChanged && !cart.value.length) {
     $q.notify({ type: 'warning', message: 'Pesanan harus memiliki minimal satu menu.', position: 'top' })
     return false
   }
@@ -435,13 +470,15 @@ async function persistEditChanges() {
   const activeMenuIds = new Set(products.value
     .filter((product) => product.available && categories.value.some((category) => category.id === product.categoryId && category.active))
     .map((product) => String(product.id)))
-  if (cart.value.some((item) => !item.freeForm && !activeMenuIds.has(String(item.id)))) {
+  if (linesChanged && cart.value.some((item) => !item.freeForm && !activeMenuIds.has(String(item.id)))) {
     editError.value = 'Semua item harus berasal dari menu aktif sebelum perubahan disimpan.'
     $q.notify({ type: 'warning', message: editError.value, position: 'top' })
     return false
   }
   editError.value = ''
-  const body = { alasan: editReason.value.trim(), rincian: correctedLinePayload() }
+  const body = { alasan: editReason.value.trim() }
+  if (linesChanged) body.rincian = correctedLinePayload()
+  if (orderLabelChanged) body.nama_pelanggan = orderLabel.value.trim() || null
   const fingerprint = JSON.stringify(body)
   if (pendingCorrectionAttempt.value?.fingerprint !== fingerprint) {
     pendingCorrectionAttempt.value = { fingerprint, key: newIdempotencyKey() }
@@ -449,6 +486,8 @@ async function persistEditChanges() {
   await larisamaApi.correctSale(editingSale.value.id, body, pendingCorrectionAttempt.value.key)
   const updated = await larisamaApi.getSale(editingSale.value.id)
   editingSale.value = updated
+  orderLabel.value = updated.nama_pelanggan || ''
+  originalOrderLabel.value = orderLabel.value
   cart.value = (updated.rincian || []).map((line) => {
     if (!line.menu_id) {
       return { id: `free-${line.id || newIdempotencyKey()}`, freeForm: true, name: line.nama_menu, price: Number(line.harga), quantity: Number(line.qty), discount: Number(line.diskon || 0), note: line.catatan || '' }
