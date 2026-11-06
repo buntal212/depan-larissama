@@ -74,18 +74,25 @@ export async function apiRequest(
   const tenantWrite =
     auth &&
     ['POST', 'PATCH'].includes(method) &&
-    /^(users|kategori-menus|menus|penjualans|pembelians|pengeluarans)(?:\/|$)/.test(resourcePath)
+    /^(users|kategori-menus|menus|penjualans|pembelians|pengeluarans|subscription-referrals|subscription-invoices|subscription)(?:\/|$)/.test(
+      resourcePath,
+    )
   if (tenantWrite && authSession.user?.role === 'superadmin') {
     await authSession.waitForTenantSelectionReady()
     const selectedWarungId = getSelectedWarungId()
     if (!selectedWarungId) throw new ApiError('Pilih warung terlebih dahulu untuk menyimpan data.')
-    requestBody = { ...body, warung_id: String(selectedWarungId) }
+    if (typeof body === 'object' && body !== null && !(body instanceof FormData)) {
+      requestBody = { ...body, warung_id: String(selectedWarungId) }
+    }
+    const queryParameters = new URLSearchParams(query)
+    queryParameters.set('warung_id', String(selectedWarungId))
+    requestPath = `${resourcePath}?${queryParameters}`
   }
   const tenantRead =
     method === 'GET' &&
     auth &&
     authSession.user?.role === 'superadmin' &&
-    /^(users(?:\/|$)|kategori-menus(?:\/|$)|menus(?:\/|$)|penjualans(?:\/|$)|pembelians(?:\/|$)|pengeluarans(?:\/|$)|laporan\/)/.test(
+    /^(users(?:\/|$)|kategori-menus(?:\/|$)|menus(?:\/|$)|penjualans(?:\/|$)|pembelians(?:\/|$)|pengeluarans(?:\/|$)|laporan\/|subscription-invoices(?:\/|$))/.test(
       resourcePath,
     )
   if (tenantRead) {

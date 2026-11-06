@@ -3,7 +3,7 @@
     <header class="page-heading settings-heading">
       <div>
         <h1 class="page-title">Pengaturan</h1>
-        <p class="page-subtitle">Profil warung, akun pengguna, dan perangkat kasir.</p>
+        <p class="page-subtitle">Profil warung, akun pengguna, pembayaran langganan Larisama, dan perangkat kasir.</p>
       </div>
     </header>
 
@@ -46,12 +46,34 @@ const route = useRoute()
 const router = useRouter()
 const tabs = computed(() => {
   const role = authSession.user?.role
+  const isPaymentOnly =
+    role === 'owner' && authSession.warung?.status_langganan === 'kedaluwarsa'
+
+  if (isPaymentOnly) {
+    return [
+      {
+        name: 'pembayaran',
+        label: 'Pembayaran Larisama',
+        icon: 'payments',
+        to: '/pengaturan/pembayaran',
+      },
+    ]
+  }
+
   const visibleTabs = []
   if (['owner', 'manager', 'kasir'].includes(role)) {
     visibleTabs.push({ name: 'profile', label: 'Profil warung', icon: 'storefront', to: '/pengaturan/profil' })
   }
   if (role === 'owner' || role === 'superadmin') {
     visibleTabs.push({ name: 'users', label: 'Pengguna', icon: 'group', to: '/pengaturan/pengguna' })
+  }
+  if (role === 'owner' || role === 'superadmin') {
+    visibleTabs.push({
+      name: 'pembayaran',
+      label: 'Pembayaran Larisama',
+      icon: 'payments',
+      to: '/pengaturan/pembayaran',
+    })
   }
   visibleTabs.push({ name: 'printer', label: 'Printer', icon: 'print', to: '/pengaturan/printer' })
   return visibleTabs

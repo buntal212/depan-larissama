@@ -131,6 +131,16 @@
             </div>
           </div>
         </div>
+        <template #action>
+          <q-btn
+            flat
+            dense
+            no-caps
+            label="Bayar sekarang"
+            to="/pengaturan/pembayaran"
+            class="text-weight-bold"
+          />
+        </template>
       </q-banner>
       <router-view />
     </q-page-container>
@@ -143,7 +153,12 @@
         indicator-color="transparent"
         active-color="primary"
       >
-        <q-route-tab to="/paket-langganan" name="subscription" icon="sell" label="Pembayaran" />
+        <q-route-tab
+          to="/pengaturan/pembayaran"
+          name="subscription"
+          icon="payments"
+          label="Pembayaran"
+        />
       </q-tabs>
       <q-tabs
         v-else
@@ -284,7 +299,7 @@ const navigation = computed(() => {
   const salesHistory = { label: 'Penjualan', icon: 'receipt_long', to: '/penjualan' }
   const role = authSession.user?.role
   if (paymentOnly.value) {
-    return [{ label: 'Pembayaran', icon: 'sell', to: '/paket-langganan' }]
+    return [{ label: 'Pembayaran Larisama', icon: 'payments', to: '/pengaturan/pembayaran' }]
   }
   if (role === 'superadmin')
     return [
@@ -316,7 +331,6 @@ const navigation = computed(() => {
     ]
   return [
     dashboard,
-    { label: 'Pembayaran', icon: 'sell', to: '/paket-langganan' },
     { label: 'Kasir', icon: 'point_of_sale', to: '/transaksi' },
     catalog,
     salesHistory,

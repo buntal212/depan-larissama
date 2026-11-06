@@ -43,15 +43,20 @@ export default defineRouter((/* { store, ssrContext } */) => {
     if (to.meta.roles && !to.meta.roles.includes(authSession.user?.role)) return '/'
     const paymentOnly =
       authSession.user?.role === 'owner' && authSession.warung?.status_langganan === 'kedaluwarsa'
-    if (to.meta.requiresAuth && paymentOnly && to.path !== '/paket-langganan')
-      return '/paket-langganan'
+    if (
+      to.meta.requiresAuth &&
+      paymentOnly &&
+      to.path !== '/pengaturan/pembayaran' &&
+      to.path !== '/paket-langganan'
+    )
+      return '/pengaturan/pembayaran'
     return true
   })
 
   if (typeof window !== 'undefined') {
     window.addEventListener('larisama:session-expired', () => router.replace('/login'))
     window.addEventListener('larisama:subscription-payment-required', () =>
-      router.replace('/paket-langganan'),
+      router.replace('/pengaturan/pembayaran'),
     )
   }
 

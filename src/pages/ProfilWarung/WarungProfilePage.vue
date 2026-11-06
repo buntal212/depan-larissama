@@ -44,6 +44,17 @@
               <div class="profile-meta"><span>Aktif sejak</span><strong>{{ subscriptionStart }}</strong></div>
               <div class="profile-meta"><span>Aktif sampai</span><strong>{{ subscriptionEnd }}</strong></div>
             </div>
+            <div v-if="canEdit" class="q-mt-sm">
+              <q-btn
+                flat
+                dense
+                no-caps
+                color="primary"
+                icon="payments"
+                label="Kelola Pembayaran &amp; Langganan Larisama"
+                to="/pengaturan/pembayaran"
+              />
+            </div>
             <div v-if="canEdit" class="row justify-end q-mt-md">
               <q-btn unelevated no-caps color="primary" icon="save" label="Simpan perubahan" :loading="saving" type="submit" />
             </div>

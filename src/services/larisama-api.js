@@ -15,6 +15,7 @@ export const larisamaApi = {
   listPendingWarungs: async () =>
     getAllPages('admin/warungs', { status_langganan: 'menunggu_persetujuan' }),
   createWarung: async (body) => (await apiRequest('admin/warungs', { method: 'POST', body })).data,
+  getWarung: async (id) => (await apiRequest(`admin/warungs/${encodeURIComponent(id)}`)).data,
   updateWarung: async (id, body) =>
     (await apiRequest(`admin/warungs/${encodeURIComponent(id)}`, { method: 'PATCH', body })).data,
   approveWarung: async (id) =>
@@ -48,6 +49,7 @@ export const larisamaApi = {
       })
     ).data,
   listSubscriptionPlans: async () => (await apiRequest('subscription-plans')).data,
+  listSubscriptionPaymentMethods: async () => (await apiRequest('subscription-payment-methods')).data,
   validateSubscriptionReferral: async (body) =>
     (await apiRequest('subscription-referrals/validate', { method: 'POST', body })).data,
   attachSubscriptionReferral: async (body, key) =>
@@ -63,7 +65,7 @@ export const larisamaApi = {
     (
       await apiRequest(`subscription-invoices/${encodeURIComponent(invoiceNumber)}/checkout`, {
         method: 'POST',
-        body: { payment_method: paymentMethod },
+        body: { payment_method: paymentMethod, provider: 'midtrans' },
         idempotency: key,
       })
     ).data,

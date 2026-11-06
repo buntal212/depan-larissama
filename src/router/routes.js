@@ -47,8 +47,8 @@ const routes = [
       },
       {
         path: 'paket-langganan',
-        component: () => import('@/pages/Langganan/SubscriptionPlansPage.vue'),
-        meta: { roles: ['owner'] },
+        redirect: '/pengaturan/pembayaran',
+        meta: { roles: ['owner', 'superadmin'] },
       },
       {
         path: 'pengaturan',
@@ -63,6 +63,11 @@ const routes = [
           {
             path: 'pengguna',
             component: () => import('@/pages/Pengguna/UsersPage.vue'),
+            meta: { roles: ['owner', 'superadmin'] },
+          },
+          {
+            path: 'pembayaran',
+            component: () => import('@/pages/Langganan/SubscriptionPlansPage.vue'),
             meta: { roles: ['owner', 'superadmin'] },
           },
           {
