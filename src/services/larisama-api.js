@@ -61,6 +61,13 @@ export const larisamaApi = {
   listSubscriptionInvoices: async () => (await apiRequest('subscription-invoices')).data,
   getSubscriptionInvoice: async (invoiceNumber) =>
     (await apiRequest(`subscription-invoices/${encodeURIComponent(invoiceNumber)}`)).data,
+  previewSubscriptionFee: async (invoiceNumber, paymentMethod = 'qris', warungId = null) =>
+    (
+      await apiRequest(`subscription-invoices/${encodeURIComponent(invoiceNumber)}/fee-preview`, {
+        method: 'POST',
+        body: { payment_method: paymentMethod, ...(warungId ? { warung_id: warungId } : {}) },
+      })
+    ).data,
   startSubscriptionCheckout: async (invoiceNumber, key, paymentMethod = 'qris') =>
     (
       await apiRequest(`subscription-invoices/${encodeURIComponent(invoiceNumber)}/checkout`, {

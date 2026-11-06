@@ -212,25 +212,116 @@
           class="invoice-card"
         >
           <q-card-section>
-            <div class="row items-start justify-between q-gutter-md">
-              <div>
-                <div class="invoice-number">{{ invoice.invoice_number }}</div>
-                <div class="text-weight-bold q-mt-xs">
-                  {{ invoice.plan?.name || invoice.plan?.code || 'Paket langganan' }}
+            <!-- Header Kartu: Nomor Invoice, Tanggal Terbit, Status Badge -->
+            <div class="row items-start justify-between q-gutter-sm">
+              <div class="column">
+                <div class="row items-center q-gutter-xs">
+                  <q-icon name="receipt_long" color="primary" size="18px" />
+                  <span class="invoice-number">{{ invoice.invoice_number }}</span>
+                  <span v-if="invoice.issued_at" class="text-caption text-grey-6 q-ml-xs">
+                    · Terbit {{ formatDate(invoice.issued_at) }}
+                  </span>
                 </div>
-                <div class="text-caption text-grey-7">
-                  {{ invoice.plan?.period_count || invoice.period_count || 1 }} periode ·
-                  {{ invoice.plan?.duration_days || 30 }} hari ·
-                  {{
-                    formatPlanPrice(
-                      invoice.pricing?.final_price || '0.00',
-                      invoice.pricing?.currency || 'IDR',
-                    )
-                  }}
-                  <span v-if="invoice.due_at"> · Jatuh tempo {{ formatDate(invoice.due_at) }}</span>
+                <div class="text-subtitle1 text-weight-bold q-mt-xs text-dark">
+                  {{ invoice.plan?.name || invoice.plan?.code || 'Paket Langganan' }}
                 </div>
               </div>
-              <q-badge :color="invoiceStatusColor(invoice)" :label="invoiceStatusLabel(invoice)" />
+              <q-badge :color="invoiceStatusColor(invoice)" :label="invoiceStatusLabel(invoice)" class="q-px-sm q-py-xs text-weight-bold" />
+            </div>
+
+            <!-- Card Rincian Tagihan & Total Pembayaran (Desain lengkap UDEV) -->
+            <div class="billing-detail-box q-pa-md q-my-md">
+              <div class="row items-center q-gutter-xs q-mb-sm text-primary text-weight-bold">
+                <q-icon name="payments" size="18px" />
+                <span style="font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase;">Rincian Tagihan & Pembayaran</span>
+              </div>
+
+              <div class="column q-gutter-y-xs q-mb-sm">
+                <!-- Paket & Masa Aktif -->
+                <div class="row justify-between text-body2">
+                  <span class="text-grey-7">Paket Langganan</span>
+                  <span class="text-weight-medium text-dark">{{ invoice.plan?.name || 'Paket Langganan' }}</span>
+                </div>
+                <div class="row justify-between text-body2">
+                  <span class="text-grey-7">Masa Aktif</span>
+                  <span class="text-dark">{{ invoice.plan?.period_count || invoice.period_count || 1 }} periode ({{ invoice.plan?.duration_days || 30 }} hari)</span>
+                </div>
+
+                <!-- Diskon Referral jika ada -->
+                <div
+                  v-if="Number(invoice.pricing?.discount_amount) > 0"
+                  class="row justify-between text-body2"
+                >
+                  <span class="text-grey-7">Harga Normal</span>
+                  <span class="text-dark">{{ formatPlanPrice(invoice.pricing?.normal_price, invoice.pricing?.currency) }}</span>
+                </div>
+                <div
+                  v-if="Number(invoice.pricing?.discount_amount) > 0"
+                  class="row justify-between text-body2 text-positive"
+                >
+                  <span>Diskon Referral</span>
+                  <span>-{{ formatPlanPrice(invoice.pricing?.discount_amount, invoice.pricing?.currency) }}</span>
+                </div>
+
+                <!-- Subtotal Tagihan (UDEV) -->
+                <div class="row justify-between text-body2 q-pt-xs" style="border-top: 1px dashed #dcdcdc;">
+                  <span class="text-grey-8 text-weight-medium">Subtotal Tagihan (UDEV)</span>
+                  <span class="text-weight-bold text-dark">
+                    {{ formatPlanPrice(getInvoiceSubtotal(invoice), invoice.pricing?.currency) }}
+                  </span>
+                </div>
+
+                <!-- Metode Pembayaran Midtrans -->
+                <div class="row justify-between text-body2">
+                  <span class="text-grey-7">Metode Pembayaran (Midtrans)</span>
+                  <span class="text-primary text-weight-medium">{{ currentMethodName(invoice) }}</span>
+                </div>
+
+                <!-- Biaya Admin Midtrans -->
+                <div class="row justify-between text-body2">
+                  <span class="text-grey-7">
+                    Biaya Admin Midtrans {{ getInvoiceFeePercentOrType(invoice) }}
+                  </span>
+                  <span :class="getInvoiceAdminFee(invoice) > 0 ? 'text-orange-9 text-weight-bold' : 'text-grey-8'">
+                    {{ getInvoiceAdminFee(invoice) > 0 ? `+ ${formatPlanPrice(getInvoiceAdminFee(invoice), invoice.pricing?.currency)}` : 'Rp 0' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Highlight Box Total Akhir Pembayaran -->
+              <div class="total-payable-card q-pa-sm q-px-md row items-center justify-between">
+                <div>
+                  <div class="text-caption text-weight-bold text-primary" style="letter-spacing: 0.05em;">TOTAL PEMBAYARAN</div>
+                  <div v-if="getInvoiceAdminFee(invoice) > 0" class="text-caption text-grey-7" style="font-size: 11px;">
+                    Termasuk biaya admin {{ formatPlanPrice(getInvoiceAdminFee(invoice), invoice.pricing?.currency) }}
+                  </div>
+                </div>
+                <div class="text-h6 text-weight-bolder text-primary">
+                  {{ formatPlanPrice(getInvoiceTotalPayable(invoice), invoice.pricing?.currency) }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Baris Metadata Tanggal: Lunas / Jatuh Tempo / Expiry -->
+            <div class="row items-center justify-between text-caption text-grey-7 q-mb-md">
+              <div v-if="invoice.status === 'paid' && invoice.paid_at" class="row items-center q-gutter-xs text-positive">
+                <q-icon name="check_circle" size="16px" />
+                <span>Pembayaran berhasil diverifikasi pada <strong>{{ formatDate(invoice.paid_at) }}</strong></span>
+              </div>
+              <div v-else class="row items-center q-gutter-md">
+                <div v-if="invoice.due_at" class="row items-center q-gutter-xs">
+                  <q-icon name="event" size="15px" />
+                  <span>Jatuh tempo: <strong>{{ formatDate(invoice.due_at) }}</strong></span>
+                </div>
+                <div
+                  v-if="invoice.payment?.checkout_expires_at"
+                  class="row items-center q-gutter-xs"
+                  :class="isCheckoutExpired(invoice) ? 'text-negative text-weight-bold' : 'text-grey-8'"
+                >
+                  <q-icon name="schedule" size="15px" />
+                  <span>Batas waktu pembayaran: <strong>{{ formatDate(invoice.payment.checkout_expires_at) }}</strong></span>
+                </div>
+              </div>
             </div>
 
             <!-- Bagian Checkout Pembayaran Pending -->
@@ -338,6 +429,9 @@
               />
               <div class="qris-instructions">
                 <strong>Bayar dengan QRIS (Midtrans)</strong>
+                <div class="text-caption text-weight-bold text-primary">
+                  Total Bayar: {{ formatPlanPrice(getInvoiceTotalPayable(invoice), invoice.pricing?.currency) }}
+                </div>
                 <span>Scan kode QR ini menggunakan BCA Mobile, Mandiri Livin, GoPay, OVO, ShopeePay, DANA, LinkAja, atau aplikasi pembayaran apa pun yang mendukung QRIS.</span>
                 <span v-if="invoice.payment?.checkout_expires_at">
                   Berlaku sampai {{ formatDate(invoice.payment.checkout_expires_at) }}
@@ -390,6 +484,9 @@
             >
               <div class="payment-code-heading">
                 <strong>{{ paymentInstructionLabel(invoice) }}</strong>
+                <div class="text-caption text-weight-bold text-primary">
+                  Total Transfer: {{ formatPlanPrice(getInvoiceTotalPayable(invoice), invoice.pricing?.currency) }}
+                </div>
                 <span>Transfer tepat sesuai nominal tagihan sesuai instruksi di bawah:</span>
               </div>
 
@@ -665,13 +762,13 @@ import { newIdempotencyKey } from '@/services/api.js'
 import { authSession } from '@/stores/auth-session.js'
 
 const defaultMidtransPaymentMethods = [
-  { label: 'QRIS', value: 'qris' },
-  { label: 'Virtual Account BCA', value: 'va_bca' },
-  { label: 'Virtual Account BNI', value: 'va_bni' },
-  { label: 'Virtual Account BRI', value: 'va_bri' },
-  { label: 'Mandiri Bill Payment', value: 'va_mandiri' },
-  { label: 'Virtual Account Permata', value: 'va_permata' },
-  { label: 'GoPay', value: 'gopay' },
+  { label: 'QRIS (Biaya admin 0,7%)', value: 'qris', fee_type: 'percent', fee_rate: 0.7, fixed_amount: 0, fee_label: '0,7%' },
+  { label: 'Virtual Account BCA (Biaya admin Rp 4.000)', value: 'va_bca', fee_type: 'fixed', fee_rate: 0, fixed_amount: 4000, fee_label: 'Rp 4.000' },
+  { label: 'Virtual Account BNI (Biaya admin Rp 4.000)', value: 'va_bni', fee_type: 'fixed', fee_rate: 0, fixed_amount: 4000, fee_label: 'Rp 4.000' },
+  { label: 'Virtual Account BRI (Biaya admin Rp 4.000)', value: 'va_bri', fee_type: 'fixed', fee_rate: 0, fixed_amount: 4000, fee_label: 'Rp 4.000' },
+  { label: 'Mandiri Bill Payment (Biaya admin Rp 4.000)', value: 'va_mandiri', fee_type: 'fixed', fee_rate: 0, fixed_amount: 4000, fee_label: 'Rp 4.000' },
+  { label: 'Virtual Account Permata (Biaya admin Rp 4.000)', value: 'va_permata', fee_type: 'fixed', fee_rate: 0, fixed_amount: 4000, fee_label: 'Rp 4.000' },
+  { label: 'GoPay (Biaya admin 2%)', value: 'gopay', fee_type: 'percent', fee_rate: 2.0, fixed_amount: 0, fee_label: '2%' },
 ]
 
 const plans = ref([])
@@ -679,6 +776,7 @@ const invoices = ref([])
 const qrCodeImages = ref({})
 const qrCodeErrors = ref({})
 const selectedPaymentMethods = ref({})
+const invoiceFeePreviews = ref({})
 const loading = ref(false)
 const refreshingInvoices = ref(false)
 const creatingInvoice = ref(false)
@@ -975,6 +1073,122 @@ function selectPaymentMethod(invoice, method) {
 
   selectedPaymentMethods.value = { ...selectedPaymentMethods.value, [invoiceNumber]: method }
   clearCheckoutKeys(invoiceNumber)
+  void loadFeePreview(invoice, method)
+}
+
+function strRate(val) {
+  return String(val ?? '').replace('.', ',')
+}
+
+async function loadFeePreview(invoice, method = null) {
+  const targetMethod = method || paymentMethod(invoice)
+  const invoiceNumber = invoice.invoice_number
+
+  if (invoice.payment?.fee_breakdown && actualPaymentMethod(invoice) === targetMethod) {
+    const fb = invoice.payment.fee_breakdown
+    invoiceFeePreviews.value[invoiceNumber] = {
+      subtotal: Number(fb.subtotal_amount || invoice.pricing?.final_price || invoice.amount),
+      fee_amount: Number(fb.fee_amount || 0),
+      fee_label: fb.fee_type === 'percent' ? `${strRate(fb.fee_rate)}%` : 'Rp 4.000 (Tetap)',
+      total_amount: Number(fb.total_amount || invoice.payment.amount),
+      fee_type: fb.fee_type,
+      fee_rate: fb.fee_rate,
+      payment_method: targetMethod,
+      is_locked: true,
+    }
+    return
+  }
+
+  try {
+    const previewData = await larisamaApi.previewSubscriptionFee(
+      invoiceNumber,
+      targetMethod,
+      selectedWarungId.value,
+    )
+    if (previewData) {
+      invoiceFeePreviews.value[invoiceNumber] = previewData
+    }
+  } catch {
+    const opt = paymentMethodOptions.value.find((o) => o.value === targetMethod)
+    const subtotal = Number(invoice.pricing?.final_price ?? invoice.amount ?? 0)
+    const isPercent = opt?.fee_type === 'percent'
+    const fee = isPercent
+      ? Math.round(subtotal * ((opt?.fee_rate || 0.7) / 100))
+      : opt?.fixed_amount || 4000
+    const label = isPercent ? `${strRate(opt?.fee_rate || 0.7)}%` : 'Rp 4.000 (Tetap)'
+    invoiceFeePreviews.value[invoiceNumber] = {
+      subtotal,
+      fee_amount: fee,
+      fee_label: label,
+      total_amount: subtotal + fee,
+      fee_type: opt?.fee_type || 'fixed',
+      fee_rate: opt?.fee_rate || 0,
+      payment_method: targetMethod,
+      is_locked: false,
+    }
+  }
+}
+
+function getInvoiceSubtotal(invoice) {
+  return Number(invoice.pricing?.final_price ?? invoice.amount ?? 0)
+}
+
+function getInvoiceAdminFee(invoice) {
+  if (invoice.payment?.fee_breakdown?.fee_amount !== undefined) {
+    return Number(invoice.payment.fee_breakdown.fee_amount)
+  }
+  const prev = invoiceFeePreviews.value[invoice.invoice_number]
+  if (prev?.fee_amount !== undefined) {
+    return Number(prev.fee_amount)
+  }
+  const method = paymentMethod(invoice)
+  const opt = paymentMethodOptions.value.find((o) => o.value === method)
+  const subtotal = getInvoiceSubtotal(invoice)
+  if (opt?.fee_type === 'percent') {
+    return Math.round(subtotal * ((opt.fee_rate || 0.7) / 100))
+  }
+  if (method === 'qris') return Math.round(subtotal * 0.007)
+  if (method === 'gopay') return Math.round(subtotal * 0.02)
+  return 4000
+}
+
+function getInvoiceFeePercentOrType(invoice) {
+  if (invoice.payment?.fee_breakdown) {
+    const fb = invoice.payment.fee_breakdown
+    return fb.fee_type === 'percent' ? `(${strRate(fb.fee_rate)}%)` : '(Tetap)'
+  }
+  const prev = invoiceFeePreviews.value[invoice.invoice_number]
+  if (prev) {
+    return prev.fee_type === 'percent' ? `(${strRate(prev.fee_rate)}%)` : '(Tetap)'
+  }
+  const method = paymentMethod(invoice)
+  const opt = paymentMethodOptions.value.find((o) => o.value === method)
+  if (opt?.fee_type === 'percent') return `(${strRate(opt.fee_rate)}%)`
+  if (method === 'qris') return '(0,7%)'
+  if (method === 'gopay') return '(2%)'
+  return '(Tetap)'
+}
+
+function getInvoiceTotalPayable(invoice) {
+  if (invoice.status === 'paid' && invoice.payment?.amount) {
+    return Number(invoice.payment.amount)
+  }
+  if (hasActiveCheckout(invoice) && invoice.payment?.amount) {
+    return Number(invoice.payment.amount)
+  }
+  const prev = invoiceFeePreviews.value[invoice.invoice_number]
+  if (prev?.total_amount !== undefined) {
+    return Number(prev.total_amount)
+  }
+  return getInvoiceSubtotal(invoice) + getInvoiceAdminFee(invoice)
+}
+
+function currentMethodName(invoice) {
+  if (invoice.status === 'paid' || hasActiveCheckout(invoice)) {
+    const m = actualPaymentMethod(invoice)
+    return paymentMethodLabel(m)
+  }
+  return paymentMethodLabel(paymentMethod(invoice))
 }
 
 function isCheckoutExpired(invoice) {
@@ -1133,14 +1347,24 @@ async function loadPage() {
 
     if (methodsResult.status === 'fulfilled' && Array.isArray(methodsResult.value)) {
       paymentMethodOptions.value = methodsResult.value.map((m) => ({
-        label: m.name || m.label,
+        label: `${m.name || m.label}${m.fee_label ? ` (Biaya admin ${m.fee_label})` : ''}`,
         value: m.code || m.value,
+        fee_type: m.fee_type,
+        fee_rate: m.fee_rate,
+        fixed_amount: m.fixed_amount,
+        fee_label: m.fee_label,
       }))
     }
 
     if (invoiceResult.status === 'fulfilled') {
       const rows = invoiceResult.value
       invoices.value = rows
+
+      for (const invoice of rows) {
+        if (invoice.status === 'pending') {
+          void loadFeePreview(invoice)
+        }
+      }
 
       // Baseline status recording: mark existing settled invoices as notified
       for (const invoice of rows) {
@@ -1224,6 +1448,11 @@ async function refreshInvoices() {
   try {
     const rows = await larisamaApi.listSubscriptionInvoices()
     invoices.value = rows
+    for (const invoice of rows) {
+      if (invoice.status === 'pending') {
+        void loadFeePreview(invoice)
+      }
+    }
     await checkAndHandleSettledInvoices(rows)
     updateStatusPolling()
   } catch (error) {
@@ -1515,6 +1744,21 @@ function upsertInvoice(invoice) {
   const index = invoices.value.findIndex((row) => row.invoice_number === invoice.invoice_number)
   if (index === -1) invoices.value.unshift(invoice)
   else invoices.value[index] = invoice
+
+  if (invoice.payment?.fee_breakdown) {
+    const fb = invoice.payment.fee_breakdown
+    invoiceFeePreviews.value[invoice.invoice_number] = {
+      subtotal: Number(fb.subtotal_amount || invoice.pricing?.final_price || invoice.amount),
+      fee_amount: Number(fb.fee_amount || 0),
+      fee_label: fb.fee_type === 'percent' ? `${strRate(fb.fee_rate)}%` : 'Rp 4.000 (Tetap)',
+      total_amount: Number(fb.total_amount || invoice.payment.amount),
+      fee_type: fb.fee_type,
+      fee_rate: fb.fee_rate,
+      payment_method: invoice.payment.payment_method,
+      is_locked: true,
+    }
+  }
+
   updateStatusPolling()
 }
 
@@ -1808,6 +2052,16 @@ h2.page-title {
   display: grid;
   gap: 8px;
   width: 100%;
+}
+.billing-detail-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+.total-payable-card {
+  background: #eef7f2;
+  border: 1px solid #cce8d9;
+  border-radius: 8px;
 }
 .plan-card,
 .invoice-card,
