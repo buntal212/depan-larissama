@@ -1,80 +1,155 @@
 import { apiRequest, getAllPages, listQuery } from '@/services/api.js'
 
 export const larisamaApi = {
-  registerWarungOwner: async (body) =>
-    (await apiRequest('auth/register', { method: 'POST', body, auth: false })).data,
+  registerWarungOwner: async body =>
+    (await apiRequest('auth/register', { method: 'POST', body, auth: false }))
+      .data,
   currentWarung: async () => (await apiRequest('warung')).data,
-  updateCurrentWarung: async (body) => (await apiRequest('warung', { method: 'PATCH', body })).data,
-  uploadCurrentWarungLogo: async (file) => {
+  updateCurrentWarung: async body =>
+    (await apiRequest('warung', { method: 'PATCH', body })).data,
+  uploadCurrentWarungLogo: async file => {
     const body = new FormData()
     body.append('logo', file)
     return (await apiRequest('warung/logo', { method: 'POST', body })).data
   },
-  deleteCurrentWarungLogo: async () => (await apiRequest('warung/logo', { method: 'DELETE' })).data,
+  deleteCurrentWarungLogo: async () =>
+    (await apiRequest('warung/logo', { method: 'DELETE' })).data,
   listWarungs: async () => getAllPages('admin/warungs'),
   listPendingWarungs: async () =>
     getAllPages('admin/warungs', { status_langganan: 'menunggu_persetujuan' }),
-  createWarung: async (body) => (await apiRequest('admin/warungs', { method: 'POST', body })).data,
-  getWarung: async (id) => (await apiRequest(`admin/warungs/${encodeURIComponent(id)}`)).data,
+  createWarung: async body =>
+    (await apiRequest('admin/warungs', { method: 'POST', body })).data,
+  getWarung: async id =>
+    (await apiRequest(`admin/warungs/${encodeURIComponent(id)}`)).data,
   updateWarung: async (id, body) =>
-    (await apiRequest(`admin/warungs/${encodeURIComponent(id)}`, { method: 'PATCH', body })).data,
-  approveWarung: async (id) =>
-    (await apiRequest(`admin/warungs/${encodeURIComponent(id)}/persetujuan`, { method: 'POST' }))
-      .data,
-  activateWarungForThreeDays: async (id) =>
     (
-      await apiRequest(`admin/warungs/${encodeURIComponent(id)}/langganan/aktivasi-tiga-hari`, {
-        method: 'POST',
+      await apiRequest(`admin/warungs/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body
       })
     ).data,
-  extendWarungSubscription: async (id) =>
+  approveWarung: async id =>
     (
-      await apiRequest(`admin/warungs/${encodeURIComponent(id)}/langganan/perpanjangan`, {
-        method: 'POST',
+      await apiRequest(`admin/warungs/${encodeURIComponent(id)}/persetujuan`, {
+        method: 'POST'
       })
+    ).data,
+  activateWarungForThreeDays: async id =>
+    (
+      await apiRequest(
+        `admin/warungs/${encodeURIComponent(id)}/langganan/aktivasi-tiga-hari`,
+        {
+          method: 'POST'
+        }
+      )
+    ).data,
+  extendWarungSubscription: async id =>
+    (
+      await apiRequest(
+        `admin/warungs/${encodeURIComponent(id)}/langganan/perpanjangan`,
+        {
+          method: 'POST'
+        }
+      )
     ).data,
   initiateWarungUdevCustomerSync: async (id, body) =>
     (
-      await apiRequest(`admin/warungs/${encodeURIComponent(id)}/udev-customer-sync`, {
+      await apiRequest(
+        `admin/warungs/${encodeURIComponent(id)}/udev-customer-sync`,
+        {
+          method: 'POST',
+          body
+        }
+      )
+    ).data,
+  getWarungUdevCustomerSync: async id =>
+    (
+      await apiRequest(
+        `admin/warungs/${encodeURIComponent(id)}/udev-customer-sync`
+      )
+    ).data,
+  retryWarungUdevCustomerSync: async id =>
+    (
+      await apiRequest(
+        `admin/warungs/${encodeURIComponent(id)}/udev-customer-sync/retry`,
+        {
+          method: 'POST'
+        }
+      )
+    ).data,
+  listSubscriptionPlans: async () =>
+    (await apiRequest('subscription-plans')).data,
+  listSubscriptionPaymentMethods: async () =>
+    (await apiRequest('subscription-payment-methods')).data,
+  validateSubscriptionReferral: async body =>
+    (
+      await apiRequest('subscription-referrals/validate', {
+        method: 'POST',
+        body
+      })
+    ).data,
+  attachSubscriptionReferral: async (body, key) =>
+    (
+      await apiRequest('subscription-referrals', {
         method: 'POST',
         body,
+        idempotency: key
       })
     ).data,
-  getWarungUdevCustomerSync: async (id) =>
-    (await apiRequest(`admin/warungs/${encodeURIComponent(id)}/udev-customer-sync`)).data,
-  retryWarungUdevCustomerSync: async (id) =>
+  previewSubscriptionInvoice: async body =>
     (
-      await apiRequest(`admin/warungs/${encodeURIComponent(id)}/udev-customer-sync/retry`, {
+      await apiRequest('subscription-invoices/preview', {
         method: 'POST',
+        body
       })
     ).data,
-  listSubscriptionPlans: async () => (await apiRequest('subscription-plans')).data,
-  listSubscriptionPaymentMethods: async () => (await apiRequest('subscription-payment-methods')).data,
-  validateSubscriptionReferral: async (body) =>
-    (await apiRequest('subscription-referrals/validate', { method: 'POST', body })).data,
-  attachSubscriptionReferral: async (body, key) =>
-    (await apiRequest('subscription-referrals', { method: 'POST', body, idempotency: key })).data,
-  previewSubscriptionInvoice: async (body) =>
-    (await apiRequest('subscription-invoices/preview', { method: 'POST', body })).data,
   createSubscriptionInvoice: async (body, key) =>
-    (await apiRequest('subscription-invoices', { method: 'POST', body, idempotency: key })).data,
-  listSubscriptionInvoices: async () => (await apiRequest('subscription-invoices')).data,
-  getSubscriptionInvoice: async (invoiceNumber) =>
-    (await apiRequest(`subscription-invoices/${encodeURIComponent(invoiceNumber)}`)).data,
-  previewSubscriptionFee: async (invoiceNumber, paymentMethod = 'qris', warungId = null) =>
     (
-      await apiRequest(`subscription-invoices/${encodeURIComponent(invoiceNumber)}/fee-preview`, {
+      await apiRequest('subscription-invoices', {
         method: 'POST',
-        body: { payment_method: paymentMethod, ...(warungId ? { warung_id: warungId } : {}) },
+        body,
+        idempotency: key
       })
     ).data,
-  startSubscriptionCheckout: async (invoiceNumber, key, paymentMethod = 'qris') =>
+  listSubscriptionInvoices: async () =>
+    (await apiRequest('subscription-invoices')).data,
+  getSubscriptionInvoice: async invoiceNumber =>
     (
-      await apiRequest(`subscription-invoices/${encodeURIComponent(invoiceNumber)}/checkout`, {
-        method: 'POST',
-        body: { payment_method: paymentMethod, provider: 'midtrans' },
-        idempotency: key,
-      })
+      await apiRequest(
+        `subscription-invoices/${encodeURIComponent(invoiceNumber)}`
+      )
+    ).data,
+  previewSubscriptionFee: async (
+    invoiceNumber,
+    paymentMethod = 'qris',
+    warungId = null
+  ) =>
+    (
+      await apiRequest(
+        `subscription-invoices/${encodeURIComponent(invoiceNumber)}/fee-preview`,
+        {
+          method: 'POST',
+          body: {
+            payment_method: paymentMethod,
+            ...(warungId ? { warung_id: warungId } : {})
+          }
+        }
+      )
+    ).data,
+  startSubscriptionCheckout: async (
+    invoiceNumber,
+    key,
+    paymentMethod = 'qris'
+  ) =>
+    (
+      await apiRequest(
+        `subscription-invoices/${encodeURIComponent(invoiceNumber)}/checkout`,
+        {
+          method: 'POST',
+          body: { payment_method: paymentMethod, provider: 'midtrans' },
+          idempotency: key
+        }
+      )
     ).data,
   reconcileSubscription: async () =>
     (await apiRequest('subscription/reconcile', { method: 'POST' })).data,
@@ -84,20 +159,27 @@ export const larisamaApi = {
     (
       await apiRequest(id ? `users/${encodeURIComponent(id)}` : 'users', {
         method: id ? 'PATCH' : 'POST',
-        body,
+        body
       })
     ).data,
 
   listSales: async (parameters = {}) => getAllPages('penjualans', parameters),
-  getSale: async (id) => (await apiRequest(`penjualans/${encodeURIComponent(id)}`)).data,
+  getSale: async id =>
+    (await apiRequest(`penjualans/${encodeURIComponent(id)}`)).data,
   createSale: async (body, key) =>
-    (await apiRequest('penjualans', { method: 'POST', body, idempotency: key || true })).data,
+    (
+      await apiRequest('penjualans', {
+        method: 'POST',
+        body,
+        idempotency: key || true
+      })
+    ).data,
   paySale: async (id, body, key) =>
     (
       await apiRequest(`penjualans/${encodeURIComponent(id)}/pembayaran`, {
         method: 'POST',
         body,
-        idempotency: key || true,
+        idempotency: key || true
       })
     ).data,
   correctSale: async (id, body, key) =>
@@ -105,7 +187,7 @@ export const larisamaApi = {
       await apiRequest(`penjualans/${encodeURIComponent(id)}`, {
         method: 'PATCH',
         body,
-        idempotency: key || true,
+        idempotency: key || true
       })
     ).data,
   cancelSale: async (id, body, key) =>
@@ -113,7 +195,7 @@ export const larisamaApi = {
       await apiRequest(`penjualans/${encodeURIComponent(id)}/pembatalan`, {
         method: 'POST',
         body,
-        idempotency: key || true,
+        idempotency: key || true
       })
     ).data,
   returnSale: async (id, body, key) =>
@@ -121,20 +203,28 @@ export const larisamaApi = {
       await apiRequest(`penjualans/${encodeURIComponent(id)}/retur`, {
         method: 'POST',
         body,
-        idempotency: key || true,
+        idempotency: key || true
       })
     ).data,
 
-  listPurchases: async (parameters = {}) => getAllPages('pembelians', parameters),
-  getPurchase: async (id) => (await apiRequest(`pembelians/${encodeURIComponent(id)}`)).data,
+  listPurchases: async (parameters = {}) =>
+    getAllPages('pembelians', parameters),
+  getPurchase: async id =>
+    (await apiRequest(`pembelians/${encodeURIComponent(id)}`)).data,
   createPurchase: async (body, key) =>
-    (await apiRequest('pembelians', { method: 'POST', body, idempotency: key || true })).data,
+    (
+      await apiRequest('pembelians', {
+        method: 'POST',
+        body,
+        idempotency: key || true
+      })
+    ).data,
   correctPurchase: async (id, body, key) =>
     (
       await apiRequest(`pembelians/${encodeURIComponent(id)}`, {
         method: 'PATCH',
         body,
-        idempotency: key || true,
+        idempotency: key || true
       })
     ).data,
   cancelPurchase: async (id, body, key) =>
@@ -142,40 +232,48 @@ export const larisamaApi = {
       await apiRequest(`pembelians/${encodeURIComponent(id)}/pembatalan`, {
         method: 'POST',
         body,
-        idempotency: key || true,
+        idempotency: key || true
       })
     ).data,
 
   salesReport: async (dateFrom, dateTo) =>
-    (await apiRequest(`laporan/penjualan${listQuery({ date_from: dateFrom, date_to: dateTo })}`))
-      .data,
+    (
+      await apiRequest(
+        `laporan/penjualan${listQuery({ date_from: dateFrom, date_to: dateTo })}`
+      )
+    ).data,
   purchasesReport: async (dateFrom, dateTo) =>
-    (await apiRequest(`laporan/pembelian${listQuery({ date_from: dateFrom, date_to: dateTo })}`))
-      .data,
+    (
+      await apiRequest(
+        `laporan/pembelian${listQuery({ date_from: dateFrom, date_to: dateTo })}`
+      )
+    ).data,
   unpaidSalesReport: async (dateFrom, dateTo) =>
     (
       await apiRequest(
-        `laporan/pesanan-belum-lunas${listQuery({ date_from: dateFrom, date_to: dateTo })}`,
+        `laporan/pesanan-belum-lunas${listQuery({ date_from: dateFrom, date_to: dateTo })}`
       )
     ).data,
   dailySalesReport: async (dateFrom, dateTo) =>
     (
       await apiRequest(
-        `laporan/penjualan-harian${listQuery({ date_from: dateFrom, date_to: dateTo })}`,
+        `laporan/penjualan-harian${listQuery({ date_from: dateFrom, date_to: dateTo })}`
       )
     ).data,
   itemSalesReport: async (dateFrom, dateTo) =>
     (
       await apiRequest(
-        `laporan/penjualan-item${listQuery({ date_from: dateFrom, date_to: dateTo })}`,
+        `laporan/penjualan-item${listQuery({ date_from: dateFrom, date_to: dateTo })}`
       )
-    ).data,
+    ).data
 }
 
 export function displayApiError(error) {
   if (error?.status === 422 && Object.keys(error.errors || {}).length) {
     const fieldError = Object.entries(error.errors)[0]
-    const message = Array.isArray(fieldError[1]) ? fieldError[1][0] : fieldError[1]
+    const message = Array.isArray(fieldError[1])
+      ? fieldError[1][0]
+      : fieldError[1]
     return `${fieldError[0]}: ${message}`
   }
   return error?.requestId
@@ -205,16 +303,18 @@ export function createLocalDayTimestamp(date, timezone = 'Asia/Jakarta') {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hourCycle: 'h23',
+      hourCycle: 'h23'
     }).formatToParts(new Date(guess))
-    const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]))
+    const values = Object.fromEntries(
+      parts.map(({ type, value }) => [type, value])
+    )
     const localAsUtc = Date.UTC(
       Number(values.year),
       Number(values.month) - 1,
       Number(values.day),
       Number(values.hour),
       Number(values.minute),
-      Number(values.second),
+      Number(values.second)
     )
     guess -= localAsUtc - desired
   }

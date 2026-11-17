@@ -25,7 +25,11 @@ export async function printPdfReport(options) {
 }
 
 async function createReportDocument({ title, subtitle, sections, warung }) {
-  const document = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  const document = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  })
   const pageWidth = document.internal.pageSize.getWidth()
   const margin = 14
   const logoData = warung?.logo ? await loadImageData(warung.logo) : null
@@ -35,7 +39,10 @@ async function createReportDocument({ title, subtitle, sections, warung }) {
 
   document.setFont('helvetica', 'bold')
   document.setFontSize(14)
-  const storeNameLines = document.splitTextToSize(warung?.nama || 'Larisama', storeTextWidth)
+  const storeNameLines = document.splitTextToSize(
+    warung?.nama || 'Larisama',
+    storeTextWidth
+  )
   document.text(storeNameLines, storeTextX, 18)
 
   document.setFont('helvetica', 'normal')
@@ -55,9 +62,15 @@ async function createReportDocument({ title, subtitle, sections, warung }) {
   document.setFontSize(12)
   const subtitleLines = document.splitTextToSize(subtitle, 86)
   const subtitleY = 18 + titleLines.length * 5.5
-  document.text(subtitleLines, pageWidth - margin, subtitleY, { align: 'right' })
+  document.text(subtitleLines, pageWidth - margin, subtitleY, {
+    align: 'right'
+  })
 
-  const headingY = Math.max(42, storeInfoY + 3, subtitleY + subtitleLines.length * 4.5 + 3)
+  const headingY = Math.max(
+    42,
+    storeInfoY + 3,
+    subtitleY + subtitleLines.length * 4.5 + 3
+  )
   document.setDrawColor(185, 199, 189)
   document.line(margin, headingY, pageWidth - margin, headingY)
 
@@ -92,24 +105,24 @@ async function createReportDocument({ title, subtitle, sections, warung }) {
         fontSize: 12,
         cellPadding: 1.5,
         overflow: 'linebreak',
-        valign: 'middle',
+        valign: 'middle'
       },
       headStyles: {
         fillColor: [23, 98, 66],
         textColor: 255,
         fontSize: 12,
         halign: 'center',
-        valign: 'middle',
+        valign: 'middle'
       },
       footStyles: {
         fillColor: [232, 239, 234],
         textColor: [23, 35, 27],
         fontStyle: 'bold',
         fontSize: 12,
-        valign: 'middle',
+        valign: 'middle'
       },
       columnStyles,
-      alternateRowStyles: { fillColor: [243, 247, 244] },
+      alternateRowStyles: { fillColor: [243, 247, 244] }
     })
     cursorY = document.lastAutoTable.finalY + 10
   }
@@ -123,7 +136,7 @@ async function createReportDocument({ title, subtitle, sections, warung }) {
       `Halaman ${page} dari ${pageCount}`,
       pageWidth - margin,
       document.internal.pageSize.getHeight() - 7,
-      { align: 'right' },
+      { align: 'right' }
     )
   }
 
@@ -133,11 +146,13 @@ async function createReportDocument({ title, subtitle, sections, warung }) {
 function isNominalColumn(header) {
   const label = String(header).trim()
   if (/^(no\.?|nomor)\s/i.test(label)) return false
-  return /nilai|nominal|harga|total|penjualan|retur|pendapatan|pengeluaran|belum lunas/i.test(label)
+  return /nilai|nominal|harga|total|penjualan|retur|pendapatan|pengeluaran|belum lunas/i.test(
+    label
+  )
 }
 
 function loadImageData(source) {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const image = new Image()
     const timeoutId = window.setTimeout(() => resolve(null), 5000)
     image.crossOrigin = 'anonymous'

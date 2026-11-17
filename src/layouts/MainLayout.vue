@@ -16,7 +16,11 @@
           @click="drawerOpen = !drawerOpen"
         />
 
-        <router-link to="/" class="brand-link" aria-label="Larisama, ke dashboard">
+        <router-link
+          to="/"
+          class="brand-link"
+          aria-label="Larisama, ke dashboard"
+        >
           <img
             src="/icons/Larisama_logo_512px.png"
             alt="Larisama — Dagangan Laris, Sukses Bersama"
@@ -25,15 +29,24 @@
         <!-- <span class="app-title">XXX</span> -->
         <q-space />
 
-        <q-btn-dropdown flat no-caps dropdown-icon="expand_more" class="account-menu">
+        <q-btn-dropdown
+          flat
+          no-caps
+          dropdown-icon="expand_more"
+          class="account-menu"
+        >
           <template #label>
-            <q-avatar size="38px" class="profile-avatar">{{ userInitials }}</q-avatar>
+            <q-avatar size="38px" class="profile-avatar">{{
+              userInitials
+            }}</q-avatar>
           </template>
           <q-list style="min-width: 220px">
             <q-item
               ><q-item-section
                 ><q-item-label>{{ authSession.user?.nama }}</q-item-label
-                ><q-item-label caption>{{ authSession.user?.role }}</q-item-label></q-item-section
+                ><q-item-label caption>{{
+                  authSession.user?.role
+                }}</q-item-label></q-item-section
               ></q-item
             >
             <q-separator />
@@ -65,8 +78,14 @@
             />
             <span v-else class="store-avatar-mark" aria-hidden="true" />
           </q-avatar>
-          <div class="store-copy" v-if="authSession.user?.role !== 'superadmin'">
-            <div class="store-name" :title="authSession.warung?.nama || 'Larisama'">
+          <div
+            class="store-copy"
+            v-if="authSession.user?.role !== 'superadmin'"
+          >
+            <div
+              class="store-name"
+              :title="authSession.warung?.nama || 'Larisama'"
+            >
               {{ authSession.warung?.nama || 'Larisama' }}
             </div>
             <!-- <div class="store-type">{{ authSession.warung?.kode || 'Warung aktif' }}</div> -->
@@ -110,7 +129,9 @@
         </q-list>
 
         <div class="drawer-bottom">
-          <div class="drawer-version">Dibuat oleh <strong>Udumbara Informatika</strong></div>
+          <div class="drawer-version"
+            >Dibuat oleh <strong>Udumbara Informatika</strong></div
+          >
         </div>
       </div>
     </q-drawer>
@@ -123,7 +144,9 @@
       >
         <template #avatar><q-icon name="schedule" /></template>
         <div class="subscription-expiry-copy" role="status" aria-live="polite">
-          <span class="subscription-expiry-accessible">{{ subscriptionMessage }}</span>
+          <span class="subscription-expiry-accessible">{{
+            subscriptionMessage
+          }}</span>
           <div class="subscription-ticker" aria-hidden="true">
             <div class="subscription-ticker-track">
               <span>{{ subscriptionMessage }}</span>
@@ -168,9 +191,25 @@
         indicator-color="transparent"
         active-color="primary"
       >
-        <q-route-tab to="/" exact name="dashboard" icon="space_dashboard" label="Beranda" />
-        <q-route-tab to="/menu" name="menu" icon="restaurant_menu" label="Menu" />
-        <q-route-tab to="/transaksi" name="transactions" icon="point_of_sale" label="Kasir" />
+        <q-route-tab
+          to="/"
+          exact
+          name="dashboard"
+          icon="space_dashboard"
+          label="Beranda"
+        />
+        <q-route-tab
+          to="/menu"
+          name="menu"
+          icon="restaurant_menu"
+          label="Menu"
+        />
+        <q-route-tab
+          to="/transaksi"
+          name="transactions"
+          icon="point_of_sale"
+          label="Kasir"
+        />
       </q-tabs>
     </q-footer>
   </q-layout>
@@ -181,7 +220,11 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import { logout } from '@/services/auth.js'
-import { authSession, getSelectedWarungId, setSelectedWarung } from '@/stores/auth-session.js'
+import {
+  authSession,
+  getSelectedWarungId,
+  setSelectedWarung
+} from '@/stores/auth-session.js'
 import { products } from '@/stores/catalog.js'
 import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
 
@@ -197,10 +240,14 @@ const warungToday = ref(getWarungLocalDate())
 let warungDateTimer
 const paymentOnly = computed(
   () =>
-    authSession.user?.role === 'owner' && authSession.warung?.status_langganan === 'kedaluwarsa',
+    authSession.user?.role === 'owner' &&
+    authSession.warung?.status_langganan === 'kedaluwarsa'
 )
 const subscriptionDaysRemaining = computed(() => {
-  if (authSession.user?.role !== 'owner' || authSession.warung?.status_langganan !== 'aktif')
+  if (
+    authSession.user?.role !== 'owner' ||
+    authSession.warung?.status_langganan !== 'aktif'
+  )
     return null
   const expiryDate = authSession.warung?.tanggal_berakhir
   if (!/^\d{4}-\d{2}-\d{2}$/.test(expiryDate || '')) return null
@@ -214,7 +261,7 @@ const subscriptionDaysRemaining = computed(() => {
 })
 const subscriptionMessage = computed(
   () =>
-    `Masa aktif langganan Larisama Anda tersisa ${subscriptionDaysRemaining.value} hari. Silakan lakukan pembayaran sebelum masa aktif habis.`,
+    `Masa aktif langganan Larisama Anda tersisa ${subscriptionDaysRemaining.value} hari. Silakan lakukan pembayaran sebelum masa aktif habis.`
 )
 const currentRoute = computed(() => {
   if (route.path === '/penjualan') return 'transactions'
@@ -232,7 +279,7 @@ watch(
   () => authSession.warung?.logo,
   () => {
     failedWarungLogo.value = null
-  },
+  }
 )
 
 function handleWarungLogoError() {
@@ -249,7 +296,7 @@ onMounted(async () => {
   try {
     warungOptions.value = await larisamaApi.listWarungs()
     const selected = warungOptions.value.find(
-      (warung) => String(warung.id) === String(selectedWarungId.value),
+      warung => String(warung.id) === String(selectedWarungId.value)
     )
     if (selected) setSelectedWarung(selected)
     else if (selectedWarungId.value) {
@@ -257,7 +304,11 @@ onMounted(async () => {
       setSelectedWarung(null)
     }
   } catch (error) {
-    $q.notify({ type: 'negative', message: displayApiError(error), position: 'top' })
+    $q.notify({
+      type: 'negative',
+      message: displayApiError(error),
+      position: 'top'
+    })
   } finally {
     warungsLoading.value = false
     authSession.setTenantSelectionReady(true)
@@ -272,7 +323,7 @@ watch(
   () => authSession.warung?.timezone,
   () => {
     warungToday.value = getWarungLocalDate()
-  },
+  }
 )
 
 function getWarungLocalDate() {
@@ -281,25 +332,43 @@ function getWarungLocalDate() {
     timeZone,
     year: 'numeric',
     month: '2-digit',
-    day: '2-digit',
+    day: '2-digit'
   }).formatToParts(new Date())
-  const dateParts = Object.fromEntries(parts.map(({ type, value }) => [type, value]))
+  const dateParts = Object.fromEntries(
+    parts.map(({ type, value }) => [type, value])
+  )
   return `${dateParts.year}-${dateParts.month}-${dateParts.day}`
 }
 
 function changeWarung(id) {
-  const selected = warungOptions.value.find((warung) => String(warung.id) === String(id))
+  const selected = warungOptions.value.find(
+    warung => String(warung.id) === String(id)
+  )
   setSelectedWarung(selected)
   if (selected) window.location.reload()
 }
 
 const navigation = computed(() => {
   const dashboard = { label: 'Dashboard', icon: 'space_dashboard', to: '/' }
-  const catalog = { label: 'Kategori & Menu', icon: 'restaurant_menu', to: '/menu' }
-  const salesHistory = { label: 'Penjualan', icon: 'receipt_long', to: '/penjualan' }
+  const catalog = {
+    label: 'Kategori & Menu',
+    icon: 'restaurant_menu',
+    to: '/menu'
+  }
+  const salesHistory = {
+    label: 'Penjualan',
+    icon: 'receipt_long',
+    to: '/penjualan'
+  }
   const role = authSession.user?.role
   if (paymentOnly.value) {
-    return [{ label: 'Pembayaran Larisama', icon: 'payments', to: '/pengaturan/pembayaran' }]
+    return [
+      {
+        label: 'Pembayaran Larisama',
+        icon: 'payments',
+        to: '/pengaturan/pembayaran'
+      }
+    ]
   }
   if (role === 'superadmin')
     return [
@@ -310,7 +379,7 @@ const navigation = computed(() => {
       salesHistory,
       { label: 'Pengeluaran', icon: 'shopping_cart', to: '/pengeluaran' },
       { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
-      { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
+      { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' }
     ]
   if (role === 'kasir')
     return [
@@ -318,7 +387,7 @@ const navigation = computed(() => {
       { label: 'Kasir', icon: 'point_of_sale', to: '/transaksi' },
       catalog,
       salesHistory,
-      { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
+      { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' }
     ]
   if (role === 'manager')
     return [
@@ -327,7 +396,7 @@ const navigation = computed(() => {
       salesHistory,
       { label: 'Pengeluaran', icon: 'shopping_cart', to: '/pengeluaran' },
       { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
-      { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
+      { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' }
     ]
   return [
     dashboard,
@@ -336,16 +405,16 @@ const navigation = computed(() => {
     salesHistory,
     { label: 'Pengeluaran', icon: 'shopping_cart', to: '/pengeluaran' },
     { label: 'Laporan', icon: 'bar_chart', to: '/laporan' },
-    { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' },
+    { label: 'Pengaturan', icon: 'settings', to: '/pengaturan' }
   ]
 })
 const userInitials = computed(() =>
   (authSession.user?.nama || 'LS')
     .split(/\s+/)
     .slice(0, 2)
-    .map((part) => part[0])
+    .map(part => part[0])
     .join('')
-    .toUpperCase(),
+    .toUpperCase()
 )
 
 async function signOut() {

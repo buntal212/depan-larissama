@@ -5,8 +5,12 @@
       <div class="page-heading row items-end justify-between q-col-gutter-md">
         <div class="col">
           <div class="eyebrow">{{ formattedDate }}</div>
-          <h1 class="page-title">{{ greeting }} <span class="wave">👋</span></h1>
-          <p class="page-subtitle">Ini ringkasan warungmu hari ini. Semangat, ya!</p>
+          <h1 class="page-title"
+            >{{ greeting }} <span class="wave">👋</span></h1
+          >
+          <p class="page-subtitle"
+            >Ini ringkasan warungmu hari ini. Semangat, ya!</p
+          >
         </div>
         <div class="col-auto heading-actions">
           <q-btn
@@ -65,10 +69,16 @@
           change-icon="check_circle"
         />
       </section>
-      <q-banner v-if="loadError" rounded class="q-mb-lg bg-red-1 text-negative">{{
-        loadError
-      }}</q-banner>
-      <q-banner v-else-if="loading" rounded class="q-mb-lg bg-green-1 text-primary"
+      <q-banner
+        v-if="loadError"
+        rounded
+        class="q-mb-lg bg-red-1 text-negative"
+        >{{ loadError }}</q-banner
+      >
+      <q-banner
+        v-else-if="loading"
+        rounded
+        class="q-mb-lg bg-green-1 text-primary"
         >Memuat ringkasan dari server...</q-banner
       >
 
@@ -77,7 +87,9 @@
           <q-card-section class="panel-heading row items-start justify-between">
             <div>
               <div class="panel-title">Ringkasan penjualan</div>
-              <div class="panel-caption">Riwayat transaksi server selama 7 hari terakhir</div>
+              <div class="panel-caption"
+                >Riwayat transaksi server selama 7 hari terakhir</div
+              >
             </div>
             <q-btn-dropdown
               outline
@@ -111,10 +123,15 @@
           </q-card-section>
           <q-card-section class="chart-area">
             <div class="chart-y-labels">
-              <span>Rp 1,5 jt</span><span>Rp 1 jt</span><span>Rp 500 rb</span><span>Rp 0</span>
+              <span>Rp 1,5 jt</span><span>Rp 1 jt</span><span>Rp 500 rb</span
+              ><span>Rp 0</span>
             </div>
             <div class="chart-bars">
-              <div v-for="day in salesDays" :key="day.label" class="chart-column">
+              <div
+                v-for="day in salesDays"
+                :key="day.label"
+                class="chart-column"
+              >
                 <div class="chart-bar-track">
                   <div
                     class="chart-bar"
@@ -211,15 +228,17 @@ import {
   loadCatalog,
   products,
   saveProduct as saveProductRecord,
-  toggleProductAvailability,
+  toggleProductAvailability
 } from '@/stores/catalog.js'
 import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
 
 const $q = useQuasar()
 const isSuperadmin = computed(() => authSession.user?.role === 'superadmin')
-const canManageCatalog = computed(() => ['owner', 'manager'].includes(authSession.user?.role))
+const canManageCatalog = computed(() =>
+  ['owner', 'manager'].includes(authSession.user?.role)
+)
 const canViewReports = computed(() =>
-  ['owner', 'manager', 'superadmin'].includes(authSession.user?.role),
+  ['owner', 'manager', 'superadmin'].includes(authSession.user?.role)
 )
 const formOpen = ref(false)
 const savingProduct = ref(false)
@@ -237,8 +256,8 @@ const greeting = computed(() => {
     new Intl.DateTimeFormat('en-US', {
       hour: '2-digit',
       hourCycle: 'h23',
-      timeZone: timezone,
-    }).format(new Date()),
+      timeZone: timezone
+    }).format(new Date())
   )
   const salutation =
     hour < 11
@@ -252,25 +271,31 @@ const greeting = computed(() => {
   return name ? `${salutation}, ${name}` : salutation
 })
 const totalCount = computed(() => products.value.length)
-const availableCount = computed(() => products.value.filter((product) => product.available).length)
+const availableCount = computed(
+  () => products.value.filter(product => product.available).length
+)
 const popularProducts = computed(() =>
-  products.value.filter((product) => product.available).slice(0, 4),
+  products.value.filter(product => product.available).slice(0, 4)
 )
 const salesToday = computed(() =>
   salesRecords.value.filter(
-    (sale) => dateKey(sale.tanggal) === todayKey() && sale.status !== 'batal',
-  ),
+    sale => dateKey(sale.tanggal) === todayKey() && sale.status !== 'batal'
+  )
 )
 const salesTodayTotal = computed(
   () =>
     salesTodayReport.value?.total_pendapatan ??
-    salesToday.value.reduce((total, sale) => total + Number(sale.total || 0), 0),
+    salesToday.value.reduce((total, sale) => total + Number(sale.total || 0), 0)
 )
-const purchasesTodayTotal = computed(() => purchasesTodayReport.value?.total_pembelian)
+const purchasesTodayTotal = computed(
+  () => purchasesTodayReport.value?.total_pembelian
+)
 const salesTodayCount = computed(
-  () => salesTodayReport.value?.jumlah_transaksi ?? salesToday.value.length,
+  () => salesTodayReport.value?.jumlah_transaksi ?? salesToday.value.length
 )
-const chartTotal = computed(() => salesDays.value.reduce((total, day) => total + day.amount, 0))
+const chartTotal = computed(() =>
+  salesDays.value.reduce((total, day) => total + day.amount, 0)
+)
 
 const formattedDate = computed(() =>
   new Intl.DateTimeFormat('id-ID', {
@@ -278,8 +303,8 @@ const formattedDate = computed(() =>
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-    timeZone: authSession.warung?.timezone || 'Asia/Jakarta',
-  }).format(new Date()),
+    timeZone: authSession.warung?.timezone || 'Asia/Jakarta'
+  }).format(new Date())
 )
 
 const salesDays = computed(() => {
@@ -287,19 +312,19 @@ const salesDays = computed(() => {
   const days = Array.from({ length: 7 }, (_, index) => {
     const key = shiftDate(today, index - 6)
     const amount = salesRecords.value
-      .filter((sale) => sale.status !== 'batal' && dateKey(sale.tanggal) === key)
+      .filter(sale => sale.status !== 'batal' && dateKey(sale.tanggal) === key)
       .reduce((total, sale) => total + Number(sale.total || 0), 0)
     const date = new Date(`${key}T12:00:00Z`)
     const label = new Intl.DateTimeFormat('id-ID', {
       weekday: 'short',
-      timeZone: authSession.warung?.timezone || 'Asia/Jakarta',
+      timeZone: authSession.warung?.timezone || 'Asia/Jakarta'
     }).format(date)
     return { label, amount, today: index === 6 }
   })
-  const max = Math.max(...days.map((day) => day.amount), 1)
-  return days.map((day) => ({
+  const max = Math.max(...days.map(day => day.amount), 1)
+  return days.map(day => ({
     ...day,
-    height: day.amount === 0 ? 0 : Math.max(8, (day.amount / max) * 100),
+    height: day.amount === 0 ? 0 : Math.max(8, (day.amount / max) * 100)
   }))
 })
 
@@ -311,29 +336,29 @@ const quickActions = computed(() =>
           caption: 'Tentukan data yang ditinjau',
           icon: 'storefront',
           tone: 'green',
-          to: '/platform/warungs',
+          to: '/platform/warungs'
         },
         {
           title: 'Lihat katalog',
           caption: 'Baca kategori dan menu',
           icon: 'restaurant_menu',
           tone: 'orange',
-          to: '/menu',
+          to: '/menu'
         },
         {
           title: 'Lihat penjualan',
           caption: 'Baca transaksi warung',
           icon: 'receipt_long',
           tone: 'blue',
-          to: '/penjualan',
+          to: '/penjualan'
         },
         {
           title: 'Lihat laporan',
           caption: 'Baca ringkasan periode',
           icon: 'bar_chart',
           tone: 'purple',
-          to: '/laporan',
-        },
+          to: '/laporan'
+        }
       ]
     : [
         {
@@ -341,14 +366,14 @@ const quickActions = computed(() =>
           caption: 'Atur katalog warung',
           icon: 'add_circle',
           tone: 'green',
-          to: '/menu',
+          to: '/menu'
         },
         {
           title: 'Buka kasir',
           caption: 'Catat penjualan',
           icon: 'point_of_sale',
           tone: 'orange',
-          to: '/transaksi',
+          to: '/transaksi'
         },
         ...(canViewReports.value
           ? [
@@ -357,18 +382,18 @@ const quickActions = computed(() =>
                 caption: 'Tambahkan pengeluaran',
                 icon: 'shopping_cart',
                 tone: 'purple',
-                to: '/pengeluaran',
+                to: '/pengeluaran'
               },
               {
                 title: 'Lihat laporan',
                 caption: 'Pilih periode laporan',
                 icon: 'bar_chart',
                 tone: 'blue',
-                to: '/laporan',
-              },
+                to: '/laporan'
+              }
             ]
-          : []),
-      ],
+          : [])
+      ]
 )
 
 function dateKey(value) {
@@ -377,9 +402,11 @@ function dateKey(value) {
     timeZone: authSession.warung?.timezone || 'Asia/Jakarta',
     year: 'numeric',
     month: '2-digit',
-    day: '2-digit',
+    day: '2-digit'
   }).formatToParts(new Date(value))
-  const values = Object.fromEntries(parts.map(({ type, value: partValue }) => [type, partValue]))
+  const values = Object.fromEntries(
+    parts.map(({ type, value: partValue }) => [type, partValue])
+  )
   return `${values.year}-${values.month}-${values.day}`
 }
 function todayKey() {
@@ -394,7 +421,7 @@ function formatPrice(value) {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 2
   }).format(Number(value || 0))
 }
 
@@ -404,11 +431,13 @@ onMounted(async () => {
   const today = todayKey()
   try {
     await loadCatalog({ force: true })
-    const requests = [larisamaApi.listSales({ date_from: shiftDate(today, -6), date_to: today })]
+    const requests = [
+      larisamaApi.listSales({ date_from: shiftDate(today, -6), date_to: today })
+    ]
     if (canViewReports.value)
       requests.push(
         larisamaApi.salesReport(today, today),
-        larisamaApi.purchasesReport(today, today),
+        larisamaApi.purchasesReport(today, today)
       )
     const results = await Promise.allSettled(requests)
     if (results[0].status === 'fulfilled') {
@@ -416,7 +445,8 @@ onMounted(async () => {
       salesReady.value = true
     } else throw results[0].reason
     if (canViewReports.value) {
-      if (results[1].status === 'fulfilled') salesTodayReport.value = results[1].value
+      if (results[1].status === 'fulfilled')
+        salesTodayReport.value = results[1].value
       if (results[2].status === 'fulfilled') {
         purchasesTodayReport.value = results[2].value
         purchasesReady.value = true
@@ -440,9 +470,18 @@ async function saveProduct(product) {
   try {
     await saveProductRecord(product)
     formOpen.value = false
-    $q.notify({ type: 'positive', message: 'Menu tersimpan.', position: 'top', timeout: 1800 })
+    $q.notify({
+      type: 'positive',
+      message: 'Menu tersimpan.',
+      position: 'top',
+      timeout: 1800
+    })
   } catch (error) {
-    $q.notify({ type: 'negative', message: displayApiError(error), position: 'top' })
+    $q.notify({
+      type: 'negative',
+      message: displayApiError(error),
+      position: 'top'
+    })
   } finally {
     savingProduct.value = false
   }
@@ -456,10 +495,14 @@ async function toggleAvailability(product) {
       type: 'info',
       message: wasAvailable ? 'Menu dinonaktifkan' : 'Menu diaktifkan kembali',
       position: 'top',
-      timeout: 1800,
+      timeout: 1800
     })
   } catch (error) {
-    $q.notify({ type: 'negative', message: displayApiError(error), position: 'top' })
+    $q.notify({
+      type: 'negative',
+      message: displayApiError(error),
+      position: 'top'
+    })
   }
 }
 </script>

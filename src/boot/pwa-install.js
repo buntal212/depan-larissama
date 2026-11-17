@@ -5,11 +5,15 @@ export const manualInstallGuide = ref(null)
 export const installPromptDismissed = ref(false)
 
 async function isInstalledApp() {
-  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) return true
+  if (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true
+  )
+    return true
 
   try {
     const installedApps = await window.navigator.getInstalledRelatedApps?.()
-    return installedApps?.some((app) => app.platform === 'webapp') ?? false
+    return installedApps?.some(app => app.platform === 'webapp') ?? false
   } catch {
     return false
   }
@@ -18,9 +22,14 @@ async function isInstalledApp() {
 function isIosSafari() {
   const { navigator } = window
   const isIphoneOrIpad = /iPad|iPhone|iPod/.test(navigator.userAgent)
-  const isIpadDesktopUserAgent = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
+  const isIpadDesktopUserAgent =
+    navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
 
-  return (isIphoneOrIpad || isIpadDesktopUserAgent) && /Safari/.test(navigator.userAgent) && !/Chrome|Chromium|CriOS|FxiOS|Edg|OPR/.test(navigator.userAgent)
+  return (
+    (isIphoneOrIpad || isIpadDesktopUserAgent) &&
+    /Safari/.test(navigator.userAgent) &&
+    !/Chrome|Chromium|CriOS|FxiOS|Edg|OPR/.test(navigator.userAgent)
+  )
 }
 
 function isAndroidBrowser() {
@@ -47,7 +56,7 @@ export async function requestAppInstall() {
 }
 
 export default async function registerPwaInstallPrompt() {
-  window.addEventListener('beforeinstallprompt', (event) => {
+  window.addEventListener('beforeinstallprompt', event => {
     event.preventDefault()
     deferredInstallPrompt.value = event
     manualInstallGuide.value = null
@@ -60,7 +69,7 @@ export default async function registerPwaInstallPrompt() {
     dismissInstallPrompt()
   })
 
-  if (await isInstalledApp() || deferredInstallPrompt.value !== null) return
+  if ((await isInstalledApp()) || deferredInstallPrompt.value !== null) return
 
   if (isIosSafari()) {
     manualInstallGuide.value = 'ios'

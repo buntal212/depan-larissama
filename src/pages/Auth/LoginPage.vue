@@ -4,33 +4,117 @@
       <q-page class="login-page flex flex-center q-pa-md">
         <q-card flat bordered class="login-card">
           <q-card-section class="text-center q-pt-xl">
-            <img src="/icons/Larisama_logo_512px.png" alt="Larisama" class="login-logo" />
-            <div v-if="!registrationSuccess" class="eyebrow q-mt-lg">{{ isRegistering ? 'GABUNG BERSAMA LARISAMA' : 'SELAMAT DATANG' }}</div>
+            <img
+              src="/icons/Larisama_logo_512px.png"
+              alt="Larisama"
+              class="login-logo"
+            />
+            <div v-if="!registrationSuccess" class="eyebrow q-mt-lg">{{
+              isRegistering ? 'GABUNG BERSAMA LARISAMA' : 'SELAMAT DATANG'
+            }}</div>
             <h1 class="page-title q-mt-sm">
-              {{ registrationSuccess ? 'Terimakasih telah bergabung bersama Larisama.' : isRegistering ? 'Daftarkan warung' : 'Masuk ke Larisama' }}
+              {{
+                registrationSuccess
+                  ? 'Terimakasih telah bergabung bersama Larisama.'
+                  : isRegistering
+                    ? 'Daftarkan warung'
+                    : 'Masuk ke Larisama'
+              }}
             </h1>
             <p v-if="!registrationSuccess" class="page-subtitle login-subtitle">
-              {{ isRegistering ? 'Isi data warung dan pemilik untuk mengajukan pendaftaran.' : 'Gunakan akun warung yang sudah terdaftar.' }}
+              {{
+                isRegistering
+                  ? 'Isi data warung dan pemilik untuk mengajukan pendaftaran.'
+                  : 'Gunakan akun warung yang sudah terdaftar.'
+              }}
             </p>
           </q-card-section>
-          <q-form v-if="!isRegistering" class="q-px-lg q-pb-lg" @submit.prevent="submitLogin">
-            <q-banner v-if="errorMessage" rounded class="bg-red-1 text-negative q-mb-md">{{ errorMessage }}</q-banner>
-            <q-input v-model.trim="form.username" outlined autocomplete="username" label="Username" maxlength="100" :rules="[(value) => !!value || 'Username wajib diisi', (value) => !/[A-Z]/.test(value) || 'Gunakan huruf kecil']" />
-            <q-input v-model="form.password" outlined autocomplete="current-password" :type="showPassword ? 'text' : 'password'" label="Password" :rules="[(value) => !!value || 'Password wajib diisi']">
-              <template #append><q-btn flat round dense :icon="showPassword ? 'visibility_off' : 'visibility'" aria-label="Tampilkan password" @click="showPassword = !showPassword" /></template>
+          <q-form
+            v-if="!isRegistering"
+            class="q-px-lg q-pb-lg"
+            @submit.prevent="submitLogin"
+          >
+            <q-banner
+              v-if="errorMessage"
+              rounded
+              class="bg-red-1 text-negative q-mb-md"
+              >{{ errorMessage }}</q-banner
+            >
+            <q-input
+              v-model.trim="form.username"
+              outlined
+              autocomplete="username"
+              label="Username"
+              maxlength="100"
+              :rules="[
+                value => !!value || 'Username wajib diisi',
+                value => !/[A-Z]/.test(value) || 'Gunakan huruf kecil'
+              ]"
+            />
+            <q-input
+              v-model="form.password"
+              outlined
+              autocomplete="current-password"
+              :type="showPassword ? 'text' : 'password'"
+              label="Password"
+              :rules="[value => !!value || 'Password wajib diisi']"
+            >
+              <template #append
+                ><q-btn
+                  flat
+                  round
+                  dense
+                  :icon="showPassword ? 'visibility_off' : 'visibility'"
+                  aria-label="Tampilkan password"
+                  @click="showPassword = !showPassword"
+              /></template>
             </q-input>
-            <q-btn class="full-width q-mt-md" unelevated no-caps color="primary" label="Masuk" type="submit" :loading="submitting" />
-            <div class="login-footnote">Data akun diverifikasi oleh server Larisama.</div>
-            <q-btn class="full-width q-mt-sm" flat no-caps color="primary" label="Belum punya akun? Daftarkan warung" @click="openRegistration" />
+            <q-btn
+              class="full-width q-mt-md"
+              unelevated
+              no-caps
+              color="primary"
+              label="Masuk"
+              type="submit"
+              :loading="submitting"
+            />
+            <div class="login-footnote"
+              >Data akun diverifikasi oleh server Larisama.</div
+            >
+            <q-btn
+              class="full-width q-mt-sm"
+              flat
+              no-caps
+              color="primary"
+              label="Belum punya akun? Daftarkan warung"
+              @click="openRegistration"
+            />
           </q-form>
           <div v-else-if="registrationSuccess" class="q-px-lg q-pb-lg">
             <q-banner rounded class="bg-green-1 text-positive q-mb-md">
-              Pendaftaran berhasil dikirim. Warung menunggu persetujuan admin. Setelah disetujui, pemilik dapat masuk menggunakan akun yang didaftarkan.
+              Pendaftaran berhasil dikirim. Warung menunggu persetujuan admin.
+              Setelah disetujui, pemilik dapat masuk menggunakan akun yang
+              didaftarkan.
             </q-banner>
-            <q-btn class="full-width" unelevated no-caps color="primary" label="Kembali ke halaman masuk" @click="closeRegistration" />
+            <q-btn
+              class="full-width"
+              unelevated
+              no-caps
+              color="primary"
+              label="Kembali ke halaman masuk"
+              @click="closeRegistration"
+            />
           </div>
-          <q-form v-else class="q-px-lg q-pb-lg registration-form" @submit.prevent="submitRegistration">
-            <q-banner v-if="registrationError" rounded class="bg-red-1 text-negative q-mb-md">
+          <q-form
+            v-else
+            class="q-px-lg q-pb-lg registration-form"
+            @submit.prevent="submitRegistration"
+          >
+            <q-banner
+              v-if="registrationError"
+              rounded
+              class="bg-red-1 text-negative q-mb-md"
+            >
               {{ registrationError }}
             </q-banner>
 
@@ -42,7 +126,7 @@
               autocomplete="organization"
               label="Nama warung"
               maxlength="150"
-              :rules="[(value) => !!value || 'Nama warung wajib diisi']"
+              :rules="[value => !!value || 'Nama warung wajib diisi']"
             />
             <q-input
               v-model.trim="registrationForm.alamat"
@@ -59,7 +143,7 @@
               autocomplete="tel"
               maxlength="30"
               label="Nomor telepon"
-              :rules="[(value) => !!value || 'Nomor telepon wajib diisi']"
+              :rules="[value => !!value || 'Nomor telepon wajib diisi']"
             />
 
             <div class="registration-section-title q-mt-md">Data pemilik</div>
@@ -69,7 +153,7 @@
               autocomplete="name"
               label="Nama pemilik"
               maxlength="150"
-              :rules="[(value) => !!value || 'Nama pemilik wajib diisi']"
+              :rules="[value => !!value || 'Nama pemilik wajib diisi']"
             />
             <q-input
               v-model.trim="registrationForm.username"
@@ -77,7 +161,10 @@
               autocomplete="username"
               label="Username"
               maxlength="100"
-              :rules="[(value) => !!value || 'Username wajib diisi', (value) => !/[A-Z]/.test(value) || 'Gunakan huruf kecil']"
+              :rules="[
+                value => !!value || 'Username wajib diisi',
+                value => !/[A-Z]/.test(value) || 'Gunakan huruf kecil'
+              ]"
             />
             <q-input
               v-model.trim="registrationForm.email"
@@ -86,7 +173,12 @@
               autocomplete="email"
               label="Email (opsional)"
               maxlength="150"
-              :rules="[(value) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || 'Format email belum benar']"
+              :rules="[
+                value =>
+                  !value ||
+                  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ||
+                  'Format email belum benar'
+              ]"
             />
             <q-input
               v-model="registrationForm.password"
@@ -94,15 +186,24 @@
               autocomplete="new-password"
               :type="showRegistrationPassword ? 'text' : 'password'"
               label="Password"
-              :rules="[(value) => !!value || 'Password wajib diisi', (value) => value.length >= 8 || 'Password minimal 8 karakter']"
+              :rules="[
+                value => !!value || 'Password wajib diisi',
+                value => value.length >= 8 || 'Password minimal 8 karakter'
+              ]"
             >
               <template #append>
                 <q-btn
                   flat
                   round
                   dense
-                  :icon="showRegistrationPassword ? 'visibility_off' : 'visibility'"
-                  :aria-label="showRegistrationPassword ? 'Sembunyikan password' : 'Tampilkan password'"
+                  :icon="
+                    showRegistrationPassword ? 'visibility_off' : 'visibility'
+                  "
+                  :aria-label="
+                    showRegistrationPassword
+                      ? 'Sembunyikan password'
+                      : 'Tampilkan password'
+                  "
                   @click="showRegistrationPassword = !showRegistrationPassword"
                 />
               </template>
@@ -114,8 +215,10 @@
               :type="showPasswordConfirmation ? 'text' : 'password'"
               label="Ulangi password"
               :rules="[
-                (value) => !!value || 'Ulangi password untuk konfirmasi',
-                (value) => value === registrationForm.password || 'Konfirmasi password belum sama',
+                value => !!value || 'Ulangi password untuk konfirmasi',
+                value =>
+                  value === registrationForm.password ||
+                  'Konfirmasi password belum sama'
               ]"
             >
               <template #append>
@@ -123,42 +226,100 @@
                   flat
                   round
                   dense
-                  :icon="showPasswordConfirmation ? 'visibility_off' : 'visibility'"
-                  :aria-label="showPasswordConfirmation ? 'Sembunyikan password' : 'Tampilkan password'"
+                  :icon="
+                    showPasswordConfirmation ? 'visibility_off' : 'visibility'
+                  "
+                  :aria-label="
+                    showPasswordConfirmation
+                      ? 'Sembunyikan password'
+                      : 'Tampilkan password'
+                  "
                   @click="showPasswordConfirmation = !showPasswordConfirmation"
                 />
               </template>
             </q-input>
 
             <div class="registration-notice q-mt-md">
-              Larisama memakai data pemilik untuk membuat akun dan login. Nama warung, nama pemilik, email bila diisi, serta nomor telepon warung dikirim ke UDEV Billing untuk mendaftarkan customer dan membuat invoice paket langganan. Data ini digunakan untuk kebutuhan penagihan paket berikutnya. Password hanya dipakai Larisama dan tidak dikirim ke UDEV.
+              Larisama memakai data pemilik untuk membuat akun dan login. Nama
+              warung, nama pemilik, email bila diisi, serta nomor telepon warung
+              dikirim ke UDEV Billing untuk mendaftarkan customer dan membuat
+              invoice paket langganan. Data ini digunakan untuk kebutuhan
+              penagihan paket berikutnya. Password hanya dipakai Larisama dan
+              tidak dikirim ke UDEV.
             </div>
             <q-checkbox
               v-model="registrationForm.dataConsent"
               label="Saya memahami dan menyetujui penggunaan serta pengiriman data tersebut."
             />
 
-            <q-banner v-if="registrationMessage" rounded class="bg-blue-1 text-primary q-mt-sm">
+            <q-banner
+              v-if="registrationMessage"
+              rounded
+              class="bg-blue-1 text-primary q-mt-sm"
+            >
               {{ registrationMessage }}
             </q-banner>
-            <q-btn class="full-width q-mt-md" unelevated no-caps color="primary" label="Kirim pendaftaran" type="submit" :loading="registrationSubmitting" :disable="!registrationForm.dataConsent" />
-            <q-btn class="full-width q-mt-sm" flat no-caps color="primary" label="Sudah punya akun? Masuk" @click="closeRegistration" />
+            <q-btn
+              class="full-width q-mt-md"
+              unelevated
+              no-caps
+              color="primary"
+              label="Kirim pendaftaran"
+              type="submit"
+              :loading="registrationSubmitting"
+              :disable="!registrationForm.dataConsent"
+            />
+            <q-btn
+              class="full-width q-mt-sm"
+              flat
+              no-caps
+              color="primary"
+              label="Sudah punya akun? Masuk"
+              @click="closeRegistration"
+            />
           </q-form>
         </q-card>
 
         <q-dialog v-model="showInstallDialog">
           <q-card class="install-card">
             <q-card-section class="row items-start no-wrap">
-              <q-avatar color="primary" text-color="white" icon="install_mobile" />
+              <q-avatar
+                color="primary"
+                text-color="white"
+                icon="install_mobile"
+              />
               <div class="q-ml-md">
                 <div class="text-h6">Install aplikasi Larisama</div>
-                <div class="text-body2 text-grey-7 q-mt-xs">{{ installInstructions }}</div>
+                <div class="text-body2 text-grey-7 q-mt-xs">{{
+                  installInstructions
+                }}</div>
               </div>
             </q-card-section>
             <q-card-actions align="right">
-              <q-btn flat no-caps label="Nanti saja" color="grey-8" @click="dismissInstallPrompt" />
-              <q-btn v-if="deferredInstallPrompt" unelevated no-caps label="Install" color="primary" :loading="installing" @click="installApp" />
-              <q-btn v-else-if="manualInstallGuide" unelevated no-caps label="Mengerti" color="primary" @click="dismissInstallPrompt" />
+              <q-btn
+                flat
+                no-caps
+                label="Nanti saja"
+                color="grey-8"
+                @click="dismissInstallPrompt"
+              />
+              <q-btn
+                v-if="deferredInstallPrompt"
+                unelevated
+                no-caps
+                label="Install"
+                color="primary"
+                :loading="installing"
+                @click="installApp"
+              />
+              <q-btn
+                v-else-if="manualInstallGuide"
+                unelevated
+                no-caps
+                label="Mengerti"
+                color="primary"
+                @click="dismissInstallPrompt"
+              />
             </q-card-actions>
           </q-card>
         </q-dialog>
@@ -179,7 +340,7 @@ import {
   dismissInstallPrompt,
   installPromptDismissed,
   manualInstallGuide,
-  requestAppInstall,
+  requestAppInstall
 } from '@/boot/pwa-install.js'
 
 const route = useRoute()
@@ -195,7 +356,7 @@ const registrationForm = reactive({
   email: '',
   password: '',
   passwordConfirmation: '',
-  dataConsent: false,
+  dataConsent: false
 })
 const submitting = ref(false)
 const showPassword = ref(false)
@@ -210,10 +371,12 @@ const registrationSubmitting = ref(false)
 const installing = ref(false)
 
 const showInstallDialog = computed({
-  get: () => !installPromptDismissed.value && (manualInstallGuide.value !== null || deferredInstallPrompt.value !== null),
-  set: (visible) => {
+  get: () =>
+    !installPromptDismissed.value &&
+    (manualInstallGuide.value !== null || deferredInstallPrompt.value !== null),
+  set: visible => {
     if (!visible) dismissInstallPrompt()
-  },
+  }
 })
 
 const installInstructions = computed(() =>
@@ -221,7 +384,7 @@ const installInstructions = computed(() =>
     ? 'Di Safari, tekan tombol Bagikan lalu pilih “Tambahkan ke Layar Utama”.'
     : manualInstallGuide.value === 'android'
       ? 'Buka menu browser (ikon tiga titik), lalu pilih Install aplikasi atau Tambahkan ke layar utama.'
-      : 'Tekan tombol Install untuk menambahkan Larisama ke perangkat ini.',
+      : 'Tekan tombol Install untuk menambahkan Larisama ke perangkat ini.'
 )
 
 async function installApp() {
@@ -232,16 +395,18 @@ async function installApp() {
     if (accepted) {
       $q.notify({
         type: 'info',
-        message: 'Permintaan install diterima Chrome. Tunggu Larisama muncul di daftar aplikasi dan jangan tekan Install lagi selama proses berjalan.',
+        message:
+          'Permintaan install diterima Chrome. Tunggu Larisama muncul di daftar aplikasi dan jangan tekan Install lagi selama proses berjalan.',
         position: 'top',
-        timeout: 7000,
+        timeout: 7000
       })
     }
   } catch {
     $q.notify({
       type: 'negative',
-      message: 'Chrome belum menyelesaikan permintaan install. Coba lagi setelah proses sebelumnya berhenti.',
-      position: 'top',
+      message:
+        'Chrome belum menyelesaikan permintaan install. Coba lagi setelah proses sebelumnya berhenti.',
+      position: 'top'
     })
   } finally {
     installing.value = false
@@ -257,10 +422,16 @@ async function submitLogin() {
   submitting.value = true
   try {
     await login({ username: form.username, password: form.password })
-    const target = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
-    await router.replace(target.startsWith('/') && !target.startsWith('//') ? target : '/')
+    const target =
+      typeof route.query.redirect === 'string' ? route.query.redirect : '/'
+    await router.replace(
+      target.startsWith('/') && !target.startsWith('//') ? target : '/'
+    )
   } catch (error) {
-    errorMessage.value = error instanceof ApiError ? error.message : 'Login belum berhasil. Coba lagi.'
+    errorMessage.value =
+      error instanceof ApiError
+        ? error.message
+        : 'Login belum berhasil. Coba lagi.'
   } finally {
     submitting.value = false
   }
@@ -289,7 +460,7 @@ function closeRegistration() {
     email: '',
     password: '',
     passwordConfirmation: '',
-    dataConsent: false,
+    dataConsent: false
   })
   isRegistering.value = false
 }
@@ -297,17 +468,23 @@ function closeRegistration() {
 async function submitRegistration() {
   registrationError.value = ''
   if (!registrationForm.dataConsent) {
-    registrationError.value = 'Persetujuan penggunaan dan pengiriman data wajib diberikan.'
+    registrationError.value =
+      'Persetujuan penggunaan dan pengiriman data wajib diberikan.'
     return
   }
-  if (/[A-Z]/.test(registrationForm.username) || (registrationForm.email && /[A-Z]/.test(registrationForm.email))) {
-    registrationError.value = 'Username dan email harus menggunakan huruf kecil.'
+  if (
+    /[A-Z]/.test(registrationForm.username) ||
+    (registrationForm.email && /[A-Z]/.test(registrationForm.email))
+  ) {
+    registrationError.value =
+      'Username dan email harus menggunakan huruf kecil.'
     return
   }
 
   registrationSubmitting.value = true
   try {
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta'
+    const timezone =
+      Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta'
     await larisamaApi.registerWarungOwner({
       nama: registrationForm.warungNama.trim(),
       timezone,
@@ -319,12 +496,20 @@ async function submitRegistration() {
         nama: registrationForm.ownerNama.trim(),
         username: registrationForm.username.trim(),
         email: registrationForm.email.trim() || null,
-        password: registrationForm.password,
-      },
+        password: registrationForm.password
+      }
     })
     registrationSuccess.value = true
     Object.assign(registrationForm, {
-      warungNama: '', alamat: '', telepon: '', ownerNama: '', username: '', email: '', password: '', passwordConfirmation: '', dataConsent: false,
+      warungNama: '',
+      alamat: '',
+      telepon: '',
+      ownerNama: '',
+      username: '',
+      email: '',
+      password: '',
+      passwordConfirmation: '',
+      dataConsent: false
     })
     showRegistrationPassword.value = false
     showPasswordConfirmation.value = false
@@ -337,15 +522,51 @@ async function submitRegistration() {
 </script>
 
 <style scoped>
-.login-page { min-height: 100vh; background: #f7f9f7; }
-.login-layout { min-height: 100vh; }
-.login-card { width: min(100%, 460px); border-radius: 20px; background: white; }
-.login-logo { width: min(280px, 80%); height: auto; }
-.page-title { font-size: clamp(24px, 6vw, 30px); }
-.login-subtitle { margin-right: auto; margin-left: auto; text-align: center; }
-.login-footnote { margin-top: 20px; color: #718078; font-size: 12px; text-align: center; }
-.registration-form .q-field { margin-bottom: 12px; }
-.registration-section-title { margin: 2px 0 12px; color: #315342; font-size: 13px; font-weight: 700; }
-.registration-notice { font-size: 12px; line-height: 1.5; }
-.install-card { width: min(100vw - 32px, 390px); border-radius: 16px; }
+.login-page {
+  min-height: 100vh;
+  background: #f7f9f7;
+}
+.login-layout {
+  min-height: 100vh;
+}
+.login-card {
+  width: min(100%, 460px);
+  border-radius: 20px;
+  background: white;
+}
+.login-logo {
+  width: min(280px, 80%);
+  height: auto;
+}
+.page-title {
+  font-size: clamp(24px, 6vw, 30px);
+}
+.login-subtitle {
+  margin-right: auto;
+  margin-left: auto;
+  text-align: center;
+}
+.login-footnote {
+  margin-top: 20px;
+  color: #718078;
+  font-size: 12px;
+  text-align: center;
+}
+.registration-form .q-field {
+  margin-bottom: 12px;
+}
+.registration-section-title {
+  margin: 2px 0 12px;
+  color: #315342;
+  font-size: 13px;
+  font-weight: 700;
+}
+.registration-notice {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.install-card {
+  width: min(100vw - 32px, 390px);
+  border-radius: 16px;
+}
 </style>

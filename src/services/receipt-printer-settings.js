@@ -4,7 +4,7 @@ const storageKey = 'larisama:receipt-printer'
 const defaults = {
   paperWidth: '58',
   columnsByPaper: { 58: 31, 80: 42 },
-  footerText: 'Terima kasih atas kunjungan Anda',
+  footerText: 'Terima kasih atas kunjungan Anda'
 }
 const saved = readSettings()
 const paperWidth = ref(saved.paperWidth)
@@ -20,19 +20,34 @@ export function useReceiptPrinterSettings() {
 export function clampColumns(value, width = '80') {
   const parsed = Number.parseInt(value, 10)
   const maximum = width === '58' ? 32 : 48
-  return Number.isInteger(parsed) ? Math.max(20, Math.min(maximum, parsed)) : (width === '58' ? 31 : 42)
+  return Number.isInteger(parsed)
+    ? Math.max(20, Math.min(maximum, parsed))
+    : width === '58'
+      ? 31
+      : 42
 }
 
 function readSettings() {
   try {
     const stored = JSON.parse(localStorage.getItem(storageKey) || '{}')
     return {
-      paperWidth: ['58', '80'].includes(stored.paperWidth) ? stored.paperWidth : defaults.paperWidth,
+      paperWidth: ['58', '80'].includes(stored.paperWidth)
+        ? stored.paperWidth
+        : defaults.paperWidth,
       columnsByPaper: {
-        58: clampColumns(stored.columnsByPaper?.[58] ?? defaults.columnsByPaper[58], '58'),
-        80: clampColumns(stored.columnsByPaper?.[80] ?? defaults.columnsByPaper[80], '80'),
+        58: clampColumns(
+          stored.columnsByPaper?.[58] ?? defaults.columnsByPaper[58],
+          '58'
+        ),
+        80: clampColumns(
+          stored.columnsByPaper?.[80] ?? defaults.columnsByPaper[80],
+          '80'
+        )
       },
-      footerText: typeof stored.footerText === 'string' ? stored.footerText.slice(0, 120) : defaults.footerText,
+      footerText:
+        typeof stored.footerText === 'string'
+          ? stored.footerText.slice(0, 120)
+          : defaults.footerText
     }
   } catch {
     return defaults
@@ -41,7 +56,14 @@ function readSettings() {
 
 function saveSettings() {
   try {
-    localStorage.setItem(storageKey, JSON.stringify({ paperWidth: paperWidth.value, columnsByPaper, footerText: footerText.value }))
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        paperWidth: paperWidth.value,
+        columnsByPaper,
+        footerText: footerText.value
+      })
+    )
   } catch {
     // Storage is optional; printer settings remain available for this session.
   }

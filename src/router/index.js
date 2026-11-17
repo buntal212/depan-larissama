@@ -3,7 +3,7 @@ import {
   createMemoryHistory,
   createRouter,
   createWebHashHistory,
-  createWebHistory,
+  createWebHistory
 } from 'vue-router'
 
 import routes from './routes.js'
@@ -33,16 +33,19 @@ export default defineRouter((/* { store, ssrContext } */) => {
     // Leave this as is and make changes in quasar.conf.js instead!
     // quasar.conf.js -> build -> vueRouterMode
     // quasar.conf.js -> build -> publicPath
-    history: createHistory(import.meta.env.QUASAR_VUE_ROUTER_BASE),
+    history: createHistory(import.meta.env.QUASAR_VUE_ROUTER_BASE)
   })
 
-  router.beforeEach(async (to) => {
+  router.beforeEach(async to => {
     const authenticated = await restoreSession()
-    if (to.meta.requiresAuth && !authenticated) return { path: '/login', query: { redirect: to.fullPath } }
+    if (to.meta.requiresAuth && !authenticated)
+      return { path: '/login', query: { redirect: to.fullPath } }
     if (to.meta.guestOnly && authenticated) return '/'
-    if (to.meta.roles && !to.meta.roles.includes(authSession.user?.role)) return '/'
+    if (to.meta.roles && !to.meta.roles.includes(authSession.user?.role))
+      return '/'
     const paymentOnly =
-      authSession.user?.role === 'owner' && authSession.warung?.status_langganan === 'kedaluwarsa'
+      authSession.user?.role === 'owner' &&
+      authSession.warung?.status_langganan === 'kedaluwarsa'
     if (
       to.meta.requiresAuth &&
       paymentOnly &&
@@ -54,9 +57,11 @@ export default defineRouter((/* { store, ssrContext } */) => {
   })
 
   if (typeof window !== 'undefined') {
-    window.addEventListener('larisama:session-expired', () => router.replace('/login'))
+    window.addEventListener('larisama:session-expired', () =>
+      router.replace('/login')
+    )
     window.addEventListener('larisama:subscription-payment-required', () =>
-      router.replace('/pengaturan/pembayaran'),
+      router.replace('/pengaturan/pembayaran')
     )
   }
 

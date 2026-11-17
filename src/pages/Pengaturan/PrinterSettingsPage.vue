@@ -4,8 +4,8 @@
       <q-card-section>
         <div class="text-h6 text-weight-bold">Printer struk</div>
         <div class="text-body2 text-grey-7 q-mt-xs">
-          Koneksi printer tersimpan di browser perangkat ini. Setelah tersambung, kasir dapat
-          mencetak struk secara nirkabel.
+          Koneksi printer tersimpan di browser perangkat ini. Setelah
+          tersambung, kasir dapat mencetak struk secara nirkabel.
         </div>
       </q-card-section>
       <q-separator />
@@ -54,19 +54,23 @@
 <script setup>
 import { computed } from 'vue'
 import BlePrinterPanel from '@/pages/Kasir/components/BlePrinterPanel.vue'
-import { clampColumns, useReceiptPrinterSettings } from '@/services/receipt-printer-settings.js'
+import {
+  clampColumns,
+  useReceiptPrinterSettings
+} from '@/services/receipt-printer-settings.js'
 
 const paperOptions = [
   { label: '58 mm', value: '58' },
-  { label: '80 mm', value: '80' },
+  { label: '80 mm', value: '80' }
 ]
 const { paperWidth, columnsByPaper, footerText } = useReceiptPrinterSettings()
 const activeColumns = computed({
   get: () => columnsByPaper[paperWidth.value],
-  set: (value) => {
+  set: value => {
     const parsed = Number.parseInt(value, 10)
-    if (Number.isInteger(parsed)) columnsByPaper[paperWidth.value] = clampColumns(parsed, paperWidth.value)
-  },
+    if (Number.isInteger(parsed))
+      columnsByPaper[paperWidth.value] = clampColumns(parsed, paperWidth.value)
+  }
 })
 </script>
 

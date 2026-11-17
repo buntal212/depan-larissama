@@ -2,7 +2,7 @@ const routes = [
   {
     path: '/login',
     component: () => import('@/pages/Auth/LoginPage.vue'),
-    meta: { guestOnly: true },
+    meta: { guestOnly: true }
   },
   {
     path: '/',
@@ -13,42 +13,42 @@ const routes = [
       {
         path: 'menu',
         component: () => import('@/pages/MenuKategori/MenuPage.vue'),
-        meta: { roles: ['owner', 'manager', 'kasir', 'superadmin'] },
+        meta: { roles: ['owner', 'manager', 'kasir', 'superadmin'] }
       },
       {
         path: 'transaksi',
         component: () => import('@/pages/Kasir/TransactionPage.vue'),
-        meta: { roles: ['owner', 'manager', 'kasir', 'superadmin'] },
+        meta: { roles: ['owner', 'manager', 'kasir', 'superadmin'] }
       },
       {
         path: 'penjualan',
         component: () => import('@/pages/Penjualan/SalesPage.vue'),
-        meta: { roles: ['owner', 'manager', 'kasir', 'superadmin'] },
+        meta: { roles: ['owner', 'manager', 'kasir', 'superadmin'] }
       },
       {
         path: 'pengeluaran',
         component: () => import('@/pages/Pembelian/PurchasesPage.vue'),
-        meta: { roles: ['owner', 'manager', 'superadmin'] },
+        meta: { roles: ['owner', 'manager', 'superadmin'] }
       },
       {
         path: 'laporan',
         component: () => import('@/pages/Laporan/ReportsPage.vue'),
-        meta: { roles: ['owner', 'manager', 'superadmin'] },
+        meta: { roles: ['owner', 'manager', 'superadmin'] }
       },
       {
         path: 'pengguna',
         redirect: '/pengaturan/pengguna',
-        meta: { roles: ['owner', 'superadmin'] },
+        meta: { roles: ['owner', 'superadmin'] }
       },
       {
         path: 'warung',
         redirect: '/pengaturan/profil',
-        meta: { roles: ['owner', 'manager', 'kasir'] },
+        meta: { roles: ['owner', 'manager', 'kasir'] }
       },
       {
         path: 'paket-langganan',
         redirect: '/pengaturan/pembayaran',
-        meta: { roles: ['owner', 'superadmin'] },
+        meta: { roles: ['owner', 'superadmin'] }
       },
       {
         path: 'pengaturan',
@@ -57,40 +57,43 @@ const routes = [
         children: [
           {
             path: 'profil',
-            component: () => import('@/pages/ProfilWarung/WarungProfilePage.vue'),
-            meta: { roles: ['owner', 'manager', 'kasir'] },
+            component: () =>
+              import('@/pages/ProfilWarung/WarungProfilePage.vue'),
+            meta: { roles: ['owner', 'manager', 'kasir'] }
           },
           {
             path: 'pengguna',
             component: () => import('@/pages/Pengguna/UsersPage.vue'),
-            meta: { roles: ['owner', 'superadmin'] },
+            meta: { roles: ['owner', 'superadmin'] }
           },
           {
             path: 'pembayaran',
-            component: () => import('@/pages/Langganan/SubscriptionPlansPage.vue'),
-            meta: { roles: ['owner', 'superadmin'] },
+            component: () =>
+              import('@/pages/Langganan/SubscriptionPlansPage.vue'),
+            meta: { roles: ['owner', 'superadmin'] }
           },
           {
             path: 'printer',
-            component: () => import('@/pages/Pengaturan/PrinterSettingsPage.vue'),
-            meta: { roles: ['owner', 'manager', 'kasir', 'superadmin'] },
-          },
-        ],
+            component: () =>
+              import('@/pages/Pengaturan/PrinterSettingsPage.vue'),
+            meta: { roles: ['owner', 'manager', 'kasir', 'superadmin'] }
+          }
+        ]
       },
       {
         path: 'platform/warungs',
         component: () => import('@/pages/Platform/WarungsPage.vue'),
-        meta: { roles: ['superadmin'] },
-      },
-    ],
+        meta: { roles: ['superadmin'] }
+      }
+    ]
   },
 
   // Always leave this as last one,
   // but you can also remove it
   {
     path: '/:catchAll(.*)*',
-    component: () => import('@/pages/ErrorNotFound.vue'),
-  },
+    component: () => import('@/pages/ErrorNotFound.vue')
+  }
 ]
 
 export default routes

@@ -4,7 +4,10 @@
     class="receipt-print-dialog"
     @update:model-value="$emit('update:modelValue', $event)"
   >
-    <q-card class="receipt-dialog-card" :style="{ '--receipt-paper-width': `${paperWidth}mm` }">
+    <q-card
+      class="receipt-dialog-card"
+      :style="{ '--receipt-paper-width': `${paperWidth}mm` }"
+    >
       <div class="receipt-paper">
         <header class="receipt-store-header">
           <div class="receipt-store-header-lines">
@@ -13,7 +16,8 @@
               :key="index"
               class="receipt-line receipt-header-line"
               :class="{ 'receipt-header-line--small': line.small }"
-            >{{ line.text }}</div>
+              >{{ line.text }}</div
+            >
           </div>
         </header>
         <div class="receipt-text" aria-label="Pratinjau isi struk">
@@ -24,16 +28,31 @@
             :class="{
               'receipt-line--emphasis': line.emphasis,
               'receipt-line--muted': line.muted,
-              'receipt-line--small': line.small,
+              'receipt-line--small': line.small
             }"
-          >{{ line.text || '\u00a0' }}</div>
+            >{{ line.text || '\u00a0' }}</div
+          >
         </div>
       </div>
       <q-separator />
       <q-card-actions class="receipt-print-actions">
         <div class="receipt-print-buttons">
-          <q-btn flat no-caps label="Tutup" @click="$emit('update:modelValue', false)" />
-          <q-btn unelevated no-caps color="primary" icon="print" :label="isBleConnected ? 'Cetak struk BLE' : 'Cetak struk'" :loading="printerStatus === 'printing' || isPreparingBleReceipt" :disable="isPreparingBleReceipt" @click="printReceipt" />
+          <q-btn
+            flat
+            no-caps
+            label="Tutup"
+            @click="$emit('update:modelValue', false)"
+          />
+          <q-btn
+            unelevated
+            no-caps
+            color="primary"
+            icon="print"
+            :label="isBleConnected ? 'Cetak struk BLE' : 'Cetak struk'"
+            :loading="printerStatus === 'printing' || isPreparingBleReceipt"
+            :disable="isPreparingBleReceipt"
+            @click="printReceipt"
+          />
         </div>
       </q-card-actions>
     </q-card>
@@ -44,37 +63,50 @@
 import { computed, nextTick, ref } from 'vue'
 import { useBleThermalPrinter } from '@/services/useBleThermalPrinter.js'
 import { buildEscPosReceiptBytes } from '@/services/ble-thermal-printer.js'
-import { clampColumns, useReceiptPrinterSettings } from '@/services/receipt-printer-settings.js'
+import {
+  clampColumns,
+  useReceiptPrinterSettings
+} from '@/services/receipt-printer-settings.js'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   sale: { type: Object, default: null },
   warung: { type: Object, default: null },
-  cashierName: { type: String, default: '' },
+  cashierName: { type: String, default: '' }
 })
 const emit = defineEmits(['update:modelValue'])
 
-const { isConnected: isBleConnected, sendBytes, status: printerStatus } = useBleThermalPrinter()
+const {
+  isConnected: isBleConnected,
+  sendBytes,
+  status: printerStatus
+} = useBleThermalPrinter()
 const isPreparingBleReceipt = ref(false)
 const { paperWidth, columnsByPaper, footerText } = useReceiptPrinterSettings()
 const activeColumns = computed({
   get: () => columnsByPaper[paperWidth.value],
-  set: (value) => {
+  set: value => {
     const parsed = Number.parseInt(value, 10)
-    if (Number.isInteger(parsed)) columnsByPaper[paperWidth.value] = clampColumns(parsed, paperWidth.value)
-  },
+    if (Number.isInteger(parsed))
+      columnsByPaper[paperWidth.value] = clampColumns(parsed, paperWidth.value)
+  }
 })
 const storeHeaderLines = computed(() => {
   const rows = []
   const appendCentered = (value, small = false) => {
-    if (value) alignCenter(value, activeColumns.value).forEach((text) => rows.push({ text, small, align: 'center' }))
+    if (value)
+      alignCenter(value, activeColumns.value).forEach(text =>
+        rows.push({ text, small, align: 'center' })
+      )
   }
   appendCentered(props.warung?.nama || 'Warung')
   appendCentered(props.warung?.alamat, true)
   appendCentered(props.warung?.telepon)
   return rows
 })
-const receiptLines = computed(() => formatReceipt(props.sale, props.cashierName, activeColumns.value))
+const receiptLines = computed(() =>
+  formatReceipt(props.sale, props.cashierName, activeColumns.value)
+)
 
 function formatPrice(value) {
   const source = String(value ?? '0').trim()
@@ -87,7 +119,9 @@ function formatPrice(value) {
 function formatQuantity(value) {
   const source = String(value ?? '0').trim()
   const negative = source.startsWith('-')
-  const [wholePart = '0', fractionPart = ''] = source.replace(/^-/, '').split('.')
+  const [wholePart = '0', fractionPart = ''] = source
+    .replace(/^-/, '')
+    .split('.')
   const whole = (wholePart || '0').replace(/\B(?=(\d{3})+(?!\d))/g, '.')
   const fraction = fractionPart.slice(0, 2).replace(/0+$/, '')
   return `${negative ? '-' : ''}${whole}${fraction ? `,${fraction}` : ''}`
@@ -98,12 +132,14 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('id-ID', {
     dateStyle: 'short',
     timeStyle: 'short',
-    timeZone: props.warung?.timezone || 'Asia/Jakarta',
+    timeZone: props.warung?.timezone || 'Asia/Jakarta'
   }).format(new Date(value))
 }
 
 function paymentLabel(value) {
-  return { cash: 'Tunai', qris: 'QRIS', transfer: 'Transfer' }[value] || value || '—'
+  return (
+    { cash: 'Tunai', qris: 'QRIS', transfer: 'Transfer' }[value] || value || '—'
+  )
 }
 
 async function printReceipt() {
@@ -111,14 +147,19 @@ async function printReceipt() {
     printBrowserReceipt()
     return
   }
-  if (!props.sale || isPreparingBleReceipt.value || printerStatus.value === 'printing') return
+  if (
+    !props.sale ||
+    isPreparingBleReceipt.value ||
+    printerStatus.value === 'printing'
+  )
+    return
   isPreparingBleReceipt.value = true
   try {
     const lines = [...storeHeaderLines.value, ...receiptLines.value]
     const sent = await sendBytes(
       buildEscPosReceiptBytes(lines),
       'Struk berhasil dikirim ke printer BLE.',
-      'Struk BLE gagal dikirim.',
+      'Struk BLE gagal dikirim.'
     )
     if (sent) emit('update:modelValue', false)
   } finally {
@@ -132,11 +173,22 @@ function printBrowserReceipt() {
 
 async function printDocument() {
   document.body.classList.remove('print-pos-receipt-58', 'print-pos-receipt-80')
-  document.body.classList.add('print-pos-receipt', `print-pos-receipt-${paperWidth.value}`)
+  document.body.classList.add(
+    'print-pos-receipt',
+    `print-pos-receipt-${paperWidth.value}`
+  )
   await nextTick()
-  window.addEventListener('afterprint', () => {
-    document.body.classList.remove('print-pos-receipt', 'print-pos-receipt-58', 'print-pos-receipt-80')
-  }, { once: true })
+  window.addEventListener(
+    'afterprint',
+    () => {
+      document.body.classList.remove(
+        'print-pos-receipt',
+        'print-pos-receipt-58',
+        'print-pos-receipt-80'
+      )
+    },
+    { once: true }
+  )
   window.print()
 }
 
@@ -145,10 +197,23 @@ function formatReceipt(sale, cashierName, columns) {
   if (!data) return []
 
   const lines = []
-  const add = (text, emphasis = false, muted = false, small = false, align = 'left') => lines.push({ text, emphasis, muted, small, align })
-  const addWrapped = (rows, emphasis = false, muted = false, small = false, align = 'left') => rows.forEach((text) => add(text, emphasis, muted, small, align))
+  const add = (
+    text,
+    emphasis = false,
+    muted = false,
+    small = false,
+    align = 'left'
+  ) => lines.push({ text, emphasis, muted, small, align })
+  const addWrapped = (
+    rows,
+    emphasis = false,
+    muted = false,
+    small = false,
+    align = 'left'
+  ) => rows.forEach(text => add(text, emphasis, muted, small, align))
   const divider = () => add('-'.repeat(columns), false, true)
-  const addPair = (label, value, emphasis = false) => addWrapped(twoColumns(label, value, columns), emphasis)
+  const addPair = (label, value, emphasis = false) =>
+    addWrapped(twoColumns(label, value, columns), emphasis)
 
   divider()
   addPair('No. transaksi', '')
@@ -159,27 +224,55 @@ function formatReceipt(sale, cashierName, columns) {
   divider()
   for (const item of data.rincian || []) {
     addWrapped(alignLeft(item.nama_menu || 'Item', columns))
-    addPair(`${formatQuantity(item.qty)} x ${formatPrice(item.harga)}`, formatPrice(item.subtotal))
-    if (hasPositiveAmount(item.diskon)) addPair('Diskon item', `-${formatPrice(item.diskon)}`)
+    addPair(
+      `${formatQuantity(item.qty)} x ${formatPrice(item.harga)}`,
+      formatPrice(item.subtotal)
+    )
+    if (hasPositiveAmount(item.diskon))
+      addPair('Diskon item', `-${formatPrice(item.diskon)}`)
   }
   divider()
   addPair('Subtotal', formatPrice(data.subtotal))
   addPair('Diskon', `-${formatPrice(data.diskon)}`)
   addPair('TOTAL', formatPrice(data.total), true)
-  addPair('Pembayaran', data.status_pembayaran === 'belum_lunas' ? 'Belum lunas' : paymentLabel(data.metode_pembayaran))
+  addPair(
+    'Pembayaran',
+    data.status_pembayaran === 'belum_lunas'
+      ? 'Belum lunas'
+      : paymentLabel(data.metode_pembayaran)
+  )
   if (data.metode_pembayaran === 'cash') {
     addPair('Dibayar', formatPrice(data.bayar))
     addPair('Kembalian', formatPrice(data.kembalian))
   }
-  if (data.catatan) addWrapped(alignLeft(`Catatan: ${data.catatan}`, columns), false, true)
+  if (data.catatan)
+    addWrapped(alignLeft(`Catatan: ${data.catatan}`, columns), false, true)
   divider()
   if (data.status_pembayaran === 'belum_lunas') {
-    addWrapped(alignCenter('Pesanan belum dibayar', columns), false, false, true, 'center')
+    addWrapped(
+      alignCenter('Pesanan belum dibayar', columns),
+      false,
+      false,
+      true,
+      'center'
+    )
   }
   if (footerText.value.trim()) {
-    addWrapped(alignCenter(footerText.value.trim(), columns), false, false, true, 'center')
+    addWrapped(
+      alignCenter(footerText.value.trim(), columns),
+      false,
+      false,
+      true,
+      'center'
+    )
   }
-  addWrapped(alignCenter('Powered by Udumbara Informatika', columns), false, true, true, 'center')
+  addWrapped(
+    alignCenter('Powered by Udumbara Informatika', columns),
+    false,
+    true,
+    true,
+    'center'
+  )
   return lines
 }
 
@@ -188,7 +281,7 @@ function alignLeft(text, width) {
 }
 
 function alignCenter(text, width) {
-  return wrapText(text, width).map((line) => {
+  return wrapText(text, width).map(line => {
     const padding = Math.max(0, width - characterCount(line))
     const leftPadding = Math.floor(padding / 2)
     return `${' '.repeat(leftPadding)}${line}${' '.repeat(padding - leftPadding)}`
@@ -196,7 +289,9 @@ function alignCenter(text, width) {
 }
 
 function alignRight(text, width) {
-  return wrapText(text, width).map((line) => `${' '.repeat(Math.max(0, width - characterCount(line)))}${line}`)
+  return wrapText(text, width).map(
+    line => `${' '.repeat(Math.max(0, width - characterCount(line)))}${line}`
+  )
 }
 
 function twoColumns(label, value, width) {
@@ -204,7 +299,8 @@ function twoColumns(label, value, width) {
   const right = String(value ?? '')
   if (!right) return alignLeft(left, width)
   const valueWidth = characterCount(right)
-  if (valueWidth >= width) return [...wrapText(left, width), ...alignRight(right, width)]
+  if (valueWidth >= width)
+    return [...wrapText(left, width), ...alignRight(right, width)]
   const labelWidth = Math.max(1, width - valueWidth - 1)
   const labelLines = wrapText(left, labelWidth)
   return labelLines.map((line, index) => {
@@ -215,15 +311,21 @@ function twoColumns(label, value, width) {
 }
 
 function wrapText(value, width) {
-  const words = String(value ?? '').split(/\s+/).filter(Boolean)
+  const words = String(value ?? '')
+    .split(/\s+/)
+    .filter(Boolean)
   if (!words.length) return ['']
   const lines = []
   let line = ''
   for (const word of words) {
     const wordCharacters = Array.from(word)
     if (wordCharacters.length > width) {
-      if (line) { lines.push(line); line = '' }
-      for (let offset = 0; offset < wordCharacters.length; offset += width) lines.push(wordCharacters.slice(offset, offset + width).join(''))
+      if (line) {
+        lines.push(line)
+        line = ''
+      }
+      for (let offset = 0; offset < wordCharacters.length; offset += width)
+        lines.push(wordCharacters.slice(offset, offset + width).join(''))
     } else if (!line) {
       line = word
     } else if (characterCount(line) + 1 + wordCharacters.length <= width) {
@@ -242,6 +344,8 @@ function characterCount(value) {
 }
 
 function hasPositiveAmount(value) {
-  return /[1-9]/.test(String(value ?? '0')) && !String(value).trim().startsWith('-')
+  return (
+    /[1-9]/.test(String(value ?? '0')) && !String(value).trim().startsWith('-')
+  )
 }
 </script>

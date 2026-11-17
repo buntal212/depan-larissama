@@ -1,11 +1,16 @@
 <template>
-  <q-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
+  <q-dialog
+    :model-value="modelValue"
+    @update:model-value="$emit('update:modelValue', $event)"
+  >
     <q-card class="product-form-dialog">
       <q-card-section class="dialog-header">
         <div class="dialog-header-copy">
           <div class="dialog-eyebrow">KATALOG WARUNG</div>
           <div class="text-h6 dialog-title">Kategori menu</div>
-          <div class="dialog-subtitle">Kategori nonaktif tidak muncul saat kasir memilih menu.</div>
+          <div class="dialog-subtitle"
+            >Kategori nonaktif tidak muncul saat kasir memilih menu.</div
+          >
         </div>
         <q-btn
           class="dialog-header-close"
@@ -53,14 +58,20 @@
                   round
                   dense
                   :icon="category.active ? 'visibility_off' : 'visibility'"
-                  :aria-label="category.active ? 'Nonaktifkan kategori' : 'Aktifkan kategori'"
+                  :aria-label="
+                    category.active
+                      ? 'Nonaktifkan kategori'
+                      : 'Aktifkan kategori'
+                  "
                   @click="$emit('toggle', category.id)"
                 />
               </div>
             </q-item-section>
           </q-item>
           <q-item v-if="!sortedCategories.length"
-            ><q-item-section class="text-grey-7">Belum ada kategori.</q-item-section></q-item
+            ><q-item-section class="text-grey-7"
+              >Belum ada kategori.</q-item-section
+            ></q-item
           >
         </q-list>
       </q-card-section>
@@ -91,10 +102,20 @@
           autofocus
           label="Nama kategori"
           maxlength="100"
-          :rules="[(value) => !!value || 'Nama kategori perlu diisi']"
+          :rules="[value => !!value || 'Nama kategori perlu diisi']"
         />
-        <q-input v-model.number="form.order" outlined type="number" min="0" label="Urutan" />
-        <q-toggle v-model="form.active" color="secondary" label="Kategori aktif" />
+        <q-input
+          v-model.number="form.order"
+          outlined
+          type="number"
+          min="0"
+          label="Urutan"
+        />
+        <q-toggle
+          v-model="form.active"
+          color="secondary"
+          label="Kategori aktif"
+        />
         <div class="row justify-end q-gutter-sm q-mt-lg">
           <q-btn flat no-caps label="Batal" @click="formOpen = false" />
           <q-btn
@@ -117,21 +138,23 @@ import { computed, reactive, ref, watch } from 'vue'
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   categories: { type: Array, default: () => [] },
-  saving: { type: Boolean, default: false },
+  saving: { type: Boolean, default: false }
 })
 const emit = defineEmits(['update:modelValue', 'save', 'toggle'])
-const sortedCategories = computed(() => [...props.categories].sort((a, b) => a.order - b.order))
+const sortedCategories = computed(() =>
+  [...props.categories].sort((a, b) => a.order - b.order)
+)
 const formOpen = ref(false)
 const selected = ref(null)
 const form = reactive({ name: '', order: 0, active: true })
 
-watch(formOpen, (open) => {
+watch(formOpen, open => {
   if (!open) return
   Object.assign(
     form,
     selected.value
       ? { ...selected.value }
-      : { name: '', order: props.categories.length, active: true },
+      : { name: '', order: props.categories.length, active: true }
   )
 })
 
@@ -149,7 +172,7 @@ function submitForm() {
     ...form,
     name: form.name.trim(),
     order: Math.max(0, Number(form.order) || 0),
-    id: selected.value?.id,
+    id: selected.value?.id
   })
 }
 

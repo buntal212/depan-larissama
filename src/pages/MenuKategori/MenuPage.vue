@@ -4,9 +4,14 @@
       <div class="col">
         <div class="eyebrow">KATALOG WARUNG</div>
         <h1 class="page-title">Kategori & Menu</h1>
-        <p class="page-subtitle">Kelola kategori dan daftar menu yang dipakai kasir.</p>
+        <p class="page-subtitle"
+          >Kelola kategori dan daftar menu yang dipakai kasir.</p
+        >
       </div>
-      <div v-if="canManageCatalog" class="col-auto row q-gutter-sm menu-create-actions">
+      <div
+        v-if="canManageCatalog"
+        class="col-auto row q-gutter-sm menu-create-actions"
+      >
         <q-btn
           unelevated
           no-caps
@@ -56,12 +61,19 @@
 
       <q-space />
       <div class="inventory-count">
-        <span class="inventory-dot"></span>{{ availableCount }} tersedia <span>·</span>
-        {{ products.length }} barang
+        <span class="inventory-dot"></span>{{ availableCount }} tersedia
+        <span>·</span> {{ products.length }} barang
       </div>
     </section>
-    <q-banner v-if="loadError" rounded class="q-mb-md bg-red-1 text-negative">{{ loadError }}</q-banner>
-    <q-banner v-else-if="catalogState.loading" rounded class="q-mb-md bg-green-1 text-primary">Memuat katalog dari server...</q-banner>
+    <q-banner v-if="loadError" rounded class="q-mb-md bg-red-1 text-negative">{{
+      loadError
+    }}</q-banner>
+    <q-banner
+      v-else-if="catalogState.loading"
+      rounded
+      class="q-mb-md bg-green-1 text-primary"
+      >Memuat katalog dari server...</q-banner
+    >
 
     <div class="menu-results-heading">
       <div>
@@ -109,17 +121,25 @@
       <div class="empty-state-icon"><q-icon name="search_off" /></div>
       <div class="panel-title">Menu tidak ditemukan</div>
       <p class="panel-caption">Coba kata pencarian atau kategori lain.</p>
-      <q-btn flat no-caps color="primary" label="Hapus pencarian" @click="clearFilters" />
+      <q-btn
+        flat
+        no-caps
+        color="primary"
+        label="Hapus pencarian"
+        @click="clearFilters"
+      />
     </div>
 
-    <ProductFormDialog v-if="canManageCatalog"
+    <ProductFormDialog
+      v-if="canManageCatalog"
       v-model="formOpen"
       :product="selectedProduct"
       :categories="categories"
       :saving="savingProduct"
       @save="saveProductValue"
     />
-    <CategoryManagerDialog v-if="canManageCatalog"
+    <CategoryManagerDialog
+      v-if="canManageCatalog"
       ref="categoryManagerRef"
       v-model="categoryManagerOpen"
       :categories="categories"
@@ -137,16 +157,29 @@ import ProductCard from '@/components/ProductCard.vue'
 import ProductFormDialog from '@/components/ProductFormDialog.vue'
 import CategoryManagerDialog from '@/pages/MenuKategori/components/CategoryManagerDialog.vue'
 import { authSession } from '@/stores/auth-session.js'
-import { categories, catalogState, loadCatalog, productCategories, products, saveCategory, saveProduct, toggleCategory, toggleProductAvailability } from '@/stores/catalog.js'
+import {
+  categories,
+  catalogState,
+  loadCatalog,
+  productCategories,
+  products,
+  saveCategory,
+  saveProduct,
+  toggleCategory,
+  toggleProductAvailability
+} from '@/stores/catalog.js'
 import { displayApiError } from '@/services/larisama-api.js'
 
 const $q = useQuasar()
 const canManageCatalog = computed(
   () =>
     ['owner', 'manager'].includes(authSession.user?.role) ||
-    (authSession.user?.role === 'superadmin' && Boolean(authSession.selectedWarungId)),
+    (authSession.user?.role === 'superadmin' &&
+      Boolean(authSession.selectedWarungId))
 )
-const loadError = computed(() => catalogState.value.error ? displayApiError(catalogState.value.error) : '')
+const loadError = computed(() =>
+  catalogState.value.error ? displayApiError(catalogState.value.error) : ''
+)
 const search = ref('')
 const activeCategory = ref('Semua')
 const sortBy = ref('name_asc')
@@ -154,22 +187,30 @@ const sortOptions = [
   { label: 'Nama A–Z', value: 'name_asc' },
   { label: 'Nama Z–A', value: 'name_desc' },
   { label: 'Harga termurah', value: 'price_asc' },
-  { label: 'Harga termahal', value: 'price_desc' },
+  { label: 'Harga termahal', value: 'price_desc' }
 ]
 const formOpen = ref(false)
 const savingProduct = ref(false)
 const savingCategory = ref(false)
 const selectedProduct = ref(null)
-const availableCount = computed(() => products.value.filter((product) => product.available).length)
+const availableCount = computed(
+  () => products.value.filter(product => product.available).length
+)
 const categoryManagerOpen = ref(false)
 const categoryManagerRef = ref(null)
 const filteredProducts = computed(() => {
-  const query = String(search.value ?? '').trim().toLocaleLowerCase('id-ID')
-  const result = products.value.filter((product) => {
+  const query = String(search.value ?? '')
+    .trim()
+    .toLocaleLowerCase('id-ID')
+  const result = products.value.filter(product => {
     const matchesCategory =
-      activeCategory.value === 'Semua' || product.category === activeCategory.value
+      activeCategory.value === 'Semua' ||
+      product.category === activeCategory.value
     const matchesSearch =
-      !query || `${product.code} ${product.name}`.toLocaleLowerCase('id-ID').includes(query)
+      !query ||
+      `${product.code} ${product.name}`
+        .toLocaleLowerCase('id-ID')
+        .includes(query)
     return matchesCategory && matchesSearch
   })
 
@@ -179,13 +220,15 @@ const filteredProducts = computed(() => {
       return sortBy.value === 'price_asc' ? order : -order
     }
 
-    const order = left.name.localeCompare(right.name, 'id', { sensitivity: 'base' })
+    const order = left.name.localeCompare(right.name, 'id', {
+      sensitivity: 'base'
+    })
     return sortBy.value === 'name_asc' ? order : -order
   })
 })
 
 function compareMoney(left, right) {
-  const toMinorUnits = (value) => {
+  const toMinorUnits = value => {
     const [whole = '0', fraction = ''] = String(value ?? '0').split('.')
     return BigInt(whole || '0') * 100n + BigInt(`${fraction}00`.slice(0, 2))
   }
@@ -199,7 +242,11 @@ onMounted(async () => {
   try {
     await loadCatalog({ force: true })
   } catch (error) {
-    $q.notify({ type: 'negative', message: displayApiError(error), position: 'top' })
+    $q.notify({
+      type: 'negative',
+      message: displayApiError(error),
+      position: 'top'
+    })
   }
 })
 
@@ -219,16 +266,28 @@ function openEditForm(product) {
 
 async function saveProductValue(product) {
   if (!product.categoryId) {
-    $q.notify({ type: 'negative', message: 'Buat atau aktifkan kategori terlebih dahulu.' })
+    $q.notify({
+      type: 'negative',
+      message: 'Buat atau aktifkan kategori terlebih dahulu.'
+    })
     return
   }
   try {
     savingProduct.value = true
     await saveProduct(product)
     formOpen.value = false
-    $q.notify({ type: 'positive', message: 'Menu tersimpan.', position: 'top', timeout: 1800 })
+    $q.notify({
+      type: 'positive',
+      message: 'Menu tersimpan.',
+      position: 'top',
+      timeout: 1800
+    })
   } catch (error) {
-    $q.notify({ type: 'negative', message: displayApiError(error), position: 'top' })
+    $q.notify({
+      type: 'negative',
+      message: displayApiError(error),
+      position: 'top'
+    })
   } finally {
     savingProduct.value = false
   }
@@ -239,25 +298,51 @@ async function saveCategoryValue(category) {
     savingCategory.value = true
     await saveCategory(category)
     categoryManagerRef.value?.closeForm()
-    $q.notify({ type: 'positive', message: 'Kategori tersimpan.', position: 'top', timeout: 1800 })
+    $q.notify({
+      type: 'positive',
+      message: 'Kategori tersimpan.',
+      position: 'top',
+      timeout: 1800
+    })
   } catch (error) {
-    $q.notify({ type: 'negative', message: displayApiError(error), position: 'top' })
+    $q.notify({
+      type: 'negative',
+      message: displayApiError(error),
+      position: 'top'
+    })
   } finally {
     savingCategory.value = false
   }
 }
 
 async function toggleCategoryValue(categoryId) {
-  try { await toggleCategory(categoryId) } catch (error) { $q.notify({ type: 'negative', message: displayApiError(error), position: 'top' }) }
+  try {
+    await toggleCategory(categoryId)
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: displayApiError(error),
+      position: 'top'
+    })
+  }
 }
 
 async function toggleAvailability(product) {
   const wasAvailable = product.available
   try {
     await toggleProductAvailability(product.id)
-    $q.notify({ type: 'info', message: wasAvailable ? 'Menu dinonaktifkan' : 'Menu diaktifkan kembali', position: 'top', timeout: 1800 })
+    $q.notify({
+      type: 'info',
+      message: wasAvailable ? 'Menu dinonaktifkan' : 'Menu diaktifkan kembali',
+      position: 'top',
+      timeout: 1800
+    })
   } catch (error) {
-    $q.notify({ type: 'negative', message: displayApiError(error), position: 'top' })
+    $q.notify({
+      type: 'negative',
+      message: displayApiError(error),
+      position: 'top'
+    })
   }
 }
 

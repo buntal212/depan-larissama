@@ -90,7 +90,8 @@ body {
   height: 36px;
   background-color: currentColor;
   mask: url('/icons/Larisama_logo_192x192.png') center / contain no-repeat;
-  -webkit-mask: url('/icons/Larisama_logo_192x192.png') center / contain no-repeat;
+  -webkit-mask: url('/icons/Larisama_logo_192x192.png') center / contain
+    no-repeat;
 }
 .store-copy {
   flex: 1;
@@ -1082,8 +1083,14 @@ body {
   gap: 2px;
 }
 
-.document-store-brand strong { font-size: 14px; }
-.document-store-brand span { color: #52645a; font-size: 11px; overflow-wrap: anywhere; }
+.document-store-brand strong {
+  font-size: 14px;
+}
+.document-store-brand span {
+  color: #52645a;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
 
 .document-info {
   flex: 0 1 45%;
@@ -1762,7 +1769,9 @@ body,
 }
 
 .receipt-store-header strong,
-.receipt-store-header b { font-size: inherit; }
+.receipt-store-header b {
+  font-size: inherit;
+}
 
 .receipt-store-header-lines {
   width: 100%;
@@ -1793,10 +1802,16 @@ body,
   white-space: pre;
 }
 
-.receipt-line--emphasis { font-weight: 700; }
-.receipt-line--muted { color: #333; }
+.receipt-line--emphasis {
+  font-weight: 700;
+}
+.receipt-line--muted {
+  color: #333;
+}
 .receipt-line--small,
-.receipt-header-line--small { font-size: 9px !important; }
+.receipt-header-line--small {
+  font-size: 9px !important;
+}
 
 .receipt-print-actions {
   display: flex;
@@ -1813,9 +1828,16 @@ body,
   gap: 8px;
 }
 
-.receipt-print-settings { flex: 1 1 240px; }
-.receipt-print-settings > * { flex: 1 1 120px; min-width: 0; }
-.receipt-print-buttons { justify-content: flex-end; }
+.receipt-print-settings {
+  flex: 1 1 240px;
+}
+.receipt-print-settings > * {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+.receipt-print-buttons {
+  justify-content: flex-end;
+}
 
 @media print {
   body.print-pos-receipt #q-app {
@@ -1833,10 +1855,18 @@ body,
     overflow: visible !important;
   }
 
-  body.print-pos-receipt.print-pos-receipt-58 { width: 58mm !important; }
-  body.print-pos-receipt.print-pos-receipt-80 { width: 80mm !important; }
-  body.print-pos-receipt.print-pos-receipt-58 { page: larisama-receipt-58; }
-  body.print-pos-receipt.print-pos-receipt-80 { page: larisama-receipt-80; }
+  body.print-pos-receipt.print-pos-receipt-58 {
+    width: 58mm !important;
+  }
+  body.print-pos-receipt.print-pos-receipt-80 {
+    width: 80mm !important;
+  }
+  body.print-pos-receipt.print-pos-receipt-58 {
+    page: larisama-receipt-58;
+  }
+  body.print-pos-receipt.print-pos-receipt-80 {
+    page: larisama-receipt-80;
+  }
 
   body.print-pos-receipt .receipt-dialog-card {
     position: static !important;
@@ -1877,7 +1907,9 @@ body,
     white-space: pre !important;
   }
 
-  body.print-pos-receipt .receipt-line--emphasis { font-weight: 700 !important; }
+  body.print-pos-receipt .receipt-line--emphasis {
+    font-weight: 700 !important;
+  }
   body.print-pos-receipt .receipt-store-header {
     display: flex !important;
     width: 100% !important;
@@ -1915,16 +1947,31 @@ body,
     white-space: pre !important;
   }
   body.print-pos-receipt .receipt-line--small,
-  body.print-pos-receipt .receipt-header-line--small { font-size: 9px !important; }
-  body.print-pos-receipt .receipt-print-actions { display: none !important; }
+  body.print-pos-receipt .receipt-header-line--small {
+    font-size: 9px !important;
+  }
+  body.print-pos-receipt .receipt-print-actions {
+    display: none !important;
+  }
 
-  @page larisama-receipt-58 { size: 58mm auto; margin: 0; }
-  @page larisama-receipt-80 { size: 80mm auto; margin: 0; }
+  @page larisama-receipt-58 {
+    size: 58mm auto;
+    margin: 0;
+  }
+  @page larisama-receipt-80 {
+    size: 80mm auto;
+    margin: 0;
+  }
 }
 
 @media (max-width: 520px) {
-  .receipt-print-buttons { justify-content: stretch; width: 100%; }
-  .receipt-print-buttons .q-btn { flex: 1 1 auto; }
+  .receipt-print-buttons {
+    justify-content: stretch;
+    width: 100%;
+  }
+  .receipt-print-buttons .q-btn {
+    flex: 1 1 auto;
+  }
 }
 
 .subscription-expiry-banner {
@@ -1932,9 +1979,15 @@ body,
   background: #fff3e1;
   color: #713d19;
 }
-.subscription-expiry-banner .q-banner__content { min-width: 0; }
+.subscription-expiry-banner .q-banner__content {
+  min-width: 0;
+}
 .subscription-expiry-copy,
-.subscription-ticker { width: 100%; min-width: 0; overflow: hidden; }
+.subscription-ticker {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
 .subscription-ticker-track {
   display: flex;
   width: max-content;
@@ -1958,10 +2011,21 @@ body,
   border: 0;
 }
 @keyframes subscription-ticker-scroll {
-  to { transform: translateX(-50%); }
+  to {
+    transform: translateX(-50%);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .subscription-ticker-track { display: block; width: auto; animation: none; }
-  .subscription-ticker-track span:first-child { display: block; white-space: normal; }
-  .subscription-ticker-track span:last-child { display: none; }
+  .subscription-ticker-track {
+    display: block;
+    width: auto;
+    animation: none;
+  }
+  .subscription-ticker-track span:first-child {
+    display: block;
+    white-space: normal;
+  }
+  .subscription-ticker-track span:last-child {
+    display: none;
+  }
 }

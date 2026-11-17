@@ -7,10 +7,28 @@
         <div class="panel-caption">{{ cartQuantity }} item dipilih</div>
       </div>
       <q-space />
-      <q-btn v-if="cart.length && !editing" flat round dense icon="delete_outline" color="grey-7" aria-label="Kosongkan pesanan" @click="$emit('clear')">
+      <q-btn
+        v-if="cart.length && !editing"
+        flat
+        round
+        dense
+        icon="delete_outline"
+        color="grey-7"
+        aria-label="Kosongkan pesanan"
+        @click="$emit('clear')"
+      >
         <q-tooltip>Kosongkan pesanan</q-tooltip>
       </q-btn>
-      <q-btn v-if="sheet" flat round dense icon="close" color="grey-7" aria-label="Tutup keranjang" @click="$emit('close')" />
+      <q-btn
+        v-if="sheet"
+        flat
+        round
+        dense
+        icon="close"
+        color="grey-7"
+        aria-label="Tutup keranjang"
+        @click="$emit('close')"
+      />
     </q-card-section>
     <q-separator />
     <q-card-section class="order-label-section">
@@ -26,18 +44,44 @@
       />
     </q-card-section>
     <q-separator />
-    <q-card-section v-if="cart.length" :class="['cart-items', { 'sheet-cart-items': sheet }]">
+    <q-card-section
+      v-if="cart.length"
+      :class="['cart-items', { 'sheet-cart-items': sheet }]"
+    >
       <div v-for="item in cart" :key="item.id" class="cart-item">
-        <div class="cart-item-icon" :class="`art-${item.color || 'mint'}`"><q-icon :name="item.freeForm ? 'edit_note' : (item.icon || 'restaurant')" /></div>
+        <div class="cart-item-icon" :class="`art-${item.color || 'mint'}`"
+          ><q-icon
+            :name="item.freeForm ? 'edit_note' : item.icon || 'restaurant'"
+        /></div>
         <div class="cart-item-copy">
           <div class="cart-item-name">{{ item.name }}</div>
-          <q-badge v-if="item.freeForm" class="q-mt-xs" color="orange-1" text-color="orange-10" label="Item lainnya" />
+          <q-badge
+            v-if="item.freeForm"
+            class="q-mt-xs"
+            color="orange-1"
+            text-color="orange-10"
+            label="Item lainnya"
+          />
           <div class="cart-item-price">{{ formatPrice(item.price) }}</div>
         </div>
         <div class="quantity-control">
-          <q-btn flat round dense icon="remove" aria-label="Kurangi jumlah" @click="$emit('change-quantity', item.id, -1)" />
+          <q-btn
+            flat
+            round
+            dense
+            icon="remove"
+            aria-label="Kurangi jumlah"
+            @click="$emit('change-quantity', item.id, -1)"
+          />
           <span>{{ item.quantity }}</span>
-          <q-btn flat round dense icon="add" aria-label="Tambah jumlah" @click="$emit('change-quantity', item.id, 1)" />
+          <q-btn
+            flat
+            round
+            dense
+            icon="add"
+            aria-label="Tambah jumlah"
+            @click="$emit('change-quantity', item.id, 1)"
+          />
         </div>
       </div>
     </q-card-section>
@@ -48,10 +92,16 @@
     </q-card-section>
     <q-separator />
     <q-card-section class="order-totals">
-      <div class="total-row"><span>Subtotal</span><strong>{{ formatPrice(subtotal) }}</strong></div>
-      <div class="total-row"><span>Pajak</span><span class="tax-note">Belum diterapkan</span></div>
+      <div class="total-row"
+        ><span>Subtotal</span><strong>{{ formatPrice(subtotal) }}</strong></div
+      >
+      <div class="total-row"
+        ><span>Pajak</span><span class="tax-note">Belum diterapkan</span></div
+      >
       <q-separator class="q-my-md" />
-      <div class="total-row grand-total"><span>Total</span><strong>{{ formatPrice(subtotal) }}</strong></div>
+      <div class="total-row grand-total"
+        ><span>Total</span><strong>{{ formatPrice(subtotal) }}</strong></div
+      >
       <q-btn
         unelevated
         no-caps
@@ -85,7 +135,9 @@
         :loading="saving"
         @click="$emit('save-edit')"
       />
-      <div class="demo-disclaimer">Nama menu dan harga akan divalidasi kembali oleh server.</div>
+      <div class="demo-disclaimer"
+        >Nama menu dan harga akan divalidasi kembali oleh server.</div
+      >
     </q-card-section>
   </q-card>
 </template>
@@ -100,11 +152,23 @@ defineProps({
   editing: { type: Boolean, default: false },
   hasChanges: { type: Boolean, default: false },
   saving: { type: Boolean, default: false },
-  reason: { type: String, default: '' },
+  reason: { type: String, default: '' }
 })
-defineEmits(['change-quantity', 'clear', 'close', 'checkout', 'save-edit', 'update:reason', 'update:order-label'])
+defineEmits([
+  'change-quantity',
+  'clear',
+  'close',
+  'checkout',
+  'save-edit',
+  'update:reason',
+  'update:order-label'
+])
 
 function formatPrice(value) {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value)
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0
+  }).format(value)
 }
 </script>

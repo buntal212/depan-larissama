@@ -2,7 +2,9 @@
   <q-card flat bordered class="summary-card">
     <q-card-section>
       <div class="summary-card-top">
-        <div class="summary-icon" :class="`tone-${tone}`"><q-icon :name="icon" /></div>
+        <div class="summary-icon" :class="`tone-${tone}`"
+          ><q-icon :name="icon"
+        /></div>
         <div class="summary-change" :class="changeTone">
           <q-icon :name="changeIcon" size="14px" />
           {{ change }}
@@ -24,6 +26,6 @@ defineProps({
   change: { type: String, required: true },
   tone: { type: String, default: 'green' },
   changeTone: { type: String, default: 'positive' },
-  changeIcon: { type: String, default: 'north_east' },
+  changeIcon: { type: String, default: 'north_east' }
 })
 </script>

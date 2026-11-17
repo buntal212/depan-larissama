@@ -17,7 +17,9 @@ function readToken() {
 function readSelectedWarung() {
   if (typeof window === 'undefined') return null
   try {
-    return JSON.parse(window.localStorage.getItem(SELECTED_WARUNG_KEY) || 'null')
+    return JSON.parse(
+      window.localStorage.getItem(SELECTED_WARUNG_KEY) || 'null'
+    )
   } catch {
     return null
   }
@@ -37,13 +39,13 @@ export const useAuthSessionStore = defineStore('auth-session', () => {
   function setTenantSelectionReady(value) {
     tenantSelectionReady.value = Boolean(value)
     if (!tenantSelectionReady.value) return
-    tenantSelectionWaiters.forEach((resolve) => resolve())
+    tenantSelectionWaiters.forEach(resolve => resolve())
     tenantSelectionWaiters = []
   }
 
   function waitForTenantSelectionReady() {
     if (tenantSelectionReady.value) return Promise.resolve()
-    return new Promise((resolve) => tenantSelectionWaiters.push(resolve))
+    return new Promise(resolve => tenantSelectionWaiters.push(resolve))
   }
 
   function setSelectedWarung(value) {
@@ -51,7 +53,8 @@ export const useAuthSessionStore = defineStore('auth-session', () => {
     selectedWarungId.value = value?.id ? String(value.id) : null
     if (user.value?.role === 'superadmin') warung.value = value || null
     if (typeof window !== 'undefined') {
-      if (value?.id) window.localStorage.setItem(SELECTED_WARUNG_KEY, JSON.stringify(value))
+      if (value?.id)
+        window.localStorage.setItem(SELECTED_WARUNG_KEY, JSON.stringify(value))
       else window.localStorage.removeItem(SELECTED_WARUNG_KEY)
     }
   }
@@ -60,7 +63,9 @@ export const useAuthSessionStore = defineStore('auth-session', () => {
     if (selectedWarungId.value) return selectedWarungId.value
     if (typeof window === 'undefined') return null
     try {
-      const id = JSON.parse(window.localStorage.getItem(SELECTED_WARUNG_KEY) || 'null')?.id
+      const id = JSON.parse(
+        window.localStorage.getItem(SELECTED_WARUNG_KEY) || 'null'
+      )?.id
       return id ? String(id) : null
     } catch {
       return null
@@ -71,18 +76,27 @@ export const useAuthSessionStore = defineStore('auth-session', () => {
     return token.value
   }
 
-  function setSession({ access_token: accessToken, user: sessionUser, warung: sessionWarung }) {
+  function setSession({
+    access_token: accessToken,
+    user: sessionUser,
+    warung: sessionWarung
+  }) {
     token.value = accessToken
     user.value = sessionUser
-    warung.value = sessionWarung || (sessionUser?.role === 'superadmin' ? selectedWarung.value : null)
+    warung.value =
+      sessionWarung ||
+      (sessionUser?.role === 'superadmin' ? selectedWarung.value : null)
     setTenantSelectionReady(sessionUser?.role !== 'superadmin')
     ready.value = true
-    if (typeof window !== 'undefined') window.localStorage.setItem(STORAGE_KEY, accessToken)
+    if (typeof window !== 'undefined')
+      window.localStorage.setItem(STORAGE_KEY, accessToken)
   }
 
   function updateSessionProfile({ user: sessionUser, warung: sessionWarung }) {
     user.value = sessionUser
-    warung.value = sessionWarung || (sessionUser?.role === 'superadmin' ? selectedWarung.value : null)
+    warung.value =
+      sessionWarung ||
+      (sessionUser?.role === 'superadmin' ? selectedWarung.value : null)
     setTenantSelectionReady(sessionUser?.role !== 'superadmin')
     ready.value = true
   }
@@ -116,15 +130,16 @@ export const useAuthSessionStore = defineStore('auth-session', () => {
     getAccessToken,
     setSession,
     updateSessionProfile,
-    clearSession,
+    clearSession
   }
 })
 
 // Keep existing service and page imports working while they use Pinia state.
 export const authSession = useAuthSessionStore(pinia)
-export const setSelectedWarung = (warung) => authSession.setSelectedWarung(warung)
+export const setSelectedWarung = warung => authSession.setSelectedWarung(warung)
 export const getSelectedWarungId = () => authSession.getSelectedWarungId()
 export const getAccessToken = () => authSession.getAccessToken()
-export const setSession = (session) => authSession.setSession(session)
-export const updateSessionProfile = (profile) => authSession.updateSessionProfile(profile)
+export const setSession = session => authSession.setSession(session)
+export const updateSessionProfile = profile =>
+  authSession.updateSessionProfile(profile)
 export const clearSession = () => authSession.clearSession()

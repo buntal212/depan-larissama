@@ -7,7 +7,7 @@ let reloadingForServiceWorkerUpdate = false
 function checkForServiceWorkerUpdate() {
   navigator.serviceWorker
     .getRegistration()
-    .then((registration) => registration?.update())
+    .then(registration => registration?.update())
     .catch(() => {})
 }
 
@@ -19,7 +19,10 @@ function reloadForServiceWorkerUpdate() {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.addEventListener('controllerchange', reloadForServiceWorkerUpdate)
+  navigator.serviceWorker.addEventListener(
+    'controllerchange',
+    reloadForServiceWorkerUpdate
+  )
   window.addEventListener('online', checkForServiceWorkerUpdate)
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') checkForServiceWorkerUpdate()
@@ -37,32 +40,35 @@ register(import.meta.env.QUASAR_SERVICE_WORKER_FILE, {
 
   // registrationOptions: { scope: './' },
 
-  ready (/* registration */) {
+  ready(/* registration */) {
     // console.log('Service worker is active.')
   },
 
-  registered (registration) {
+  registered(registration) {
     checkForServiceWorkerUpdate()
-    updateCheckTimer ??= window.setInterval(() => registration.update().catch(() => {}), UPDATE_CHECK_INTERVAL)
+    updateCheckTimer ??= window.setInterval(
+      () => registration.update().catch(() => {}),
+      UPDATE_CHECK_INTERVAL
+    )
   },
 
-  cached (/* registration */) {
+  cached(/* registration */) {
     // console.log('Content has been cached for offline use.')
   },
 
-  updatefound (/* registration */) {
+  updatefound(/* registration */) {
     // console.log('New content is downloading.')
   },
 
-  updated (/* registration */) {
+  updated(/* registration */) {
     // Service worker baru memicu controllerchange dan aplikasi dimuat ulang otomatis.
   },
 
-  offline () {
+  offline() {
     // console.log('No internet connection found. App is running in offline mode.')
   },
 
-  error (/* err */) {
+  error(/* err */) {
     // console.error('Error during service worker registration:', err)
   }
 })

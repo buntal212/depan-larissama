@@ -26,7 +26,7 @@ export default defineConfig((/* ctx */) => {
       // 'line-awesome',
 
       'roboto-font', // optional, you are not bound to it
-      'material-icons', // optional, you are not bound to it
+      'material-icons' // optional, you are not bound to it
     ],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#build
@@ -61,13 +61,14 @@ export default defineConfig((/* ctx */) => {
           'vite-plugin-checker',
           {
             eslint: {
-              lintCommand: 'eslint -c ./eslint.config.js "./src*/**/*.{js,mjs,cjs,vue}"',
-              useFlatConfig: true,
-            },
+              lintCommand:
+                'eslint -c ./eslint.config.js "./src*/**/*.{js,mjs,cjs,vue}"',
+              useFlatConfig: true
+            }
           },
-          { server: false },
-        ],
-      ],
+          { server: false }
+        ]
+      ]
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#devserver
@@ -77,7 +78,7 @@ export default defineConfig((/* ctx */) => {
       open: false,
       // PWA dan service worker diikat ke origin. Port khusus mencegah bentrok
       // dengan PWA proyek lain yang berjalan di localhost.
-      port: 9201,
+      port: 9201
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
@@ -95,7 +96,7 @@ export default defineConfig((/* ctx */) => {
       // directives: [],
 
       // Quasar plugins
-      plugins: ['Notify'],
+      plugins: ['Notify']
     },
 
     // animations: 'all', // --- includes all animations
@@ -123,8 +124,8 @@ export default defineConfig((/* ctx */) => {
        */
       prodPort: 3000,
       middlewares: [
-        'render', // keep this as last one
-      ],
+        'render' // keep this as last one
+      ]
 
       // clientSideRenderingRoutes: [],
       // noPreloadTagRoutes: [],
@@ -176,10 +177,10 @@ export default defineConfig((/* ctx */) => {
           {
             platform: 'webapp',
             url: '/manifest.json',
-            id: '/depan-larissama',
-          },
+            id: '/depan-larissama'
+          }
         ]
-      },
+      }
       // swFilename: 'sw.js',
       // manifestFilename: 'manifest.json',
       // extendPWAManifestJson (json) {},
@@ -196,7 +197,7 @@ export default defineConfig((/* ctx */) => {
 
     // https://v2.quasar.dev/quasar-cli-vite/developing-capacitor-apps/configuring-capacitor
     capacitor: {
-      hideSplashscreen: true,
+      hideSplashscreen: true
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/developing-electron-apps/configuring-electron
@@ -227,8 +228,8 @@ export default defineConfig((/* ctx */) => {
       builder: {
         // https://www.electron.build/configuration
 
-        appId: 'depan-larissama',
-      },
+        appId: 'depan-larissama'
+      }
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/developing-browser-extensions/configuring-bex
@@ -244,7 +245,7 @@ export default defineConfig((/* ctx */) => {
        *
        * @example [ 'my-script.ts', 'sub-folder/my-other-script.js' ]
        */
-      extraScripts: [],
-    },
+      extraScripts: []
+    }
   }
 })

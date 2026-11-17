@@ -1,8 +1,17 @@
 import { apiRequest } from '@/services/api.js'
-import { authSession, clearSession, setSession, updateSessionProfile } from '@/stores/auth-session.js'
+import {
+  authSession,
+  clearSession,
+  setSession,
+  updateSessionProfile
+} from '@/stores/auth-session.js'
 
 export async function login(credentials) {
-  const result = await apiRequest('auth/login', { method: 'POST', body: credentials, auth: false })
+  const result = await apiRequest('auth/login', {
+    method: 'POST',
+    body: credentials,
+    auth: false
+  })
   setSession(result.data)
   return result.data
 }

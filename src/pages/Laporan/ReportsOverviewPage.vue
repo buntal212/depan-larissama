@@ -4,7 +4,9 @@
       <div class="col">
         <div class="eyebrow">RINGKASAN WARUNG</div>
         <h1 class="page-title">Laporan</h1>
-        <p class="page-subtitle">Pilih jenis laporan dan periode yang ingin ditampilkan.</p>
+        <p class="page-subtitle"
+          >Pilih jenis laporan dan periode yang ingin ditampilkan.</p
+        >
       </div>
       <div class="col-auto"><q-chip class="demo-chip">Data server</q-chip></div>
     </div>
@@ -13,10 +15,22 @@
       <q-card-section>
         <div class="row q-col-gutter-md items-end">
           <div class="col-12 col-sm-5">
-            <q-input v-model="dateFrom" outlined dense type="date" label="Dari tanggal" />
+            <q-input
+              v-model="dateFrom"
+              outlined
+              dense
+              type="date"
+              label="Dari tanggal"
+            />
           </div>
           <div class="col-12 col-sm-5">
-            <q-input v-model="dateTo" outlined dense type="date" label="Sampai tanggal" />
+            <q-input
+              v-model="dateTo"
+              outlined
+              dense
+              type="date"
+              label="Sampai tanggal"
+            />
           </div>
           <div class="col-12 col-sm-2">
             <q-btn
@@ -34,7 +48,11 @@
       </q-card-section>
     </q-card>
 
-    <q-banner v-if="errors.length" rounded class="q-mb-lg bg-red-1 text-negative">
+    <q-banner
+      v-if="errors.length"
+      rounded
+      class="q-mb-lg bg-red-1 text-negative"
+    >
       <div v-for="message in errors" :key="message">{{ message }}</div>
     </q-banner>
 
@@ -49,7 +67,11 @@
             {{ salesReport ? formatPrice(salesReport.total_pendapatan) : '—' }}
           </div>
           <div class="panel-caption">
-            {{ salesReport ? salesReport.jumlah_transaksi + ' transaksi lunas' : reportHint }}
+            {{
+              salesReport
+                ? salesReport.jumlah_transaksi + ' transaksi lunas'
+                : reportHint
+            }}
           </div></q-card-section
         >
       </q-card>
@@ -60,9 +82,13 @@
         /></q-card-section>
         <q-card-section
           ><div class="report-total">
-            {{ salesReport ? formatPrice(salesReport.rata_rata_transaksi) : '—' }}
+            {{
+              salesReport ? formatPrice(salesReport.rata_rata_transaksi) : '—'
+            }}
           </div>
-          <div class="panel-caption">Rata-rata transaksi lunas</div></q-card-section
+          <div class="panel-caption"
+            >Rata-rata transaksi lunas</div
+          ></q-card-section
         >
       </q-card>
       <q-card flat bordered class="panel-card summary-card">
@@ -72,7 +98,9 @@
         /></q-card-section>
         <q-card-section
           ><div class="report-total">
-            {{ purchaseReport ? formatPrice(purchaseReport.total_pembelian) : '—' }}
+            {{
+              purchaseReport ? formatPrice(purchaseReport.total_pembelian) : '—'
+            }}
           </div>
           <div class="panel-caption">
             {{
@@ -90,10 +118,16 @@
         /></q-card-section>
         <q-card-section
           ><div class="report-total">
-            {{ unpaidReport ? formatPrice(unpaidReport.total_belum_lunas) : '—' }}
+            {{
+              unpaidReport ? formatPrice(unpaidReport.total_belum_lunas) : '—'
+            }}
           </div>
           <div class="panel-caption">
-            {{ unpaidReport ? unpaidReport.jumlah_pesanan + ' pesanan saat ini' : reportHint }}
+            {{
+              unpaidReport
+                ? unpaidReport.jumlah_pesanan + ' pesanan saat ini'
+                : reportHint
+            }}
           </div></q-card-section
         >
       </q-card>
@@ -105,13 +139,18 @@
         <div class="panel-caption">Nilai transaksi sebelum alokasi retur.</div>
       </q-card-section>
       <q-separator />
-      <q-card-section v-if="salesReport?.per_metode_pembayaran?.length" class="method-grid">
+      <q-card-section
+        v-if="salesReport?.per_metode_pembayaran?.length"
+        class="method-grid"
+      >
         <div
           v-for="method in salesReport.per_metode_pembayaran"
           :key="method.metode_pembayaran"
           class="method-card"
         >
-          <div class="method-name">{{ paymentLabel(method.metode_pembayaran) }}</div>
+          <div class="method-name">{{
+            paymentLabel(method.metode_pembayaran)
+          }}</div>
           <strong>{{ formatPrice(method.total_penjualan) }}</strong>
           <span>{{ method.jumlah_transaksi }} transaksi</span>
         </div>
@@ -125,25 +164,33 @@
       <q-card-section>
         <div class="panel-title">Tren penjualan harian</div>
         <div class="panel-caption">
-          Penjualan dikelompokkan menurut tanggal pembayaran; retur menurut tanggal pencatatan.
+          Penjualan dikelompokkan menurut tanggal pembayaran; retur menurut
+          tanggal pencatatan.
         </div>
       </q-card-section>
       <q-separator />
       <q-card-section v-if="dailyReport?.length" class="daily-grid">
-        <article v-for="day in dailyReport" :key="day.tanggal" class="daily-card">
+        <article
+          v-for="day in dailyReport"
+          :key="day.tanggal"
+          class="daily-card"
+        >
           <header>
             <strong>{{ formatDate(day.tanggal) }}</strong
             ><span>{{ day.jumlah_transaksi }} transaksi</span>
           </header>
           <div class="daily-values">
             <div>
-              <span>Penjualan</span><strong>{{ formatPrice(day.total_penjualan) }}</strong>
+              <span>Penjualan</span
+              ><strong>{{ formatPrice(day.total_penjualan) }}</strong>
             </div>
             <div>
-              <span>Retur</span><strong>{{ formatPrice(day.total_retur) }}</strong>
+              <span>Retur</span
+              ><strong>{{ formatPrice(day.total_retur) }}</strong>
             </div>
             <div class="daily-net">
-              <span>Pendapatan bersih</span><strong>{{ formatPrice(day.total_pendapatan) }}</strong>
+              <span>Pendapatan bersih</span
+              ><strong>{{ formatPrice(day.total_pendapatan) }}</strong>
             </div>
             <div>
               <span>Jumlah retur</span><strong>{{ day.jumlah_retur }}</strong>
@@ -152,7 +199,9 @@
         </article>
       </q-card-section>
       <q-card-section v-else class="panel-caption">{{
-        dailyReport ? 'Belum ada transaksi atau retur pada periode ini.' : reportHint
+        dailyReport
+          ? 'Belum ada transaksi atau retur pada periode ini.'
+          : reportHint
       }}</q-card-section>
     </q-card>
 
@@ -160,22 +209,26 @@
       <q-card-section>
         <div class="panel-title">Penjualan per item</div>
         <div class="panel-caption">
-          Menggunakan nama dan harga snapshot saat transaksi. Nilai item belum mengalokasikan diskon
-          transaksi atau retur.
+          Menggunakan nama dan harga snapshot saat transaksi. Nilai item belum
+          mengalokasikan diskon transaksi atau retur.
         </div>
       </q-card-section>
       <q-separator />
       <q-card-section v-if="itemReport?.length" class="item-grid">
         <article
           v-for="(item, index) in itemReport"
-          :key="item.menu_id || item.nama_item + '-' + item.harga_saat_transaksi + '-' + index"
+          :key="
+            item.menu_id ||
+            item.nama_item + '-' + item.harga_saat_transaksi + '-' + index
+          "
           class="item-card"
         >
           <div class="item-heading">
             <strong>{{ item.nama_item }}</strong
-            ><q-badge :color="item.jenis_item === 'menu' ? 'positive' : 'grey-7'">{{
-              item.jenis_item === 'menu' ? 'Menu' : 'Item bebas'
-            }}</q-badge>
+            ><q-badge
+              :color="item.jenis_item === 'menu' ? 'positive' : 'grey-7'"
+              >{{ item.jenis_item === 'menu' ? 'Menu' : 'Item bebas' }}</q-badge
+            >
           </div>
           <div class="item-values">
             <div>
@@ -186,7 +239,8 @@
               ><strong>{{ formatPrice(item.harga_saat_transaksi) }}</strong>
             </div>
             <div class="item-total">
-              <span>Nilai item</span><strong>{{ formatPrice(item.nilai_item) }}</strong>
+              <span>Nilai item</span
+              ><strong>{{ formatPrice(item.nilai_item) }}</strong>
             </div>
           </div>
         </article>
@@ -197,9 +251,9 @@
     </q-card>
 
     <q-banner rounded class="q-mt-lg bg-orange-1 text-grey-9">
-      Laporan ini menampilkan pendapatan penjualan dan pengeluaran secara terpisah. API belum
-      menyediakan harga pokok barang terjual atau klasifikasi pengeluaran, jadi angka ini bukan laba
-      rugi.
+      Laporan ini menampilkan pendapatan penjualan dan pengeluaran secara
+      terpisah. API belum menyediakan harga pokok barang terjual atau
+      klasifikasi pengeluaran, jadi angka ini bukan laba rugi.
     </q-banner>
   </q-page>
 </template>
@@ -210,7 +264,7 @@ import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
 import { authSession } from '@/stores/auth-session.js'
 
 const today = new Intl.DateTimeFormat('en-CA', {
-  timeZone: authSession.warung?.timezone || 'Asia/Jakarta',
+  timeZone: authSession.warung?.timezone || 'Asia/Jakarta'
 }).format(new Date())
 const dateFrom = ref(today)
 const dateTo = ref(today)
@@ -240,17 +294,22 @@ async function applyFilter() {
     larisamaApi.purchasesReport(dateFrom.value, dateTo.value),
     larisamaApi.unpaidSalesReport(dateFrom.value, dateTo.value),
     larisamaApi.dailySalesReport(dateFrom.value, dateTo.value),
-    larisamaApi.itemSalesReport(dateFrom.value, dateTo.value),
+    larisamaApi.itemSalesReport(dateFrom.value, dateTo.value)
   ])
   const [sales, purchases, unpaid, daily, items] = requests
   if (sales.status === 'fulfilled') salesReport.value = sales.value
   else errors.value.push('Laporan penjualan: ' + displayApiError(sales.reason))
   if (purchases.status === 'fulfilled') purchaseReport.value = purchases.value
-  else errors.value.push('Laporan pengeluaran: ' + displayApiError(purchases.reason))
+  else
+    errors.value.push(
+      'Laporan pengeluaran: ' + displayApiError(purchases.reason)
+    )
   if (unpaid.status === 'fulfilled') unpaidReport.value = unpaid.value
-  else errors.value.push('Pesanan belum lunas: ' + displayApiError(unpaid.reason))
+  else
+    errors.value.push('Pesanan belum lunas: ' + displayApiError(unpaid.reason))
   if (daily.status === 'fulfilled') dailyReport.value = daily.value.data || []
-  else errors.value.push('Tren penjualan harian: ' + displayApiError(daily.reason))
+  else
+    errors.value.push('Tren penjualan harian: ' + displayApiError(daily.reason))
   if (items.status === 'fulfilled') itemReport.value = items.value.data || []
   else errors.value.push('Penjualan per item: ' + displayApiError(items.reason))
   loading.value = false
@@ -262,19 +321,27 @@ function formatPrice(value) {
   const negative = source.startsWith('-')
   const [wholePart, fractionPart = '00'] = source.replace(/^-/, '').split('.')
   const whole = wholePart.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-  return 'Rp ' + (negative ? '-' : '') + whole + ',' + fractionPart.padEnd(2, '0').slice(0, 2)
+  return (
+    'Rp ' +
+    (negative ? '-' : '') +
+    whole +
+    ',' +
+    fractionPart.padEnd(2, '0').slice(0, 2)
+  )
 }
 
 function formatDate(value) {
   return value
     ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(
-        new Date(value + 'T00:00:00'),
+        new Date(value + 'T00:00:00')
       )
     : '—'
 }
 
 function paymentLabel(value) {
-  return { cash: 'Tunai', qris: 'QRIS', transfer: 'Transfer' }[value] || value || '—'
+  return (
+    { cash: 'Tunai', qris: 'QRIS', transfer: 'Transfer' }[value] || value || '—'
+  )
 }
 
 onMounted(applyFilter)

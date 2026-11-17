@@ -120,14 +120,22 @@ export default function registerIdleLogout() {
 
       scheduleLogout()
     },
-    { immediate: true },
+    { immediate: true }
   )
 
-  for (const eventName of ['click', 'keydown', 'pointerdown', 'pointermove', 'scroll', 'touchstart', 'wheel']) {
+  for (const eventName of [
+    'click',
+    'keydown',
+    'pointerdown',
+    'pointermove',
+    'scroll',
+    'touchstart',
+    'wheel'
+  ]) {
     document.addEventListener(eventName, recordActivity, { passive: true })
   }
 
-  window.addEventListener('storage', (event) => {
+  window.addEventListener('storage', event => {
     if (event.key !== LAST_ACTIVITY_KEY) return
 
     if (event.newValue === null) {

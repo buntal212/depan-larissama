@@ -25,16 +25,19 @@ const props = defineProps({
   min: { type: [Number, String], default: undefined },
   dense: { type: Boolean, default: false },
   disable: { type: Boolean, default: false },
-  outlined: { type: Boolean, default: true },
+  outlined: { type: Boolean, default: true }
 })
 const emit = defineEmits(['update:modelValue'])
 
 const displayValue = ref(formatCurrency(props.modelValue))
 const inputFocused = ref(false)
 
-watch(() => props.modelValue, (value) => {
-  if (!inputFocused.value) displayValue.value = formatCurrency(value)
-})
+watch(
+  () => props.modelValue,
+  value => {
+    if (!inputFocused.value) displayValue.value = formatCurrency(value)
+  }
+)
 
 function groupInteger(value) {
   return String(value || '').replace(/\B(?=(\d{3})+(?!\d))/g, ',')
@@ -50,8 +53,13 @@ function formatCurrency(value) {
 
 function updateDisplayValue(value) {
   const input = document.activeElement
-  const previousCaret = input instanceof HTMLInputElement ? input.selectionStart ?? String(value || '').length : String(value || '').length
-  const meaningfulBeforeCaret = String(value || '').slice(0, previousCaret).replace(/,/g, '').length
+  const previousCaret =
+    input instanceof HTMLInputElement
+      ? (input.selectionStart ?? String(value || '').length)
+      : String(value || '').length
+  const meaningfulBeforeCaret = String(value || '')
+    .slice(0, previousCaret)
+    .replace(/,/g, '').length
   const rawValue = String(value || '').replace(/[^\d.]/g, '')
   const [integerPart = '', ...decimalParts] = rawValue.split('.')
   const hasDecimal = rawValue.includes('.')
@@ -65,7 +73,10 @@ function updateDisplayValue(value) {
     if (!(input instanceof HTMLInputElement)) return
     let caret = 0
     let meaningfulCount = 0
-    while (caret < displayValue.value.length && meaningfulCount < meaningfulBeforeCaret) {
+    while (
+      caret < displayValue.value.length &&
+      meaningfulCount < meaningfulBeforeCaret
+    ) {
       if (displayValue.value[caret] !== ',') meaningfulCount += 1
       caret += 1
     }
@@ -81,7 +92,11 @@ function focusInput(event) {
 function normalizeDisplayValue() {
   inputFocused.value = false
   displayValue.value = formatCurrency(props.modelValue)
-  if (props.modelValue !== null && props.modelValue !== undefined && props.modelValue !== '') {
+  if (
+    props.modelValue !== null &&
+    props.modelValue !== undefined &&
+    props.modelValue !== ''
+  ) {
     emit('update:modelValue', Number(Number(props.modelValue).toFixed(2)))
   }
 }

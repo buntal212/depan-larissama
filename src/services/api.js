@@ -3,26 +3,25 @@ import {
   authSession,
   clearSession,
   getAccessToken,
-  getSelectedWarungId,
+  getSelectedWarungId
 } from '@/stores/auth-session.js'
 
-const API_BASE_URL = (import.meta.env.QCLI_API_BASE_URL || 'http://127.0.0.1:8000/api/v1').replace(
-  /\/+$/,
-  '',
-)
+const API_BASE_URL = (
+  import.meta.env.QCLI_API_BASE_URL || 'http://127.0.0.1:8000/api/v1'
+).replace(/\/+$/, '')
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: { Accept: 'application/json' },
   transformResponse: [
-    (data) => {
+    data => {
       if (typeof data !== 'string' || !data) return data
       try {
         return JSON.parse(data)
       } catch {
         return { message: data }
       }
-    },
-  ],
+    }
+  ]
 })
 
 let serverClockSnapshot = null
@@ -47,8 +46,13 @@ export class ApiError extends Error {
 export function getServerTimestamp() {
   if (!serverClockSnapshot) return null
   const monotonicNow = globalThis.performance?.now?.() ?? Date.now()
-  const elapsedMilliseconds = Math.max(0, monotonicNow - serverClockSnapshot.monotonicTime)
-  return new Date(serverClockSnapshot.timestamp + elapsedMilliseconds).toISOString()
+  const elapsedMilliseconds = Math.max(
+    0,
+    monotonicNow - serverClockSnapshot.monotonicTime
+  )
+  return new Date(
+    serverClockSnapshot.timestamp + elapsedMilliseconds
+  ).toISOString()
 }
 
 function captureServerClock(response) {
@@ -60,13 +64,13 @@ function captureServerClock(response) {
 
   serverClockSnapshot = {
     timestamp,
-    monotonicTime: globalThis.performance?.now?.() ?? Date.now(),
+    monotonicTime: globalThis.performance?.now?.() ?? Date.now()
   }
 }
 
 export async function apiRequest(
   path,
-  { method = 'GET', body, headers = {}, auth = true, idempotency = false } = {},
+  { method = 'GET', body, headers = {}, auth = true, idempotency = false } = {}
 ) {
   let requestPath = path
   let requestBody = body
@@ -75,13 +79,18 @@ export async function apiRequest(
     auth &&
     ['POST', 'PATCH'].includes(method) &&
     /^(users|kategori-menus|menus|penjualans|pembelians|pengeluarans|subscription-referrals|subscription-invoices|subscription)(?:\/|$)/.test(
-      resourcePath,
+      resourcePath
     )
   if (tenantWrite && authSession.user?.role === 'superadmin') {
     await authSession.waitForTenantSelectionReady()
     const selectedWarungId = getSelectedWarungId()
-    if (!selectedWarungId) throw new ApiError('Pilih warung terlebih dahulu untuk menyimpan data.')
-    if (typeof body === 'object' && body !== null && !(body instanceof FormData)) {
+    if (!selectedWarungId)
+      throw new ApiError('Pilih warung terlebih dahulu untuk menyimpan data.')
+    if (
+      typeof body === 'object' &&
+      body !== null &&
+      !(body instanceof FormData)
+    ) {
       requestBody = { ...body, warung_id: String(selectedWarungId) }
     }
     const queryParameters = new URLSearchParams(query)
@@ -93,28 +102,34 @@ export async function apiRequest(
     auth &&
     authSession.user?.role === 'superadmin' &&
     /^(users(?:\/|$)|kategori-menus(?:\/|$)|menus(?:\/|$)|penjualans(?:\/|$)|pembelians(?:\/|$)|pengeluarans(?:\/|$)|laporan\/|subscription-invoices(?:\/|$))/.test(
-      resourcePath,
+      resourcePath
     )
   if (tenantRead) {
     await authSession.waitForTenantSelectionReady()
     const warungId = getSelectedWarungId()
-    if (!warungId) throw new ApiError('Pilih warung terlebih dahulu untuk membaca datanya.')
+    if (!warungId)
+      throw new ApiError('Pilih warung terlebih dahulu untuk membaca datanya.')
     const queryParameters = new URLSearchParams(query)
     queryParameters.set('warung_id', warungId)
     requestPath = `${resourcePath}?${queryParameters}`
   }
   const requestHeaders = {
     Accept: 'application/json',
-    ...(headers instanceof Headers ? Object.fromEntries(headers.entries()) : headers),
+    ...(headers instanceof Headers
+      ? Object.fromEntries(headers.entries())
+      : headers)
   }
   const token = auth ? getAccessToken() : null
 
   if (token) requestHeaders.Authorization = `Bearer ${token}`
-  const isFormData = typeof FormData !== 'undefined' && requestBody instanceof FormData
+  const isFormData =
+    typeof FormData !== 'undefined' && requestBody instanceof FormData
   if (
     requestBody !== undefined &&
     !isFormData &&
-    !Object.keys(requestHeaders).some((key) => key.toLowerCase() === 'content-type')
+    !Object.keys(requestHeaders).some(
+      key => key.toLowerCase() === 'content-type'
+    )
   )
     requestHeaders['Content-Type'] = 'application/json'
   if (idempotency)
@@ -127,14 +142,17 @@ export async function apiRequest(
       url: requestPath.replace(/^\/+/, ''),
       method,
       headers: requestHeaders,
-      data: requestBody,
+      data: requestBody
     })
   } catch (error) {
     captureServerClock(error.response)
     if (!error.response) {
-      throw new ApiError('Tidak dapat terhubung ke server. Periksa alamat API dan koneksi.', {
-        payload: error,
-      })
+      throw new ApiError(
+        'Tidak dapat terhubung ke server. Periksa alamat API dan koneksi.',
+        {
+          payload: error
+        }
+      )
     }
     const payload = error.response.data
     if (error.response.status === 401 && auth) {
@@ -146,10 +164,15 @@ export async function apiRequest(
       if (payload?.code === 'SUBSCRIPTION_PAYMENT_REQUIRED') {
         if (authSession.user?.role === 'owner') {
           if (authSession.warung) {
-            authSession.warung = { ...authSession.warung, status_langganan: 'kedaluwarsa' }
+            authSession.warung = {
+              ...authSession.warung,
+              status_langganan: 'kedaluwarsa'
+            }
           }
           if (typeof window !== 'undefined')
-            window.dispatchEvent(new CustomEvent('larisama:subscription-payment-required'))
+            window.dispatchEvent(
+              new CustomEvent('larisama:subscription-payment-required')
+            )
         } else {
           clearSession()
           if (typeof window !== 'undefined')
@@ -162,13 +185,16 @@ export async function apiRequest(
           window.dispatchEvent(new CustomEvent('larisama:session-expired'))
       }
     }
-    throw new ApiError(payload?.message || `Permintaan gagal (${error.response.status}).`, {
-      status: error.response.status,
-      code: payload?.code,
-      errors: payload?.errors,
-      requestId: payload?.request_id,
-      payload,
-    })
+    throw new ApiError(
+      payload?.message || `Permintaan gagal (${error.response.status}).`,
+      {
+        status: error.response.status,
+        code: payload?.code,
+        errors: payload?.errors,
+        requestId: payload?.request_id,
+        payload
+      }
+    )
   }
 
   captureServerClock(response)
@@ -178,7 +204,8 @@ export async function apiRequest(
 export function listQuery(parameters = {}) {
   const query = new URLSearchParams()
   for (const [key, value] of Object.entries(parameters)) {
-    if (value !== undefined && value !== null && value !== '') query.set(key, String(value))
+    if (value !== undefined && value !== null && value !== '')
+      query.set(key, String(value))
   }
   const serializedQuery = query.toString()
   return serializedQuery ? `?${serializedQuery}` : ''
@@ -190,7 +217,9 @@ export async function getAllPages(path, parameters = {}) {
   let lastPage
 
   do {
-    const result = await apiRequest(`${path}${listQuery({ ...parameters, page, per_page: 100 })}`)
+    const result = await apiRequest(
+      `${path}${listQuery({ ...parameters, page, per_page: 100 })}`
+    )
     rows.push(...(Array.isArray(result?.data) ? result.data : []))
     lastPage = Number(result?.meta?.last_page || page)
     page += 1

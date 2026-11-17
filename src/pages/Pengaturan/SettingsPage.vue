@@ -3,7 +3,10 @@
     <header class="page-heading settings-heading">
       <div>
         <h1 class="page-title">Pengaturan</h1>
-        <p class="page-subtitle">Profil warung, akun pengguna, pembayaran langganan Larisama, dan perangkat kasir.</p>
+        <p class="page-subtitle"
+          >Profil warung, akun pengguna, pembayaran langganan Larisama, dan
+          perangkat kasir.</p
+        >
       </div>
     </header>
 
@@ -55,31 +58,46 @@ const tabs = computed(() => {
         name: 'pembayaran',
         label: 'Pembayaran Larisama',
         icon: 'payments',
-        to: '/pengaturan/pembayaran',
-      },
+        to: '/pengaturan/pembayaran'
+      }
     ]
   }
 
   const visibleTabs = []
   if (['owner', 'manager', 'kasir'].includes(role)) {
-    visibleTabs.push({ name: 'profile', label: 'Profil warung', icon: 'storefront', to: '/pengaturan/profil' })
+    visibleTabs.push({
+      name: 'profile',
+      label: 'Profil warung',
+      icon: 'storefront',
+      to: '/pengaturan/profil'
+    })
   }
   if (role === 'owner' || role === 'superadmin') {
-    visibleTabs.push({ name: 'users', label: 'Pengguna', icon: 'group', to: '/pengaturan/pengguna' })
+    visibleTabs.push({
+      name: 'users',
+      label: 'Pengguna',
+      icon: 'group',
+      to: '/pengaturan/pengguna'
+    })
   }
   if (role === 'owner' || role === 'superadmin') {
     visibleTabs.push({
       name: 'pembayaran',
       label: 'Pembayaran Larisama',
       icon: 'payments',
-      to: '/pengaturan/pembayaran',
+      to: '/pengaturan/pembayaran'
     })
   }
-  visibleTabs.push({ name: 'printer', label: 'Printer', icon: 'print', to: '/pengaturan/printer' })
+  visibleTabs.push({
+    name: 'printer',
+    label: 'Printer',
+    icon: 'print',
+    to: '/pengaturan/printer'
+  })
   return visibleTabs
 })
 const activeTab = computed(() => {
-  const tab = tabs.value.find((entry) => entry.to === route.path)
+  const tab = tabs.value.find(entry => entry.to === route.path)
   return tab?.name || tabs.value[0]?.name || 'printer'
 })
 

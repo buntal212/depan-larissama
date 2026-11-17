@@ -26,5 +26,8 @@ export default function registerPrinterReconnect() {
   // user must sign in again after a reload. Login triggers another check.
   reconnectAutomatically()
   watch(() => authSession.token, reconnectAfterLogin)
-  window.addEventListener('larisama:printer-disconnected', reconnectAfterDisconnect)
+  window.addEventListener(
+    'larisama:printer-disconnected',
+    reconnectAfterDisconnect
+  )
 }
