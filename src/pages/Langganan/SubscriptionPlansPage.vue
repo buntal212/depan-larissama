@@ -8,7 +8,7 @@
         <h2 class="page-title">Pembayaran Larisama</h2>
         <p class="page-subtitle"
           >Paket langganan, invoice, dan status pembayaran terintegrasi UDEV &
-          Midtrans.</p
+          DANA.</p
         >
       </div>
       <div class="col-auto">
@@ -70,6 +70,33 @@
     >
       Masa aktif warung telah habis. Halaman pembayaran tetap bisa digunakan
       selama masa tenggang.
+    </q-banner>
+
+    <!-- Banner Tagihan Pending Aktif -->
+    <q-banner
+      v-if="latestPendingInvoice"
+      rounded
+      class="bg-blue-1 text-primary q-mb-lg"
+    >
+      <template #avatar><q-icon name="receipt_long" color="primary" /></template>
+      <div class="row items-center justify-between full-width">
+        <div>
+          <div class="text-weight-bold">
+            Tagihan Menunggu Pembayaran: {{ latestPendingInvoice.invoice_number }}
+          </div>
+          <div class="text-caption text-grey-8 q-mt-xs">
+            Paket {{ latestPendingInvoice.plan?.name || latestPendingInvoice.plan?.code || 'Langganan' }} · Total {{ formatPlanPrice(latestPendingInvoice.pricing?.final_price || latestPendingInvoice.amount, latestPendingInvoice.pricing?.currency) }}
+          </div>
+        </div>
+        <q-btn
+          unelevated
+          no-caps
+          color="primary"
+          icon="payment"
+          label="Lanjutkan Pembayaran (DANA)"
+          @click="goToCheckout(latestPendingInvoice.invoice_number)"
+        />
+      </div>
     </q-banner>
     <q-banner
       v-if="errorMessage && !isCustomerSyncNotReady"
@@ -156,8 +183,8 @@
         <div>
           <h2>Invoice dan pembayaran</h2>
           <p
-            >Status invoice dibaca langsung dari UDEV Billing & Midtrans
-            Gateway.</p
+            >Status invoice dibaca langsung dari UDEV Billing & Gateway
+            DANA.</p
           >
         </div>
         <div class="row items-center q-gutter-sm">
@@ -387,33 +414,16 @@
                   </span>
                 </div>
 
-                <!-- Metode Pembayaran Midtrans -->
+                <!-- Metode Pembayaran DANA -->
                 <div class="row justify-between text-body2">
-                  <span class="text-grey-7">Metode Pembayaran (Midtrans)</span>
-                  <span class="text-primary text-weight-medium">{{
-                    currentMethodName(invoice)
-                  }}</span>
+                  <span class="text-grey-7">Metode Pembayaran</span>
+                  <span class="text-primary text-weight-medium">QRIS (DANA)</span>
                 </div>
 
-                <!-- Biaya Admin Midtrans -->
+                <!-- Biaya Admin DANA -->
                 <div class="row justify-between text-body2">
-                  <span class="text-grey-7">
-                    Biaya Admin Midtrans
-                    {{ getInvoiceFeePercentOrType(invoice) }}
-                  </span>
-                  <span
-                    :class="
-                      getInvoiceAdminFee(invoice) > 0
-                        ? 'text-orange-9 text-weight-bold'
-                        : 'text-grey-8'
-                    "
-                  >
-                    {{
-                      getInvoiceAdminFee(invoice) > 0
-                        ? `+ ${formatPlanPrice(getInvoiceAdminFee(invoice), invoice.pricing?.currency)}`
-                        : 'Rp 0'
-                    }}
-                  </span>
+                  <span class="text-grey-7">Biaya Admin (DANA QRIS)</span>
+                  <span class="text-positive text-weight-medium">Rp 0 (Gratis)</span>
                 </div>
               </div>
 
@@ -427,18 +437,8 @@
                     style="letter-spacing: 0.05em"
                     >TOTAL PEMBAYARAN</div
                   >
-                  <div
-                    v-if="getInvoiceAdminFee(invoice) > 0"
-                    class="text-caption text-grey-7"
-                    style="font-size: 11px"
-                  >
-                    Termasuk biaya admin
-                    {{
-                      formatPlanPrice(
-                        getInvoiceAdminFee(invoice),
-                        invoice.pricing?.currency
-                      )
-                    }}
+                  <div class="text-caption text-grey-7" style="font-size: 11px">
+                    Bebas biaya admin (Ditanggung merchant)
                   </div>
                 </div>
                 <div class="text-h6 text-weight-bolder text-primary">
@@ -494,337 +494,43 @@
               </div>
             </div>
 
-            <!-- Bagian Checkout Pembayaran Pending -->
+            <!-- Tombol Aksi Invoice Card -->
             <div
               v-if="invoice.status === 'pending'"
-              class="row q-gutter-sm q-mt-md"
+              class="row items-center q-gutter-sm q-mt-md"
             >
-              <q-select
-                class="payment-method-select"
-                :model-value="paymentMethod(invoice)"
-                :options="paymentMethodOptions"
-                dense
-                outlined
-                emit-value
-                map-options
-                color="blue-grey-8"
-                bg-color="blue-grey-1"
-                label="Metode pembayaran (Midtrans)"
-                :disable="checkingOut === invoice.invoice_number"
-                @update:model-value="
-                  method => selectPaymentMethod(invoice, method)
-                "
-              />
               <q-btn
                 color="primary"
                 unelevated
                 no-caps
                 icon="payment"
-                :label="checkoutButtonLabel(invoice)"
-                :loading="checkingOut === invoice.invoice_number"
-                :disable="
-                  Boolean(checkingOut) || checkoutMatchesSelection(invoice)
-                "
-                @click="prepareCheckout(invoice)"
-              />
-              <q-btn
-                v-if="
-                  (actualPaymentMethod(invoice) === 'gopay' ||
-                    Boolean(invoice.payment?.checkout_url)) &&
-                  actualPaymentMethod(invoice) !== 'qris' &&
-                  hasActiveCheckout(invoice)
-                "
-                outline
-                color="primary"
-                no-caps
-                icon="open_in_new"
-                label="Buka pembayaran GoPay"
-                :href="invoice.payment.checkout_url"
-                target="_blank"
-                rel="noopener noreferrer"
+                label="Bayar Sekarang (DANA)"
+                @click="goToCheckout(invoice.invoice_number)"
               />
               <q-btn
                 flat
                 color="primary"
                 no-caps
-                label="Cek sekarang"
+                icon="sync"
+                label="Periksa Status"
                 :loading="checkingStatus === invoice.invoice_number"
                 @click="refreshInvoice(invoice.invoice_number)"
               />
             </div>
-
-            <!-- Peringatan checkout kedaluwarsa -->
             <div
-              v-if="invoice.status === 'pending' && isCheckoutExpired(invoice)"
-              class="text-caption text-negative q-mt-sm row items-center q-gutter-xs"
+              v-else-if="invoice.status === 'paid'"
+              class="row items-center q-gutter-sm q-mt-md"
             >
-              <q-icon name="warning" size="16px" />
-              <span
-                >Sesi pembayaran ini telah kedaluwarsa. Silakan pilih metode
-                lalu klik tombol untuk menyiapkan sesi baru.</span
-              >
-            </div>
-
-            <!-- Keterangan penggantian metode checkout -->
-            <div
-              v-else-if="
-                invoice.payment?.status === 'pending' &&
-                hasActiveCheckout(invoice) &&
-                paymentMethod(invoice) !== actualPaymentMethod(invoice)
-              "
-              class="text-caption text-orange-9 q-mt-sm"
-            >
-              Checkout aktif dari Midtrans menggunakan
-              {{ paymentMethodLabel(actualPaymentMethod(invoice)) }}. Menyiapkan
-              {{ paymentMethodLabel(paymentMethod(invoice)) }} akan memperbarui
-              sesi pembayaran tersebut.
-            </div>
-            <div
-              v-else-if="
-                invoice.payment?.status === 'pending' &&
-                paymentMethod(invoice) !== actualPaymentMethod(invoice)
-              "
-              class="text-caption text-orange-9 q-mt-sm"
-            >
-              Checkout lama akan diganti setelah metode baru disiapkan.
-            </div>
-
-            <!-- Panel QRIS -->
-            <div
-              v-if="
-                actualPaymentMethod(invoice) === 'qris' &&
-                hasActiveCheckout(invoice) &&
-                (qrContent(invoice) || qrImageUrl(invoice))
-              "
-              class="qris-panel q-mt-md"
-            >
-              <img
-                v-if="
-                  qrCodeImages[invoice.invoice_number] || qrImageUrl(invoice)
-                "
-                :src="
-                  qrCodeImages[invoice.invoice_number] || qrImageUrl(invoice)
-                "
-                :alt="`Kode QRIS untuk invoice ${invoice.invoice_number}`"
-                class="qris-image"
-              />
-              <q-spinner
-                v-else-if="!qrCodeErrors[invoice.invoice_number]"
-                color="primary"
-                size="28px"
-              />
-              <div class="qris-instructions">
-                <strong>Bayar dengan QRIS (Midtrans)</strong>
-                <div class="text-caption text-weight-bold text-primary">
-                  Total Bayar:
-                  {{
-                    formatPlanPrice(
-                      getInvoiceTotalPayable(invoice),
-                      invoice.pricing?.currency
-                    )
-                  }}
-                </div>
-                <span
-                  >Scan kode QR ini menggunakan BCA Mobile, Mandiri Livin,
-                  GoPay, OVO, ShopeePay, DANA, LinkAja, atau aplikasi pembayaran
-                  apa pun yang mendukung QRIS.</span
-                >
-                <span v-if="invoice.payment?.checkout_expires_at">
-                  Berlaku sampai
-                  {{ formatDate(invoice.payment.checkout_expires_at) }}
-                </span>
-                <span
-                  v-if="
-                    qrCodeErrors[invoice.invoice_number] && !qrImageUrl(invoice)
-                  "
-                  class="text-negative"
-                >
-                  Kode QR belum dapat ditampilkan. Coba muat ulang halaman atau
-                  periksa kode pembayaran di bawah.
-                </span>
-              </div>
-            </div>
-
-            <!-- Panel Kode Pembayaran (QRIS Text Fallback) -->
-            <div
-              v-if="
-                actualPaymentMethod(invoice) === 'qris' &&
-                hasActiveCheckout(invoice) &&
-                paymentCode(invoice) &&
-                !qrContent(invoice) &&
-                !qrImageUrl(invoice)
-              "
-              class="payment-code-panel q-mt-md"
-            >
-              <div class="payment-code-heading">
-                <strong>Kode pembayaran QRIS</strong>
-                <span
-                  >Payload QR belum terverifikasi; kode tetap tersedia untuk
-                  digunakan sesuai instruksi gateway.</span
-                >
-              </div>
-              <code class="payment-code-value">{{ paymentCode(invoice) }}</code>
-              <div v-if="paymentInstructionMessage(invoice)" class="text-body2">
-                {{ paymentInstructionMessage(invoice) }}
-              </div>
-              <div
-                v-if="invoice.payment?.checkout_expires_at"
-                class="text-caption text-grey-7"
-              >
-                Berlaku sampai
-                {{ formatDate(invoice.payment.checkout_expires_at) }}
-              </div>
               <q-btn
                 outline
+                dense
                 no-caps
-                color="blue-grey-8"
-                icon="content_copy"
-                label="Salin kode"
-                @click="copyPaymentCode(invoice)"
+                size="sm"
+                color="primary"
+                icon="receipt_long"
+                label="Lihat Rincian Pembayaran"
+                :to="`/pengaturan/pembayaran/checkout/${invoice.invoice_number}`"
               />
-            </div>
-
-            <!-- Panel Virtual Account (Midtrans BCA, BNI, BRI, Mandiri, Permata) -->
-            <div
-              v-if="
-                isVirtualAccount(actualPaymentMethod(invoice)) &&
-                hasActiveCheckout(invoice)
-              "
-              class="payment-code-panel virtual-account-panel q-mt-md"
-            >
-              <div class="payment-code-heading">
-                <strong>{{ paymentInstructionLabel(invoice) }}</strong>
-                <div class="text-caption text-weight-bold text-primary">
-                  Total Transfer:
-                  {{
-                    formatPlanPrice(
-                      getInvoiceTotalPayable(invoice),
-                      invoice.pricing?.currency
-                    )
-                  }}
-                </div>
-                <span
-                  >Transfer tepat sesuai nominal tagihan sesuai instruksi di
-                  bawah:</span
-                >
-              </div>
-
-              <!-- Special Display for Mandiri Bill Payment (Biller Code + Bill Key) -->
-              <div
-                v-if="paymentInstruction(invoice).biller_code"
-                class="mandiri-code-container q-gutter-y-sm"
-              >
-                <div class="row items-center q-gutter-sm">
-                  <span class="text-caption text-grey-8 text-weight-medium"
-                    >Kode Perusahaan (Biller Code):</span
-                  >
-                  <code class="payment-code-value">{{
-                    paymentInstruction(invoice).biller_code
-                  }}</code>
-                  <q-btn
-                    outline
-                    dense
-                    no-caps
-                    size="sm"
-                    color="blue-grey-8"
-                    icon="content_copy"
-                    label="Salin"
-                    @click="
-                      copyText(
-                        paymentInstruction(invoice).biller_code,
-                        'Kode perusahaan'
-                      )
-                    "
-                  />
-                </div>
-                <div class="row items-center q-gutter-sm">
-                  <span class="text-caption text-grey-8 text-weight-medium"
-                    >Nomor Tagihan (Bill Key):</span
-                  >
-                  <code class="payment-code-value">{{
-                    paymentCode(invoice)
-                  }}</code>
-                  <q-btn
-                    outline
-                    dense
-                    no-caps
-                    size="sm"
-                    color="blue-grey-8"
-                    icon="content_copy"
-                    label="Salin"
-                    @click="copyText(paymentCode(invoice), 'Nomor tagihan')"
-                  />
-                </div>
-              </div>
-
-              <!-- Standard Virtual Account (BCA, BNI, BRI, Permata) -->
-              <div v-else class="virtual-account-number">
-                <code class="payment-code-value">{{
-                  paymentCode(invoice)
-                }}</code>
-                <q-btn
-                  outline
-                  no-caps
-                  color="blue-grey-8"
-                  icon="content_copy"
-                  label="Salin nomor VA"
-                  @click="copyPaymentCode(invoice)"
-                />
-              </div>
-
-              <div
-                v-if="paymentInstructionMessage(invoice)"
-                class="text-body2 q-mt-xs"
-              >
-                {{ paymentInstructionMessage(invoice) }}
-              </div>
-              <div
-                v-if="invoice.payment?.checkout_expires_at"
-                class="text-caption text-grey-7"
-              >
-                Berlaku sampai
-                {{ formatDate(invoice.payment.checkout_expires_at) }}
-              </div>
-            </div>
-
-            <!-- Pesan status lainnya -->
-            <div
-              v-if="
-                invoice.status === 'pending' &&
-                invoice.payment?.checkout_status === 'ready' &&
-                !qrContent(invoice) &&
-                !qrImageUrl(invoice) &&
-                !paymentCode(invoice) &&
-                !invoice.payment?.checkout_url
-              "
-              class="text-caption text-negative q-mt-sm"
-            >
-              Gateway menandai checkout siap tetapi belum mengirim instruksi
-              pembayaran. Muat ulang status atau hubungi admin.
-            </div>
-            <div
-              v-if="invoice.payment?.checkout_status === 'processing'"
-              class="text-caption text-orange-9 q-mt-sm"
-            >
-              Checkout sedang disiapkan. Status akan diperiksa lagi.
-            </div>
-            <div
-              v-if="invoice.payment?.checkout_status === 'failed'"
-              class="text-caption text-negative q-mt-sm"
-            >
-              Gateway gagal menyiapkan sesi pembayaran. QR atau nomor pembayaran
-              belum tersedia; klik tombol coba lagi. Jika berulang, admin perlu
-              memeriksa log gateway.
-            </div>
-            <div
-              v-if="
-                invoice.status === 'paid' &&
-                invoice.tracking?.settlement_status !== 'completed'
-              "
-              class="text-caption text-orange-9 q-mt-sm"
-            >
-              Pembayaran diterima gateway; pemrosesan masa aktif masih
-              berlangsung.
             </div>
           </q-card-section>
         </q-card>
@@ -956,7 +662,7 @@
             rounded
             class="bg-red-1 text-negative q-mb-md"
           >
-            Preview periode: {{ previewError }}
+            {{ previewError }}
           </q-banner>
           <div class="row justify-between q-mb-sm">
             <span>Paket</span><strong>{{ preview.plan?.name }}</strong>
@@ -989,11 +695,11 @@
             }}</strong>
           </div>
           <div
-            v-if="preview.pricing?.discount_amount !== '0.00'"
-            class="row justify-between q-mb-sm"
+            v-if="Number(preview.pricing?.discount_amount || 0) > 0"
+            class="row justify-between q-mb-sm text-positive"
           >
             <span>Diskon</span
-            ><strong>{{
+            ><strong>-{{
               formatPlanPrice(
                 preview.pricing?.discount_amount,
                 preview.pricing?.currency
@@ -1026,6 +732,7 @@
             :disable="
               refreshingPreview ||
               Boolean(previewError) ||
+              !isPricingConsistent ||
               (Boolean(referralCode.trim()) && !referralLocked)
             "
             @click="createInvoice"
@@ -1038,68 +745,23 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import QRCode from 'qrcode'
 import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
 import { newIdempotencyKey } from '@/services/api.js'
 import { authSession } from '@/stores/auth-session.js'
 
-const defaultMidtransPaymentMethods = [
+const router = useRouter()
+
+const defaultDanaPaymentMethods = [
   {
-    label: 'QRIS (Biaya admin 0,7%)',
+    label: 'QRIS (DANA)',
     value: 'qris',
-    fee_type: 'percent',
-    fee_rate: 0.7,
+    fee_type: 'fixed',
+    fee_rate: 0,
     fixed_amount: 0,
-    fee_label: '0,7%'
-  },
-  {
-    label: 'Virtual Account BCA (Biaya admin Rp 4.000)',
-    value: 'va_bca',
-    fee_type: 'fixed',
-    fee_rate: 0,
-    fixed_amount: 4000,
-    fee_label: 'Rp 4.000'
-  },
-  {
-    label: 'Virtual Account BNI (Biaya admin Rp 4.000)',
-    value: 'va_bni',
-    fee_type: 'fixed',
-    fee_rate: 0,
-    fixed_amount: 4000,
-    fee_label: 'Rp 4.000'
-  },
-  {
-    label: 'Virtual Account BRI (Biaya admin Rp 4.000)',
-    value: 'va_bri',
-    fee_type: 'fixed',
-    fee_rate: 0,
-    fixed_amount: 4000,
-    fee_label: 'Rp 4.000'
-  },
-  {
-    label: 'Mandiri Bill Payment (Biaya admin Rp 4.000)',
-    value: 'va_mandiri',
-    fee_type: 'fixed',
-    fee_rate: 0,
-    fixed_amount: 4000,
-    fee_label: 'Rp 4.000'
-  },
-  {
-    label: 'Virtual Account Permata (Biaya admin Rp 4.000)',
-    value: 'va_permata',
-    fee_type: 'fixed',
-    fee_rate: 0,
-    fixed_amount: 4000,
-    fee_label: 'Rp 4.000'
-  },
-  {
-    label: 'GoPay (Biaya admin 2%)',
-    value: 'gopay',
-    fee_type: 'percent',
-    fee_rate: 2.0,
-    fixed_amount: 0,
-    fee_label: '2%'
+    fee_label: 'Rp 0'
   }
 ]
 
@@ -1114,19 +776,74 @@ const refreshingInvoices = ref(false)
 const creatingInvoice = ref(false)
 const previewingPlan = ref('')
 const refreshingPreview = ref(false)
-const checkingOut = ref('')
 const checkingStatus = ref('')
 const errorMessage = ref('')
 const previewDialog = ref(false)
 const preview = ref(null)
 const previewError = ref('')
+
+const isPricingConsistent = computed(() => {
+  if (!preview.value?.pricing) return true
+  const pricing = preview.value.pricing
+  const normalPrice = Number(pricing.normal_price)
+  const discountAmount = Number(pricing.discount_amount || 0)
+  const finalPrice = Number(pricing.final_price)
+  const unitPrice =
+    pricing.unit_price !== undefined ? Number(pricing.unit_price) : null
+  const periods = Number(
+    pricing.period_count ||
+      preview.value.plan?.period_count ||
+      periodCount.value ||
+      1
+  )
+
+  if (
+    Number.isNaN(normalPrice) ||
+    Number.isNaN(discountAmount) ||
+    Number.isNaN(finalPrice)
+  ) {
+    return false
+  }
+
+  if (normalPrice < 0 || discountAmount < 0 || finalPrice < 0 || periods < 1) {
+    return false
+  }
+
+  if (discountAmount > normalPrice) {
+    return false
+  }
+
+  if (unitPrice !== null && !Number.isNaN(unitPrice) && unitPrice >= 0) {
+    if (Math.abs(unitPrice * periods - normalPrice) >= 0.01) {
+      return false
+    }
+  }
+
+  const expectedFinal = normalPrice - discountAmount
+  if (Math.abs(expectedFinal - finalPrice) >= 0.01) {
+    return false
+  }
+
+  return true
+})
+
+function checkPricingConsistency() {
+  if (!preview.value?.pricing) return
+  if (!isPricingConsistent.value) {
+    previewError.value =
+      'Rincian harga dari UDEV tidak konsisten secara matematis (Harga normal dikurangi diskon tidak sama dengan total invoice). Pembuatan invoice diblokir.'
+  }
+}
 const selectedPlan = ref(null)
 const periodCount = ref(1)
 const periodOptions = Array.from({ length: 12 }, (_, index) => {
   const count = index + 1
   return { label: `${count} bulan (${count * 30} hari)`, value: count }
 })
-const paymentMethodOptions = ref(defaultMidtransPaymentMethods)
+const paymentMethodOptions = ref(defaultDanaPaymentMethods)
+const latestPendingInvoice = computed(
+  () => invoices.value.find(i => i.status === 'pending') || null
+)
 const referralCode = ref('')
 const referralValidation = ref(null)
 const referralLocked = ref(false)
@@ -1350,48 +1067,12 @@ function calculateCrc16(value) {
   return crc.toString(16).padStart(4, '0').toUpperCase()
 }
 
-function paymentInstructionMessage(invoice) {
-  const instruction = paymentInstruction(invoice)
-  return instruction.message || ''
-}
-
-function paymentInstructionLabel(invoice) {
-  const instruction = paymentInstruction(invoice)
-  if (instruction.bank) {
-    return instruction.bank.toUpperCase() === 'MANDIRI'
-      ? 'Mandiri Bill Payment'
-      : `Virtual Account ${instruction.bank}`
-  }
-  return instruction.label || paymentMethodLabel(actualPaymentMethod(invoice))
-}
-
 function isVirtualAccount(method) {
   return (
     typeof method === 'string' &&
     (method.startsWith('va_') ||
       method === 'bank_transfer' ||
       method === 'echannel')
-  )
-}
-
-async function copyText(text, label = 'Teks') {
-  try {
-    await navigator.clipboard.writeText(String(text || ''))
-    $q.notify({ type: 'positive', message: `${label} berhasil disalin.` })
-  } catch {
-    $q.notify({
-      type: 'warning',
-      message: `Salin ${label.toLowerCase()} secara manual.`
-    })
-  }
-}
-
-async function copyPaymentCode(invoice) {
-  const instruction = paymentInstruction(invoice)
-  const isMandiri = Boolean(instruction.biller_code)
-  await copyText(
-    paymentCode(invoice),
-    isMandiri ? 'Nomor tagihan' : 'Nomor pembayaran'
   )
 }
 
@@ -1410,28 +1091,6 @@ function actualPaymentMethod(invoice) {
   if (qrContent(invoice) || qrImageUrl(invoice)) return 'qris'
   if (invoice.payment?.checkout_url) return 'gopay'
   return ''
-}
-
-function paymentMethodLabel(method) {
-  return (
-    paymentMethodOptions.value.find(option => option.value === method)?.label ||
-    (method === 'echannel' ? 'Mandiri Bill Payment' : 'Metode pembayaran')
-  )
-}
-
-function selectPaymentMethod(invoice, method) {
-  if (!paymentMethodOptions.value.some(option => option.value === method))
-    return
-
-  const invoiceNumber = invoice.invoice_number
-  if (paymentMethod(invoice) === method) return
-
-  selectedPaymentMethods.value = {
-    ...selectedPaymentMethods.value,
-    [invoiceNumber]: method
-  }
-  clearCheckoutKeys(invoiceNumber)
-  void loadFeePreview(invoice, method)
 }
 
 function strRate(val) {
@@ -1509,34 +1168,7 @@ function getInvoiceAdminFee(invoice) {
   if (prev?.fee_amount !== undefined) {
     return Number(prev.fee_amount)
   }
-  const method = paymentMethod(invoice)
-  const opt = paymentMethodOptions.value.find(o => o.value === method)
-  const subtotal = getInvoiceSubtotal(invoice)
-  if (opt?.fee_type === 'percent') {
-    return Math.round(subtotal * ((opt.fee_rate || 0.7) / 100))
-  }
-  if (method === 'qris') return Math.round(subtotal * 0.007)
-  if (method === 'gopay') return Math.round(subtotal * 0.02)
-  return 4000
-}
-
-function getInvoiceFeePercentOrType(invoice) {
-  if (invoice.payment?.fee_breakdown) {
-    const fb = invoice.payment.fee_breakdown
-    return fb.fee_type === 'percent' ? `(${strRate(fb.fee_rate)}%)` : '(Tetap)'
-  }
-  const prev = invoiceFeePreviews.value[invoice.invoice_number]
-  if (prev) {
-    return prev.fee_type === 'percent'
-      ? `(${strRate(prev.fee_rate)}%)`
-      : '(Tetap)'
-  }
-  const method = paymentMethod(invoice)
-  const opt = paymentMethodOptions.value.find(o => o.value === method)
-  if (opt?.fee_type === 'percent') return `(${strRate(opt.fee_rate)}%)`
-  if (method === 'qris') return '(0,7%)'
-  if (method === 'gopay') return '(2%)'
-  return '(Tetap)'
+  return 0
 }
 
 function getInvoiceTotalPayable(invoice) {
@@ -1551,14 +1183,6 @@ function getInvoiceTotalPayable(invoice) {
     return Number(prev.total_amount)
   }
   return getInvoiceSubtotal(invoice) + getInvoiceAdminFee(invoice)
-}
-
-function currentMethodName(invoice) {
-  if (invoice.status === 'paid' || hasActiveCheckout(invoice)) {
-    const m = actualPaymentMethod(invoice)
-    return paymentMethodLabel(m)
-  }
-  return paymentMethodLabel(paymentMethod(invoice))
 }
 
 function isCheckoutExpired(invoice) {
@@ -1584,33 +1208,6 @@ function hasActiveCheckout(invoice) {
     return Boolean(invoice.payment?.checkout_url)
   }
   return isVirtualAccount(method) && Boolean(paymentCode(invoice))
-}
-
-function checkoutMatchesSelection(invoice) {
-  return (
-    hasActiveCheckout(invoice) &&
-    paymentMethod(invoice) === actualPaymentMethod(invoice)
-  )
-}
-
-function checkoutButtonLabel(invoice) {
-  if (invoice.payment?.checkout_status === 'failed') {
-    return `Coba ${paymentMethodLabel(paymentMethod(invoice))} lagi`
-  }
-
-  if (isCheckoutExpired(invoice)) {
-    return `Kedaluwarsa – Siapkan ${paymentMethodLabel(paymentMethod(invoice))} baru`
-  }
-
-  if (hasActiveCheckout(invoice)) {
-    if (paymentMethod(invoice) !== actualPaymentMethod(invoice)) {
-      return `Ganti ke ${paymentMethodLabel(paymentMethod(invoice))}`
-    }
-
-    return `${paymentMethodLabel(actualPaymentMethod(invoice))} aktif`
-  }
-
-  return `Siapkan ${paymentMethodLabel(paymentMethod(invoice))}`
 }
 
 watch(
@@ -1686,10 +1283,6 @@ function clearSavedKey(operation, subject) {
 
 function invoiceIdempotencyKey(planCode, count) {
   return savedKey('invoice', `${planCode}-${count}`)
-}
-
-function checkoutIdempotencyKey(invoiceNumber, method) {
-  return savedKey('checkout', `${invoiceNumber}-${method}`)
 }
 
 function clearCheckoutKeys(invoiceNumber) {
@@ -1871,6 +1464,7 @@ async function previewPlan(plan) {
       subscription_plan_code: plan.code,
       period_count: periodCount.value
     })
+    checkPricingConsistency()
     referralLocked.value = Boolean(preview.value.pricing?.referral_code)
     if (referralLocked.value)
       referralCode.value = preview.value.pricing.referral_code
@@ -1893,6 +1487,7 @@ async function refreshPreviewForPeriod(count) {
       subscription_plan_code: selectedPlan.value.code,
       period_count: periodCount.value
     })
+    checkPricingConsistency()
   } catch (error) {
     previewError.value = displayApiError(error)
   } finally {
@@ -1934,6 +1529,7 @@ async function attachReferral() {
       period_count: periodCount.value
     })
     previewError.value = ''
+    checkPricingConsistency()
     referralLocked.value = true
     referralCode.value = referralValidation.value.code
     referralValidation.value = null
@@ -1947,7 +1543,12 @@ async function attachReferral() {
 
 async function createInvoice() {
   if (!selectedPlan.value) return
-  if (refreshingPreview.value || previewError.value) return
+  if (
+    refreshingPreview.value ||
+    previewError.value ||
+    !isPricingConsistent.value
+  )
+    return
   creatingInvoice.value = true
   errorMessage.value = ''
   try {
@@ -1971,7 +1572,9 @@ async function createInvoice() {
       type: 'positive',
       message: `Invoice ${invoice.invoice_number} berhasil dibuat.`
     })
-    await refreshInvoices()
+    await router.push(
+      `/pengaturan/pembayaran/checkout/${invoice.invoice_number}`
+    )
   } catch (error) {
     errorMessage.value = displayApiError(error)
   } finally {
@@ -1979,71 +1582,24 @@ async function createInvoice() {
   }
 }
 
-async function prepareCheckout(invoice) {
-  checkingOut.value = invoice.invoice_number
-  errorMessage.value = ''
-  pollCount.value = 0
-  pollPaused.value = false
-  activelyMonitoredInvoices.add(invoice.invoice_number)
-  if (isCheckoutExpired(invoice)) {
-    clearCheckoutKeys(invoice.invoice_number)
-  }
-  const method = paymentMethod(invoice)
-  try {
-    const result = await larisamaApi.startSubscriptionCheckout(
-      invoice.invoice_number,
-      checkoutIdempotencyKey(invoice.invoice_number, method),
-      method
-    )
-    upsertInvoice(result)
-    knownInvoiceStatuses.set(result.invoice_number, result.status)
-    if (result.payment?.checkout_status === 'ready') {
-      startStatusPolling()
-    } else if (result.payment?.checkout_status === 'failed') {
-      errorMessage.value = checkoutFailureMessage(invoice.invoice_number)
-    } else {
-      await waitForCheckout(invoice.invoice_number, method)
-    }
-  } catch (error) {
-    errorMessage.value = displayApiError(error)
-    await refreshInvoice(invoice.invoice_number, false)
-  } finally {
-    checkingOut.value = ''
-  }
-}
-
-async function waitForCheckout(invoiceNumber, method) {
-  if (checkoutPollTimer.value) window.clearTimeout(checkoutPollTimer.value)
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    await new Promise(resolve => {
-      checkoutPollTimer.value = window.setTimeout(resolve, 3000)
+async function goToCheckout(invoiceNumber) {
+  if (!invoiceNumber) {
+    $q.notify({
+      type: 'warning',
+      message: 'Nomor invoice tidak ditemukan.',
+      icon: 'warning'
     })
-    try {
-      const result = await larisamaApi.startSubscriptionCheckout(
-        invoiceNumber,
-        checkoutIdempotencyKey(invoiceNumber, method),
-        method
-      )
-      upsertInvoice(result)
-      if (result.payment?.checkout_status === 'ready') {
-        startStatusPolling()
-        return
-      }
-      if (result.payment?.checkout_status === 'failed') {
-        errorMessage.value = checkoutFailureMessage(invoiceNumber)
-        return
-      }
-    } catch (error) {
-      errorMessage.value = displayApiError(error)
-      return
-    }
+    return
   }
-  errorMessage.value =
-    'Checkout masih diproses. Coba siapkan checkout lagi beberapa saat.'
-}
-
-function checkoutFailureMessage(invoiceNumber) {
-  return `Gateway gagal menyiapkan checkout untuk invoice ${invoiceNumber}. Belum ada QR atau tautan pembayaran. Coba lagi; jika berulang, minta admin memeriksa log gateway.`
+  try {
+    await router.push(`/pengaturan/pembayaran/checkout/${invoiceNumber}`)
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: `Gagal membuka halaman checkout: ${error?.message || 'Navigasi gagal'}`,
+      icon: 'error'
+    })
+  }
 }
 
 async function refreshInvoice(invoiceNumber, showError = true) {
@@ -2310,19 +1866,20 @@ function formatDate(value) {
     : value
 }
 
-function formatPlanPrice(price, currency) {
-  if (typeof price !== 'string') return `${currency || 'IDR'} ${price || ''}`
-  const match = /^([0-9]+)(?:\.([0-9]+))?$/.exec(price)
-  if (!match) return `${currency} ${price}`
-  const whole = new Intl.NumberFormat('id-ID', {
-    maximumFractionDigits: 0
-  }).format(BigInt(match[1]))
-  const fraction = match[2] || ''
-  const decimalSeparator =
-    new Intl.NumberFormat('id-ID')
-      .formatToParts(1.1)
-      .find(part => part.type === 'decimal')?.value || ','
-  return `${currency} ${whole}${fraction ? `${decimalSeparator}${fraction}` : ''}`
+function formatPlanPrice(price, currency = 'IDR') {
+  if (price === null || price === undefined || price === '') return '-'
+  const numeric =
+    typeof price === 'number'
+      ? Math.abs(price)
+      : Number(String(price).replace(/[^0-9.]+/g, ''))
+  if (Number.isFinite(numeric)) {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: currency || 'IDR',
+      maximumFractionDigits: 0
+    }).format(numeric)
+  }
+  return `${currency || 'IDR'} ${price}`
 }
 
 onMounted(() => {

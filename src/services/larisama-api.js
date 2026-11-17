@@ -113,12 +113,21 @@ export const larisamaApi = {
     ).data,
   listSubscriptionInvoices: async () =>
     (await apiRequest('subscription-invoices')).data,
-  getSubscriptionInvoice: async invoiceNumber =>
-    (
+  getSubscriptionInvoice: async (
+    invoiceNumber,
+    reconcile = false,
+    polling = false
+  ) => {
+    const params = new URLSearchParams()
+    if (reconcile) params.set('reconcile', '1')
+    if (polling) params.set('polling', '1')
+    const qs = params.toString() ? `?${params.toString()}` : ''
+    return (
       await apiRequest(
-        `subscription-invoices/${encodeURIComponent(invoiceNumber)}`
+        `subscription-invoices/${encodeURIComponent(invoiceNumber)}${qs}`
       )
-    ).data,
+    ).data
+  },
   previewSubscriptionFee: async (
     invoiceNumber,
     paymentMethod = 'qris',
@@ -146,7 +155,7 @@ export const larisamaApi = {
         `subscription-invoices/${encodeURIComponent(invoiceNumber)}/checkout`,
         {
           method: 'POST',
-          body: { payment_method: paymentMethod, provider: 'midtrans' },
+          body: { payment_method: paymentMethod, provider: 'dana' },
           idempotency: key
         }
       )

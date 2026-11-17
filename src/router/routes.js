@@ -73,6 +73,13 @@ const routes = [
             meta: { roles: ['owner', 'superadmin'] }
           },
           {
+            path: 'pembayaran/checkout/:invoiceNumber',
+            name: 'subscription-checkout',
+            component: () =>
+              import('@/pages/Langganan/SubscriptionCheckoutPage.vue'),
+            meta: { roles: ['owner', 'superadmin'] }
+          },
+          {
             path: 'printer',
             component: () =>
               import('@/pages/Pengaturan/PrinterSettingsPage.vue'),

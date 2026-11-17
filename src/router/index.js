@@ -50,7 +50,8 @@ export default defineRouter((/* { store, ssrContext } */) => {
       to.meta.requiresAuth &&
       paymentOnly &&
       to.path !== '/pengaturan/pembayaran' &&
-      to.path !== '/paket-langganan'
+      to.path !== '/paket-langganan' &&
+      !to.path.startsWith('/pengaturan/pembayaran/checkout')
     )
       return '/pengaturan/pembayaran'
     return true
