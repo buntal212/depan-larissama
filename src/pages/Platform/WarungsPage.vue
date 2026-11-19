@@ -62,6 +62,14 @@
                 <div class="warung-mobile-meta">
                   <span>Aktif sampai</span><strong>{{ props.row.tanggal_berakhir || '—' }}</strong>
                 </div>
+                <div class="warung-mobile-meta">
+                  <span>Sisa masa aktif</span>
+                  <q-badge :color="getSubscriptionValidity(props.row).badgeColor" class="q-px-xs">
+                    {{ getSubscriptionValidity(props.row).label }} ({{
+                      getSubscriptionValidity(props.row).summaryText
+                    }})
+                  </q-badge>
+                </div>
                 <div class="warung-mobile-sync q-mt-md">
                   <div class="row items-center justify-between q-gutter-sm">
                     <span class="text-caption text-grey-7">Sync UDEV</span>
@@ -141,6 +149,23 @@
               </q-card-section>
             </q-card>
           </div>
+        </template>
+        <template #body-cell-remaining_days="props">
+          <q-td :props="props">
+            <div v-if="props.row.tanggal_berakhir" class="column items-start q-gutter-xs">
+              <q-badge :color="getSubscriptionValidity(props.row).badgeColor">
+                {{ getSubscriptionValidity(props.row).label }}
+              </q-badge>
+              <span class="text-caption" :class="getSubscriptionValidity(props.row).textClass">
+                {{ getSubscriptionValidity(props.row).remainingSummary }}
+              </span>
+            </div>
+            <div v-else class="column items-start q-gutter-xs">
+              <q-badge :color="getSubscriptionValidity(props.row).badgeColor">
+                {{ getSubscriptionValidity(props.row).label }}
+              </q-badge>
+            </div>
+          </q-td>
         </template>
         <template #body-cell-status="props"
           ><q-td :props="props"
@@ -448,6 +473,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useQuasar } from 'quasar'
 import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
+import { getSubscriptionValidity } from '@/services/subscription-validity.js'
 
 const $q = useQuasar()
 const formOpen = ref(false)
@@ -500,6 +526,12 @@ const columns = [
     name: 'subscription_end',
     label: 'Aktif sampai',
     field: (row) => row.tanggal_berakhir || '—',
+    align: 'left',
+  },
+  {
+    name: 'remaining_days',
+    label: 'Sisa Masa Aktif',
+    field: (row) => getSubscriptionValidity(row).summaryText,
     align: 'left',
   },
   { name: 'status', label: 'Status', field: statusText, align: 'left' },

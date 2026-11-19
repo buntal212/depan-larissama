@@ -6,10 +6,9 @@
       <div class="col">
         <div class="eyebrow">LANGGANAN WARUNG</div>
         <h2 class="page-title">Pembayaran Larisama</h2>
-        <p class="page-subtitle"
-          >Paket langganan, invoice, dan status pembayaran terintegrasi UDEV &
-          DANA.</p
-        >
+        <p class="page-subtitle">
+          Paket langganan, invoice, dan status pembayaran terintegrasi UDEV & DANA.
+        </p>
       </div>
       <div class="col-auto">
         <q-btn
@@ -31,22 +30,18 @@
       class="bg-blue-1 text-primary q-mb-lg"
     >
       <template #avatar><q-icon name="info" color="primary" /></template>
-      Pilih warung pada pemilih warung di panel menu untuk melihat dan mengelola
-      invoice pembayaran langganan warung tersebut.
+      Pilih warung pada pemilih warung di panel menu untuk melihat dan mengelola invoice pembayaran
+      langganan warung tersebut.
     </q-banner>
 
     <!-- Unsynced warung customer banner -->
-    <q-banner
-      v-if="isCustomerSyncNotReady"
-      rounded
-      class="bg-amber-1 text-brown-9 q-mb-lg"
-    >
+    <q-banner v-if="isCustomerSyncNotReady" rounded class="bg-amber-1 text-brown-9 q-mb-lg">
       <template #avatar><q-icon name="warning" color="warning" /></template>
       <div>
         <strong>Data Pelanggan Warung Belum Tersinkronkan ke UDEV</strong>
         <div class="q-mt-xs">
-          Untuk dapat membuat invoice dan menyelesaikan checkout pembayaran,
-          akun warung harus tersinkronisasi ke sistem billing UDEV.
+          Untuk dapat membuat invoice dan menyelesaikan checkout pembayaran, akun warung harus
+          tersinkronisasi ke sistem billing UDEV.
         </div>
         <div v-if="isSuperadmin && selectedWarungId" class="q-mt-sm">
           <q-btn
@@ -63,21 +58,12 @@
       </div>
     </q-banner>
 
-    <q-banner
-      v-if="paymentOnly"
-      rounded
-      class="bg-orange-1 text-orange-10 q-mb-lg"
-    >
-      Masa aktif warung telah habis. Halaman pembayaran tetap bisa digunakan
-      selama masa tenggang.
+    <q-banner v-if="paymentOnly" rounded class="bg-orange-1 text-orange-10 q-mb-lg">
+      Masa aktif warung telah habis. Halaman pembayaran tetap bisa digunakan selama masa tenggang.
     </q-banner>
 
     <!-- Banner Tagihan Pending Aktif -->
-    <q-banner
-      v-if="latestPendingInvoice"
-      rounded
-      class="bg-blue-1 text-primary q-mb-lg"
-    >
+    <q-banner v-if="latestPendingInvoice" rounded class="bg-blue-1 text-primary q-mb-lg">
       <template #avatar><q-icon name="receipt_long" color="primary" /></template>
       <div class="row items-center justify-between full-width">
         <div>
@@ -85,7 +71,15 @@
             Tagihan Menunggu Pembayaran: {{ latestPendingInvoice.invoice_number }}
           </div>
           <div class="text-caption text-grey-8 q-mt-xs">
-            Paket {{ latestPendingInvoice.plan?.name || latestPendingInvoice.plan?.code || 'Langganan' }} · Total {{ formatPlanPrice(latestPendingInvoice.pricing?.final_price || latestPendingInvoice.amount, latestPendingInvoice.pricing?.currency) }}
+            Paket
+            {{ latestPendingInvoice.plan?.name || latestPendingInvoice.plan?.code || 'Langganan' }}
+            · Total
+            {{
+              formatPlanPrice(
+                latestPendingInvoice.pricing?.final_price || latestPendingInvoice.amount,
+                latestPendingInvoice.pricing?.currency,
+              )
+            }}
           </div>
         </div>
         <q-btn
@@ -106,13 +100,83 @@
       {{ errorMessage }}
     </q-banner>
 
-    <!-- State Loading Awal -->
+    <!-- Kartu Masa Aktif Langganan -->
     <q-card
-      v-if="loading && plans.length === 0"
+      v-if="!isSuperadmin || selectedWarungId"
       flat
       bordered
-      class="state-card"
+      class="subscription-validity-card q-mb-lg"
     >
+      <q-card-section>
+        <div class="row items-center justify-between q-col-gutter-md">
+          <div class="col-12 col-md-8">
+            <div class="row items-center q-gutter-sm q-mb-xs">
+              <span class="text-subtitle1 text-weight-bold">Masa Aktif Langganan</span>
+              <q-badge
+                v-if="!loading || currentWarung"
+                :color="currentValidity.badgeColor"
+                class="q-px-sm q-py-xs text-weight-bold"
+              >
+                {{ currentValidity.label }}
+              </q-badge>
+              <q-skeleton v-else type="QBadge" width="80px" />
+            </div>
+            <div class="text-caption text-grey-7 q-mb-md">
+              Informasi periode aktif warung saat ini berdasarkan sistem billing resmi.
+            </div>
+
+            <div v-if="!loading || currentWarung" class="row q-col-gutter-md">
+              <div class="col-12 col-sm-4">
+                <div class="validity-metric-label">Tanggal Mulai</div>
+                <div class="validity-metric-value">{{ currentValidity.startDate || '—' }}</div>
+              </div>
+              <div class="col-12 col-sm-4">
+                <div class="validity-metric-label">Tanggal Berakhir</div>
+                <div class="validity-metric-value">{{ currentValidity.endDate || '—' }}</div>
+              </div>
+              <div class="col-12 col-sm-4">
+                <div class="validity-metric-label">Sisa Masa Aktif</div>
+                <div
+                  class="validity-metric-value text-weight-bold"
+                  :class="currentValidity.textClass"
+                >
+                  {{ currentValidity.remainingSummary }}
+                </div>
+              </div>
+            </div>
+            <div v-else class="row q-col-gutter-md">
+              <div class="col-12 col-sm-4">
+                <q-skeleton type="text" width="60%" />
+                <q-skeleton type="text" width="90%" />
+              </div>
+              <div class="col-12 col-sm-4">
+                <q-skeleton type="text" width="60%" />
+                <q-skeleton type="text" width="90%" />
+              </div>
+              <div class="col-12 col-sm-4">
+                <q-skeleton type="text" width="60%" />
+                <q-skeleton type="text" width="90%" />
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-4 text-right-md">
+            <q-btn
+              unelevated
+              no-caps
+              color="primary"
+              icon="update"
+              label="Perpanjang Langganan"
+              class="extend-btn"
+              @click="scrollToPilihPaket"
+            />
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+
+    <!-- State Loading Awal -->
+    <q-card v-if="loading && plans.length === 0" flat bordered class="state-card">
       <q-card-section class="row items-center justify-center q-gutter-md">
         <q-spinner color="primary" size="28px" />
         <span>Memuat paket dan invoice…</span>
@@ -120,7 +184,7 @@
     </q-card>
 
     <!-- Pilihan Paket Langganan -->
-    <section v-else>
+    <section v-else id="pilih-paket-section">
       <div class="section-heading">
         <div>
           <h2>Pilih paket</h2>
@@ -133,25 +197,15 @@
         >
       </q-card>
       <div v-else class="plans-grid">
-        <q-card
-          v-for="plan in plans"
-          :key="plan.id"
-          flat
-          bordered
-          class="plan-card"
-        >
+        <q-card v-for="plan in plans" :key="plan.id" flat bordered class="plan-card">
           <q-card-section>
             <div class="plan-code">{{ plan.code }}</div>
             <h3>{{ plan.name }}</h3>
-            <p v-if="plan.description" class="plan-description">{{
-              plan.description
-            }}</p>
+            <p v-if="plan.description" class="plan-description">{{ plan.description }}</p>
             <div class="plan-price">
               {{ formatPlanPrice(plan.price, plan.currency) }} / periode 30 hari
             </div>
-            <div class="plan-duration"
-              >Durasi dasar {{ plan.duration_days }} hari</div
-            >
+            <div class="plan-duration">Durasi dasar {{ plan.duration_days }} hari</div>
             <q-btn
               class="full-width q-mt-lg"
               color="primary"
@@ -182,10 +236,7 @@
       <div class="section-heading">
         <div>
           <h2>Invoice dan pembayaran</h2>
-          <p
-            >Status invoice dibaca langsung dari UDEV Billing & Gateway
-            DANA.</p
-          >
+          <p>Status invoice dibaca langsung dari UDEV Billing & Gateway DANA.</p>
         </div>
         <div class="row items-center q-gutter-sm">
           <q-btn
@@ -201,29 +252,17 @@
       </div>
 
       <!-- Auto Polling Indicator Banner -->
-      <div
-        v-if="isPolling"
-        class="row items-center q-gutter-sm text-caption text-primary q-mb-md"
-      >
+      <div v-if="isPolling" class="row items-center q-gutter-sm text-caption text-primary q-mb-md">
         <q-spinner-dots size="16px" color="primary" />
         <span>
-          Pembaruan status pembayaran otomatis aktif (siklus {{ pollCount }}/{{
-            MAX_POLL_COUNT
-          }}
+          Pembaruan status pembayaran otomatis aktif (siklus {{ pollCount }}/{{ MAX_POLL_COUNT }}
           · diperbarui tiap 30 detik).
         </span>
       </div>
-      <q-banner
-        v-else-if="pollPaused"
-        rounded
-        class="bg-amber-1 text-brown-9 q-mb-md"
-      >
+      <q-banner v-else-if="pollPaused" rounded class="bg-amber-1 text-brown-9 q-mb-md">
         <template #avatar><q-icon name="schedule" color="amber-9" /></template>
         <div class="row items-center justify-between full-width">
-          <span
-            >Pembaruan otomatis dijeda setelah 20 menit untuk efisiensi
-            jaringan.</span
-          >
+          <span>Pembaruan otomatis dijeda setelah 20 menit untuk efisiensi jaringan.</span>
           <q-btn
             flat
             dense
@@ -237,10 +276,7 @@
       </q-banner>
 
       <!-- Filter Tabs Riwayat Invoice -->
-      <div
-        v-if="invoices.length > 0"
-        class="row items-center justify-between q-mb-md filter-bar"
-      >
+      <div v-if="invoices.length > 0" class="row items-center justify-between q-mb-md filter-bar">
         <q-tabs
           v-model="invoiceFilterTab"
           dense
@@ -252,9 +288,7 @@
           class="text-grey-7"
         >
           <q-tab name="all" label="Semua">
-            <q-badge color="grey-6" class="q-ml-xs">{{
-              invoices.length
-            }}</q-badge>
+            <q-badge color="grey-6" class="q-ml-xs">{{ invoices.length }}</q-badge>
           </q-tab>
           <q-tab name="pending" label="Menunggu Pembayaran">
             <q-badge v-if="pendingCount > 0" color="orange-8" class="q-ml-xs">{{
@@ -262,17 +296,12 @@
             }}</q-badge>
           </q-tab>
           <q-tab name="paid" label="Terbayar">
-            <q-badge v-if="paidCount > 0" color="positive" class="q-ml-xs">{{
-              paidCount
-            }}</q-badge>
+            <q-badge v-if="paidCount > 0" color="positive" class="q-ml-xs">{{ paidCount }}</q-badge>
           </q-tab>
           <q-tab name="expired_cancelled" label="Kedaluwarsa / Batal">
-            <q-badge
-              v-if="expiredCancelledCount > 0"
-              color="negative"
-              class="q-ml-xs"
-              >{{ expiredCancelledCount }}</q-badge
-            >
+            <q-badge v-if="expiredCancelledCount > 0" color="negative" class="q-ml-xs">{{
+              expiredCancelledCount
+            }}</q-badge>
           </q-tab>
         </q-tabs>
       </div>
@@ -283,12 +312,7 @@
           >Belum ada invoice langganan.</q-card-section
         >
       </q-card>
-      <q-card
-        v-else-if="paginatedInvoices.length === 0"
-        flat
-        bordered
-        class="state-card"
-      >
+      <q-card v-else-if="paginatedInvoices.length === 0" flat bordered class="state-card">
         <q-card-section class="text-center text-grey-7"
           >Tidak ada invoice pada kategori ini.</q-card-section
         >
@@ -309,22 +333,13 @@
               <div class="column">
                 <div class="row items-center q-gutter-xs">
                   <q-icon name="receipt_long" color="primary" size="18px" />
-                  <span class="invoice-number">{{
-                    invoice.invoice_number
-                  }}</span>
-                  <span
-                    v-if="invoice.issued_at"
-                    class="text-caption text-grey-6 q-ml-xs"
-                  >
+                  <span class="invoice-number">{{ invoice.invoice_number }}</span>
+                  <span v-if="invoice.issued_at" class="text-caption text-grey-6 q-ml-xs">
                     · Terbit {{ formatDate(invoice.issued_at) }}
                   </span>
                 </div>
                 <div class="text-subtitle1 text-weight-bold q-mt-xs text-dark">
-                  {{
-                    invoice.plan?.name ||
-                    invoice.plan?.code ||
-                    'Paket Langganan'
-                  }}
+                  {{ invoice.plan?.name || invoice.plan?.code || 'Paket Langganan' }}
                 </div>
               </div>
               <q-badge
@@ -336,16 +351,9 @@
 
             <!-- Card Rincian Tagihan & Total Pembayaran (Desain lengkap UDEV) -->
             <div class="billing-detail-box q-pa-md q-my-md">
-              <div
-                class="row items-center q-gutter-xs q-mb-sm text-primary text-weight-bold"
-              >
+              <div class="row items-center q-gutter-xs q-mb-sm text-primary text-weight-bold">
                 <q-icon name="payments" size="18px" />
-                <span
-                  style="
-                    font-size: 13px;
-                    letter-spacing: 0.05em;
-                    text-transform: uppercase;
-                  "
+                <span style="font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase"
                   >Rincian Tagihan & Pembayaran</span
                 >
               </div>
@@ -361,10 +369,10 @@
                 <div class="row justify-between text-body2">
                   <span class="text-grey-7">Masa Aktif</span>
                   <span class="text-dark"
-                    >{{
-                      invoice.plan?.period_count || invoice.period_count || 1
+                    >{{ invoice.plan?.period_count || invoice.period_count || 1 }} periode ({{
+                      invoice.plan?.duration_days || 30
                     }}
-                    periode ({{ invoice.plan?.duration_days || 30 }} hari)</span
+                    hari)</span
                   >
                 </div>
 
@@ -375,10 +383,7 @@
                 >
                   <span class="text-grey-7">Harga Normal</span>
                   <span class="text-dark">{{
-                    formatPlanPrice(
-                      invoice.pricing?.normal_price,
-                      invoice.pricing?.currency
-                    )
+                    formatPlanPrice(invoice.pricing?.normal_price, invoice.pricing?.currency)
                   }}</span>
                 </div>
                 <div
@@ -388,10 +393,7 @@
                   <span>Diskon Referral</span>
                   <span
                     >-{{
-                      formatPlanPrice(
-                        invoice.pricing?.discount_amount,
-                        invoice.pricing?.currency
-                      )
+                      formatPlanPrice(invoice.pricing?.discount_amount, invoice.pricing?.currency)
                     }}</span
                   >
                 </div>
@@ -401,16 +403,9 @@
                   class="row justify-between text-body2 q-pt-xs"
                   style="border-top: 1px dashed #dcdcdc"
                 >
-                  <span class="text-grey-8 text-weight-medium"
-                    >Subtotal Tagihan (UDEV)</span
-                  >
+                  <span class="text-grey-8 text-weight-medium">Subtotal Tagihan (UDEV)</span>
                   <span class="text-weight-bold text-dark">
-                    {{
-                      formatPlanPrice(
-                        getInvoiceSubtotal(invoice),
-                        invoice.pricing?.currency
-                      )
-                    }}
+                    {{ formatPlanPrice(getInvoiceSubtotal(invoice), invoice.pricing?.currency) }}
                   </span>
                 </div>
 
@@ -428,34 +423,26 @@
               </div>
 
               <!-- Highlight Box Total Akhir Pembayaran -->
-              <div
-                class="total-payable-card q-pa-sm q-px-md row items-center justify-between"
-              >
+              <div class="total-payable-card q-pa-sm q-px-md row items-center justify-between">
                 <div>
                   <div
                     class="text-caption text-weight-bold text-primary"
                     style="letter-spacing: 0.05em"
-                    >TOTAL PEMBAYARAN</div
                   >
+                    TOTAL PEMBAYARAN
+                  </div>
                   <div class="text-caption text-grey-7" style="font-size: 11px">
                     Bebas biaya admin (Ditanggung merchant)
                   </div>
                 </div>
                 <div class="text-h6 text-weight-bolder text-primary">
-                  {{
-                    formatPlanPrice(
-                      getInvoiceTotalPayable(invoice),
-                      invoice.pricing?.currency
-                    )
-                  }}
+                  {{ formatPlanPrice(getInvoiceTotalPayable(invoice), invoice.pricing?.currency) }}
                 </div>
               </div>
             </div>
 
             <!-- Baris Metadata Tanggal: Lunas / Jatuh Tempo / Expiry -->
-            <div
-              class="row items-center justify-between text-caption text-grey-7 q-mb-md"
-            >
+            <div class="row items-center justify-between text-caption text-grey-7 q-mb-md">
               <div
                 v-if="invoice.status === 'paid' && invoice.paid_at"
                 class="row items-center q-gutter-xs text-positive"
@@ -470,35 +457,27 @@
                 <div v-if="invoice.due_at" class="row items-center q-gutter-xs">
                   <q-icon name="event" size="15px" />
                   <span
-                    >Jatuh tempo:
-                    <strong>{{ formatDate(invoice.due_at) }}</strong></span
+                    >Jatuh tempo: <strong>{{ formatDate(invoice.due_at) }}</strong></span
                   >
                 </div>
                 <div
                   v-if="invoice.payment?.checkout_expires_at"
                   class="row items-center q-gutter-xs"
                   :class="
-                    isCheckoutExpired(invoice)
-                      ? 'text-negative text-weight-bold'
-                      : 'text-grey-8'
+                    isCheckoutExpired(invoice) ? 'text-negative text-weight-bold' : 'text-grey-8'
                   "
                 >
                   <q-icon name="schedule" size="15px" />
                   <span
                     >Batas waktu pembayaran:
-                    <strong>{{
-                      formatDate(invoice.payment.checkout_expires_at)
-                    }}</strong></span
+                    <strong>{{ formatDate(invoice.payment.checkout_expires_at) }}</strong></span
                   >
                 </div>
               </div>
             </div>
 
             <!-- Tombol Aksi Invoice Card -->
-            <div
-              v-if="invoice.status === 'pending'"
-              class="row items-center q-gutter-sm q-mt-md"
-            >
+            <div v-if="invoice.status === 'pending'" class="row items-center q-gutter-sm q-mt-md">
               <q-btn
                 color="primary"
                 unelevated
@@ -517,10 +496,7 @@
                 @click="refreshInvoice(invoice.invoice_number)"
               />
             </div>
-            <div
-              v-else-if="invoice.status === 'paid'"
-              class="row items-center q-gutter-sm q-mt-md"
-            >
+            <div v-else-if="invoice.status === 'paid'" class="row items-center q-gutter-sm q-mt-md">
               <q-btn
                 outline
                 dense
@@ -555,20 +531,14 @@
       <q-card class="preview-card">
         <q-card-section>
           <div class="text-h6">Konfirmasi paket</div>
-          <div class="text-caption text-grey-7"
-            >Harga final berasal dari UDEV.</div
-          >
+          <div class="text-caption text-grey-7">Harga final berasal dari UDEV.</div>
         </q-card-section>
         <q-separator />
         <q-card-section v-if="preview">
-          <q-banner
-            v-if="referralLocked"
-            rounded
-            class="bg-green-1 text-positive q-mb-md"
-          >
+          <q-banner v-if="referralLocked" rounded class="bg-green-1 text-positive q-mb-md">
             Kode referral
-            {{ preview.pricing?.referral_code || referralCode }} sudah terpasang
-            dan terkunci untuk pelanggan ini.
+            {{ preview.pricing?.referral_code || referralCode }} sudah terpasang dan terkunci untuk
+            pelanggan ini.
           </q-banner>
           <template v-else>
             <div class="text-subtitle2 q-mb-sm">Kode referral (opsional)</div>
@@ -581,11 +551,7 @@
                 no-caps
                 maxlength="10"
                 label="REF-XXXXXX"
-                :disable="
-                  Boolean(referralValidation) ||
-                  validatingReferral ||
-                  attachingReferral
-                "
+                :disable="Boolean(referralValidation) || validatingReferral || attachingReferral"
               />
               <q-btn
                 outline
@@ -597,23 +563,16 @@
                 @click="validateReferral"
               />
             </div>
-            <q-banner
-              v-if="referralValidation"
-              rounded
-              class="bg-blue-1 text-primary q-mt-sm"
-            >
+            <q-banner v-if="referralValidation" rounded class="bg-blue-1 text-primary q-mt-sm">
               Kode valid menurut UDEV. Diskon
               {{
                 formatPlanPrice(
                   referralValidation.discount_amount,
-                  selectedPlan?.currency || 'IDR'
+                  selectedPlan?.currency || 'IDR',
                 )
               }}; harga hasil validasi referral per periode
               {{
-                formatPlanPrice(
-                  referralValidation.customer_price,
-                  selectedPlan?.currency || 'IDR'
-                )
+                formatPlanPrice(referralValidation.customer_price, selectedPlan?.currency || 'IDR')
               }}.
             </q-banner>
             <div v-if="referralValidation" class="q-mt-sm">
@@ -633,11 +592,7 @@
               />
             </div>
           </template>
-          <q-banner
-            v-if="referralError"
-            rounded
-            class="bg-red-1 text-negative q-mt-sm"
-          >
+          <q-banner v-if="referralError" rounded class="bg-red-1 text-negative q-mt-sm">
             {{ referralError }}
           </q-banner>
           <q-select
@@ -650,18 +605,11 @@
             hint="Setiap periode dihitung tetap 30 hari, sesuai UDEV."
             :options="periodOptions"
             :disable="
-              refreshingPreview ||
-              creatingInvoice ||
-              validatingReferral ||
-              attachingReferral
+              refreshingPreview || creatingInvoice || validatingReferral || attachingReferral
             "
             @update:model-value="refreshPreviewForPeriod"
           />
-          <q-banner
-            v-if="previewError"
-            rounded
-            class="bg-red-1 text-negative q-mb-md"
-          >
+          <q-banner v-if="previewError" rounded class="bg-red-1 text-negative q-mb-md">
             {{ previewError }}
           </q-banner>
           <div class="row justify-between q-mb-sm">
@@ -681,17 +629,14 @@
             ><strong>{{
               formatPlanPrice(
                 preview.pricing?.unit_price || selectedPlan?.price,
-                preview.pricing?.currency || selectedPlan?.currency
+                preview.pricing?.currency || selectedPlan?.currency,
               )
             }}</strong>
           </div>
           <div class="row justify-between q-mb-sm">
             <span>Total harga paket</span
             ><strong>{{
-              formatPlanPrice(
-                preview.pricing?.normal_price,
-                preview.pricing?.currency
-              )
+              formatPlanPrice(preview.pricing?.normal_price, preview.pricing?.currency)
             }}</strong>
           </div>
           <div
@@ -699,26 +644,21 @@
             class="row justify-between q-mb-sm text-positive"
           >
             <span>Diskon</span
-            ><strong>-{{
-              formatPlanPrice(
-                preview.pricing?.discount_amount,
-                preview.pricing?.currency
-              )
-            }}</strong>
+            ><strong
+              >-{{
+                formatPlanPrice(preview.pricing?.discount_amount, preview.pricing?.currency)
+              }}</strong
+            >
           </div>
           <q-separator class="q-my-md" />
           <div class="row justify-between text-weight-bold">
             <span>Total invoice</span
             ><span>{{
-              formatPlanPrice(
-                preview.pricing?.final_price,
-                preview.pricing?.currency
-              )
+              formatPlanPrice(preview.pricing?.final_price, preview.pricing?.currency)
             }}</span>
           </div>
           <div class="text-caption text-grey-7 q-mt-sm">
-            Invoice jatuh tempo satu hari setelah dibuat, mengikuti contoh
-            integrasi UDEV.
+            Invoice jatuh tempo satu hari setelah dibuat, mengikuti contoh integrasi UDEV.
           </div>
         </q-card-section>
         <q-card-actions align="right">
@@ -751,6 +691,7 @@ import QRCode from 'qrcode'
 import { displayApiError, larisamaApi } from '@/services/larisama-api.js'
 import { newIdempotencyKey } from '@/services/api.js'
 import { authSession } from '@/stores/auth-session.js'
+import { getSubscriptionValidity } from '@/services/subscription-validity.js'
 
 const router = useRouter()
 
@@ -761,8 +702,8 @@ const defaultDanaPaymentMethods = [
     fee_type: 'fixed',
     fee_rate: 0,
     fixed_amount: 0,
-    fee_label: 'Rp 0'
-  }
+    fee_label: 'Rp 0',
+  },
 ]
 
 const plans = ref([])
@@ -788,20 +729,12 @@ const isPricingConsistent = computed(() => {
   const normalPrice = Number(pricing.normal_price)
   const discountAmount = Number(pricing.discount_amount || 0)
   const finalPrice = Number(pricing.final_price)
-  const unitPrice =
-    pricing.unit_price !== undefined ? Number(pricing.unit_price) : null
+  const unitPrice = pricing.unit_price !== undefined ? Number(pricing.unit_price) : null
   const periods = Number(
-    pricing.period_count ||
-      preview.value.plan?.period_count ||
-      periodCount.value ||
-      1
+    pricing.period_count || preview.value.plan?.period_count || periodCount.value || 1,
   )
 
-  if (
-    Number.isNaN(normalPrice) ||
-    Number.isNaN(discountAmount) ||
-    Number.isNaN(finalPrice)
-  ) {
+  if (Number.isNaN(normalPrice) || Number.isNaN(discountAmount) || Number.isNaN(finalPrice)) {
     return false
   }
 
@@ -842,7 +775,7 @@ const periodOptions = Array.from({ length: 12 }, (_, index) => {
 })
 const paymentMethodOptions = ref(defaultDanaPaymentMethods)
 const latestPendingInvoice = computed(
-  () => invoices.value.find(i => i.status === 'pending') || null
+  () => invoices.value.find((i) => i.status === 'pending') || null,
 )
 const referralCode = ref('')
 const referralValidation = ref(null)
@@ -853,41 +786,50 @@ const attachingReferral = ref(false)
 const referralError = ref('')
 const isSuperadmin = computed(() => authSession.user?.role === 'superadmin')
 const selectedWarungId = computed(() => authSession.selectedWarungId)
-const paymentOnly = computed(
-  () => authSession.warung?.status_langganan === 'kedaluwarsa'
-)
+const currentWarung = computed(() => {
+  if (isSuperadmin.value && selectedWarungId.value) {
+    return authSession.selectedWarung || authSession.warung || null
+  }
+  return authSession.warung || null
+})
+const currentValidity = computed(() => {
+  return getSubscriptionValidity(currentWarung.value)
+})
+function scrollToPilihPaket() {
+  const el = document.getElementById('pilih-paket-section')
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+const paymentOnly = computed(() => authSession.warung?.status_langganan === 'kedaluwarsa')
 
 // Filter tabs & pagination
 const invoiceFilterTab = ref('all')
 const currentPage = ref(1)
 const pageSize = ref(5)
 
-const pendingCount = computed(
-  () => invoices.value.filter(i => i.status === 'pending').length
-)
-const paidCount = computed(
-  () => invoices.value.filter(i => i.status === 'paid').length
-)
+const pendingCount = computed(() => invoices.value.filter((i) => i.status === 'pending').length)
+const paidCount = computed(() => invoices.value.filter((i) => i.status === 'paid').length)
 const expiredCancelledCount = computed(
   () =>
     invoices.value.filter(
-      i =>
+      (i) =>
         ['expired', 'cancelled'].includes(i.status) ||
-        ['failed', 'expired', 'cancelled'].includes(i.payment?.status)
-    ).length
+        ['failed', 'expired', 'cancelled'].includes(i.payment?.status),
+    ).length,
 )
 
 const filteredInvoices = computed(() => {
   switch (invoiceFilterTab.value) {
     case 'pending':
-      return invoices.value.filter(i => i.status === 'pending')
+      return invoices.value.filter((i) => i.status === 'pending')
     case 'paid':
-      return invoices.value.filter(i => i.status === 'paid')
+      return invoices.value.filter((i) => i.status === 'paid')
     case 'expired_cancelled':
       return invoices.value.filter(
-        i =>
+        (i) =>
           ['expired', 'cancelled'].includes(i.status) ||
-          ['failed', 'expired', 'cancelled'].includes(i.payment?.status)
+          ['failed', 'expired', 'cancelled'].includes(i.payment?.status),
       )
     default:
       return invoices.value
@@ -895,7 +837,7 @@ const filteredInvoices = computed(() => {
 })
 
 const totalPages = computed(() =>
-  Math.max(1, Math.ceil(filteredInvoices.value.length / pageSize.value))
+  Math.max(1, Math.ceil(filteredInvoices.value.length / pageSize.value)),
 )
 
 const paginatedInvoices = computed(() => {
@@ -953,8 +895,8 @@ function markInvoiceAsNotified(invoiceNumber, attemptId = '') {
       key,
       JSON.stringify({
         notifiedAt: Date.now(),
-        attempt: attemptId || 'settled'
-      })
+        attempt: attemptId || 'settled',
+      }),
     )
   } catch {
     // sessionStorage unavailable
@@ -975,11 +917,9 @@ const $q = useQuasar()
 
 function qrContent(invoice) {
   const explicitQrContent = invoice.payment?.qr_content
-  if (typeof explicitQrContent === 'string' && explicitQrContent !== '')
-    return explicitQrContent
+  if (typeof explicitQrContent === 'string' && explicitQrContent !== '') return explicitQrContent
 
-  const method =
-    invoice.payment?.payment_method || paymentInstruction(invoice).method
+  const method = invoice.payment?.payment_method || paymentInstruction(invoice).method
   const candidate = paymentCode(invoice)
 
   return method === 'qris' && isValidQrisPayload(candidate) ? candidate : ''
@@ -987,8 +927,7 @@ function qrContent(invoice) {
 
 function qrImageUrl(invoice) {
   const instruction = paymentInstruction(invoice)
-  const candidate =
-    instruction.qr_url || invoice.payment?.qr_url || invoice.payment?.qr_image
+  const candidate = instruction.qr_url || invoice.payment?.qr_url || invoice.payment?.qr_image
   return typeof candidate === 'string' && candidate !== '' ? candidate : ''
 }
 
@@ -1015,10 +954,7 @@ function isValidQrisPayload(value) {
   if (crcOffset < 0 || crcOffset !== value.length - 8) return false
 
   const expectedCrc = value.slice(-4).toUpperCase()
-  if (
-    !/^[0-9A-F]{4}$/.test(expectedCrc) ||
-    calculateCrc16(value.slice(0, -4)) !== expectedCrc
-  ) {
+  if (!/^[0-9A-F]{4}$/.test(expectedCrc) || calculateCrc16(value.slice(0, -4)) !== expectedCrc) {
     return false
   }
 
@@ -1040,7 +976,7 @@ function isValidQrisPayload(value) {
     offset = nextOffset
   }
 
-  const hasMerchantAccount = [...fields.keys()].some(tag => {
+  const hasMerchantAccount = [...fields.keys()].some((tag) => {
     const tagNumber = Number.parseInt(tag, 10)
     return tagNumber >= 26 && tagNumber <= 51
   })
@@ -1070,23 +1006,18 @@ function calculateCrc16(value) {
 function isVirtualAccount(method) {
   return (
     typeof method === 'string' &&
-    (method.startsWith('va_') ||
-      method === 'bank_transfer' ||
-      method === 'echannel')
+    (method.startsWith('va_') || method === 'bank_transfer' || method === 'echannel')
   )
 }
 
 function paymentMethod(invoice) {
   return (
-    selectedPaymentMethods.value[invoice.invoice_number] ||
-    actualPaymentMethod(invoice) ||
-    'qris'
+    selectedPaymentMethods.value[invoice.invoice_number] || actualPaymentMethod(invoice) || 'qris'
   )
 }
 
 function actualPaymentMethod(invoice) {
-  const method =
-    invoice.payment?.payment_method || paymentInstruction(invoice).method
+  const method = invoice.payment?.payment_method || paymentInstruction(invoice).method
   if (method) return method
   if (qrContent(invoice) || qrImageUrl(invoice)) return 'qris'
   if (invoice.payment?.checkout_url) return 'gopay'
@@ -1101,25 +1032,17 @@ async function loadFeePreview(invoice, method = null) {
   const targetMethod = method || paymentMethod(invoice)
   const invoiceNumber = invoice.invoice_number
 
-  if (
-    invoice.payment?.fee_breakdown &&
-    actualPaymentMethod(invoice) === targetMethod
-  ) {
+  if (invoice.payment?.fee_breakdown && actualPaymentMethod(invoice) === targetMethod) {
     const fb = invoice.payment.fee_breakdown
     invoiceFeePreviews.value[invoiceNumber] = {
-      subtotal: Number(
-        fb.subtotal_amount || invoice.pricing?.final_price || invoice.amount
-      ),
+      subtotal: Number(fb.subtotal_amount || invoice.pricing?.final_price || invoice.amount),
       fee_amount: Number(fb.fee_amount || 0),
-      fee_label:
-        fb.fee_type === 'percent'
-          ? `${strRate(fb.fee_rate)}%`
-          : 'Rp 4.000 (Tetap)',
+      fee_label: fb.fee_type === 'percent' ? `${strRate(fb.fee_rate)}%` : 'Rp 4.000 (Tetap)',
       total_amount: Number(fb.total_amount || invoice.payment.amount),
       fee_type: fb.fee_type,
       fee_rate: fb.fee_rate,
       payment_method: targetMethod,
-      is_locked: true
+      is_locked: true,
     }
     return
   }
@@ -1128,21 +1051,19 @@ async function loadFeePreview(invoice, method = null) {
     const previewData = await larisamaApi.previewSubscriptionFee(
       invoiceNumber,
       targetMethod,
-      selectedWarungId.value
+      selectedWarungId.value,
     )
     if (previewData) {
       invoiceFeePreviews.value[invoiceNumber] = previewData
     }
   } catch {
-    const opt = paymentMethodOptions.value.find(o => o.value === targetMethod)
+    const opt = paymentMethodOptions.value.find((o) => o.value === targetMethod)
     const subtotal = Number(invoice.pricing?.final_price ?? invoice.amount ?? 0)
     const isPercent = opt?.fee_type === 'percent'
     const fee = isPercent
       ? Math.round(subtotal * ((opt?.fee_rate || 0.7) / 100))
       : opt?.fixed_amount || 4000
-    const label = isPercent
-      ? `${strRate(opt?.fee_rate || 0.7)}%`
-      : 'Rp 4.000 (Tetap)'
+    const label = isPercent ? `${strRate(opt?.fee_rate || 0.7)}%` : 'Rp 4.000 (Tetap)'
     invoiceFeePreviews.value[invoiceNumber] = {
       subtotal,
       fee_amount: fee,
@@ -1151,7 +1072,7 @@ async function loadFeePreview(invoice, method = null) {
       fee_type: opt?.fee_type || 'fixed',
       fee_rate: opt?.fee_rate || 0,
       payment_method: targetMethod,
-      is_locked: false
+      is_locked: false,
     }
   }
 }
@@ -1200,9 +1121,7 @@ function hasActiveCheckout(invoice) {
 
   const method = actualPaymentMethod(invoice)
   if (method === 'qris') {
-    return Boolean(
-      qrContent(invoice) || qrImageUrl(invoice) || paymentCode(invoice)
-    )
+    return Boolean(qrContent(invoice) || qrImageUrl(invoice) || paymentCode(invoice))
   }
   if (method === 'gopay') {
     return Boolean(invoice.payment?.checkout_url)
@@ -1212,8 +1131,8 @@ function hasActiveCheckout(invoice) {
 
 watch(
   invoices,
-  rows => {
-    const invoiceNumbers = new Set(rows.map(invoice => invoice.invoice_number))
+  (rows) => {
+    const invoiceNumbers = new Set(rows.map((invoice) => invoice.invoice_number))
     for (const invoiceNumber of qrCodeSources.keys()) {
       if (!invoiceNumbers.has(invoiceNumber)) {
         qrCodeSources.delete(invoiceNumber)
@@ -1239,9 +1158,9 @@ watch(
       QRCode.toDataURL(content, {
         errorCorrectionLevel: 'M',
         margin: 2,
-        width: 240
+        width: 240,
       })
-        .then(image => {
+        .then((image) => {
           if (qrCodeSources.get(invoiceNumber) === content) {
             qrCodeImages.value[invoiceNumber] = image
           }
@@ -1253,7 +1172,7 @@ watch(
         })
     }
   },
-  { deep: true, immediate: true }
+  { deep: true, immediate: true },
 )
 
 function savedKey(operation, subject) {
@@ -1265,8 +1184,7 @@ function savedKey(operation, subject) {
     window.localStorage.setItem(storageKey, value)
     return value
   } catch {
-    if (!invoicePollKeys.has(storageKey))
-      invoicePollKeys.set(storageKey, newIdempotencyKey())
+    if (!invoicePollKeys.has(storageKey)) invoicePollKeys.set(storageKey, newIdempotencyKey())
     return invoicePollKeys.get(storageKey)
   }
 }
@@ -1307,30 +1225,26 @@ async function loadPage() {
       return
     }
 
-    const [planResult, invoiceResult, methodsResult] = await Promise.allSettled(
-      [
-        larisamaApi.listSubscriptionPlans(),
-        larisamaApi.listSubscriptionInvoices(),
-        larisamaApi.listSubscriptionPaymentMethods()
-      ]
-    )
+    const [planResult, invoiceResult, methodsResult] = await Promise.allSettled([
+      larisamaApi.listSubscriptionPlans(),
+      larisamaApi.listSubscriptionInvoices(),
+      larisamaApi.listSubscriptionPaymentMethods(),
+      refreshCurrentWarung(),
+    ])
     if (planResult.status === 'fulfilled') {
       plans.value = planResult.value
     } else {
       errorMessage.value = `Katalog paket: ${displayApiError(planResult.reason)}`
     }
 
-    if (
-      methodsResult.status === 'fulfilled' &&
-      Array.isArray(methodsResult.value)
-    ) {
-      paymentMethodOptions.value = methodsResult.value.map(m => ({
+    if (methodsResult.status === 'fulfilled' && Array.isArray(methodsResult.value)) {
+      paymentMethodOptions.value = methodsResult.value.map((m) => ({
         label: `${m.name || m.label}${m.fee_label ? ` (Biaya admin ${m.fee_label})` : ''}`,
         value: m.code || m.value,
         fee_type: m.fee_type,
         fee_rate: m.fee_rate,
         fixed_amount: m.fixed_amount,
-        fee_label: m.fee_label
+        fee_label: m.fee_label,
       }))
     }
 
@@ -1348,10 +1262,7 @@ async function loadPage() {
       for (const invoice of rows) {
         knownInvoiceStatuses.set(invoice.invoice_number, invoice.status)
         if (isSettledInvoice(invoice)) {
-          markInvoiceAsNotified(
-            invoice.invoice_number,
-            invoice.payment?.payment_method
-          )
+          markInvoiceAsNotified(invoice.invoice_number, invoice.payment?.payment_method)
         } else if (invoice.status === 'pending' && hasActiveCheckout(invoice)) {
           activelyMonitoredInvoices.add(invoice.invoice_number)
         }
@@ -1388,12 +1299,7 @@ async function checkAndHandleSettledInvoices(updatedInvoices) {
     const alreadyNotified = isInvoiceNotified(invoiceNumber)
 
     // True transition from pending to settled for an actively monitored checkout
-    if (
-      isNowSettled &&
-      prevStatus === 'pending' &&
-      isMonitored &&
-      !alreadyNotified
-    ) {
+    if (isNowSettled && prevStatus === 'pending' && isMonitored && !alreadyNotified) {
       hasNewlySettled = true
       markInvoiceAsNotified(invoiceNumber, invoice.payment?.payment_method)
       activelyMonitoredInvoices.delete(invoiceNumber)
@@ -1413,10 +1319,9 @@ async function checkAndHandleSettledInvoices(updatedInvoices) {
 
     $q.notify({
       type: 'positive',
-      message:
-        'Pembayaran langganan berhasil diverifikasi dan masa aktif warung telah diperbarui.',
+      message: 'Pembayaran langganan berhasil diverifikasi dan masa aktif warung telah diperbarui.',
       icon: 'check_circle',
-      timeout: 5000
+      timeout: 5000,
     })
 
     // Stop polling immediately after successful payment verification
@@ -1462,12 +1367,11 @@ async function previewPlan(plan) {
     previewError.value = ''
     preview.value = await larisamaApi.previewSubscriptionInvoice({
       subscription_plan_code: plan.code,
-      period_count: periodCount.value
+      period_count: periodCount.value,
     })
     checkPricingConsistency()
     referralLocked.value = Boolean(preview.value.pricing?.referral_code)
-    if (referralLocked.value)
-      referralCode.value = preview.value.pricing.referral_code
+    if (referralLocked.value) referralCode.value = preview.value.pricing.referral_code
     previewDialog.value = true
   } catch (error) {
     errorMessage.value = displayApiError(error)
@@ -1485,7 +1389,7 @@ async function refreshPreviewForPeriod(count) {
   try {
     preview.value = await larisamaApi.previewSubscriptionInvoice({
       subscription_plan_code: selectedPlan.value.code,
-      period_count: periodCount.value
+      period_count: periodCount.value,
     })
     checkPricingConsistency()
   } catch (error) {
@@ -1500,7 +1404,7 @@ async function validateReferral() {
   referralError.value = ''
   try {
     const result = await larisamaApi.validateSubscriptionReferral({
-      referral_code: referralCode.value.trim().toUpperCase()
+      referral_code: referralCode.value.trim().toUpperCase(),
     })
     referralCode.value = result.code
     referralValidation.value = result
@@ -1518,15 +1422,12 @@ async function attachReferral() {
   try {
     await larisamaApi.attachSubscriptionReferral(
       { referral_code: referralValidation.value.code },
-      referralIdempotencyKey(referralValidation.value.code)
+      referralIdempotencyKey(referralValidation.value.code),
     )
-    clearSavedKey(
-      'referral',
-      `${authSession.user?.id || 'owner'}-${referralValidation.value.code}`
-    )
+    clearSavedKey('referral', `${authSession.user?.id || 'owner'}-${referralValidation.value.code}`)
     preview.value = await larisamaApi.previewSubscriptionInvoice({
       subscription_plan_code: selectedPlan.value.code,
-      period_count: periodCount.value
+      period_count: periodCount.value,
     })
     previewError.value = ''
     checkPricingConsistency()
@@ -1543,12 +1444,7 @@ async function attachReferral() {
 
 async function createInvoice() {
   if (!selectedPlan.value) return
-  if (
-    refreshingPreview.value ||
-    previewError.value ||
-    !isPricingConsistent.value
-  )
-    return
+  if (refreshingPreview.value || previewError.value || !isPricingConsistent.value) return
   creatingInvoice.value = true
   errorMessage.value = ''
   try {
@@ -1556,25 +1452,20 @@ async function createInvoice() {
     const invoice = await larisamaApi.createSubscriptionInvoice(
       {
         subscription_plan_code: selectedPlan.value.code,
-        period_count: periodCount.value
+        period_count: periodCount.value,
       },
-      invoiceIdempotencyKey(selectedPlan.value.code, periodCount.value)
+      invoiceIdempotencyKey(selectedPlan.value.code, periodCount.value),
     )
     clearSavedKey('invoice', invoiceKeySubject)
     previewDialog.value = false
     upsertInvoice(invoice)
-    knownInvoiceStatuses.set(
-      invoice.invoice_number,
-      invoice.status || 'pending'
-    )
+    knownInvoiceStatuses.set(invoice.invoice_number, invoice.status || 'pending')
     activelyMonitoredInvoices.add(invoice.invoice_number)
     $q.notify({
       type: 'positive',
-      message: `Invoice ${invoice.invoice_number} berhasil dibuat.`
+      message: `Invoice ${invoice.invoice_number} berhasil dibuat.`,
     })
-    await router.push(
-      `/pengaturan/pembayaran/checkout/${invoice.invoice_number}`
-    )
+    await router.push(`/pengaturan/pembayaran/checkout/${invoice.invoice_number}`)
   } catch (error) {
     errorMessage.value = displayApiError(error)
   } finally {
@@ -1587,7 +1478,7 @@ async function goToCheckout(invoiceNumber) {
     $q.notify({
       type: 'warning',
       message: 'Nomor invoice tidak ditemukan.',
-      icon: 'warning'
+      icon: 'warning',
     })
     return
   }
@@ -1597,7 +1488,7 @@ async function goToCheckout(invoiceNumber) {
     $q.notify({
       type: 'negative',
       message: `Gagal membuka halaman checkout: ${error?.message || 'Navigasi gagal'}`,
-      icon: 'error'
+      icon: 'error',
     })
   }
 }
@@ -1634,7 +1525,7 @@ async function refreshInvoice(invoiceNumber, showError = true) {
         message:
           'Pembayaran langganan berhasil diverifikasi dan masa aktif warung telah diperbarui.',
         icon: 'check_circle',
-        timeout: 5000
+        timeout: 5000,
       })
 
       stopStatusPolling()
@@ -1665,7 +1556,7 @@ async function applyUdevSubscription(options = {}) {
         message:
           'Pembayaran langganan berhasil diverifikasi dan masa aktif warung telah diperbarui.',
         icon: 'check_circle',
-        timeout: 5000
+        timeout: 5000,
       })
     }
     return result
@@ -1701,28 +1592,21 @@ watch(selectedWarungId, () => {
 
 function upsertInvoice(invoice) {
   if (!invoice?.invoice_number) return
-  const index = invoices.value.findIndex(
-    row => row.invoice_number === invoice.invoice_number
-  )
+  const index = invoices.value.findIndex((row) => row.invoice_number === invoice.invoice_number)
   if (index === -1) invoices.value.unshift(invoice)
   else invoices.value[index] = invoice
 
   if (invoice.payment?.fee_breakdown) {
     const fb = invoice.payment.fee_breakdown
     invoiceFeePreviews.value[invoice.invoice_number] = {
-      subtotal: Number(
-        fb.subtotal_amount || invoice.pricing?.final_price || invoice.amount
-      ),
+      subtotal: Number(fb.subtotal_amount || invoice.pricing?.final_price || invoice.amount),
       fee_amount: Number(fb.fee_amount || 0),
-      fee_label:
-        fb.fee_type === 'percent'
-          ? `${strRate(fb.fee_rate)}%`
-          : 'Rp 4.000 (Tetap)',
+      fee_label: fb.fee_type === 'percent' ? `${strRate(fb.fee_rate)}%` : 'Rp 4.000 (Tetap)',
       total_amount: Number(fb.total_amount || invoice.payment.amount),
       fee_type: fb.fee_type,
       fee_rate: fb.fee_rate,
       payment_method: invoice.payment.payment_method,
-      is_locked: true
+      is_locked: true,
     }
   }
 
@@ -1780,9 +1664,7 @@ function isPollableInvoice(invoice) {
   return (
     invoice.status === 'pending' &&
     invoice.payment !== null &&
-    !['failed', 'expired', 'cancelled', 'succeeded'].includes(
-      invoice.payment?.status
-    ) &&
+    !['failed', 'expired', 'cancelled', 'succeeded'].includes(invoice.payment?.status) &&
     !isCheckoutExpired(invoice)
   )
 }
@@ -1813,17 +1695,13 @@ function handleVisibilityChange() {
 }
 
 function invoiceStatusLabel(invoice) {
-  if (
-    invoice.status === 'paid' &&
-    invoice.tracking?.settlement_status === 'completed'
-  ) {
+  if (invoice.status === 'paid' && invoice.tracking?.settlement_status === 'completed') {
     return 'Terbayar'
   }
   if (invoice.status === 'paid') return 'Pembayaran diproses'
   if (invoice.status === 'expired') return 'Kedaluwarsa'
   if (invoice.status === 'cancelled') return 'Dibatalkan'
-  if (invoice.payment?.checkout_status === 'failed')
-    return 'Checkout gagal disiapkan'
+  if (invoice.payment?.checkout_status === 'failed') return 'Checkout gagal disiapkan'
   if (invoice.payment?.status === 'failed') return 'Pembayaran ditolak'
   if (invoice.payment?.status === 'expired') return 'Checkout kedaluwarsa'
   if (invoice.payment?.status === 'cancelled') return 'Checkout dibatalkan'
@@ -1831,17 +1709,11 @@ function invoiceStatusLabel(invoice) {
 }
 
 function isSettledInvoice(invoice) {
-  return (
-    invoice.status === 'paid' &&
-    invoice.tracking?.settlement_status === 'completed'
-  )
+  return invoice.status === 'paid' && invoice.tracking?.settlement_status === 'completed'
 }
 
 function invoiceStatusColor(invoice) {
-  if (
-    invoice.status === 'paid' &&
-    invoice.tracking?.settlement_status === 'completed'
-  ) {
+  if (invoice.status === 'paid' && invoice.tracking?.settlement_status === 'completed') {
     return 'positive'
   }
   if (invoice.status === 'paid') return 'warning'
@@ -1861,7 +1733,7 @@ function formatDate(value) {
     ? new Intl.DateTimeFormat('id-ID', {
         dateStyle: 'medium',
         timeStyle: 'short',
-        timeZone: 'Asia/Jakarta'
+        timeZone: 'Asia/Jakarta',
       }).format(timestamp)
     : value
 }
@@ -1869,14 +1741,12 @@ function formatDate(value) {
 function formatPlanPrice(price, currency = 'IDR') {
   if (price === null || price === undefined || price === '') return '-'
   const numeric =
-    typeof price === 'number'
-      ? Math.abs(price)
-      : Number(String(price).replace(/[^0-9.]+/g, ''))
+    typeof price === 'number' ? Math.abs(price) : Number(String(price).replace(/[^0-9.]+/g, ''))
   if (Number.isFinite(numeric)) {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: currency || 'IDR',
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(numeric)
   }
   return `${currency || 'IDR'} ${price}`
@@ -2080,6 +1950,52 @@ h2.page-title {
 }
 .preview-card {
   width: min(100%, 480px);
+}
+.subscription-validity-card {
+  border-radius: 16px;
+  background: #f8faf9;
+  border: 1px solid #dbe6e0;
+}
+.validity-metric-label {
+  font-size: 12px;
+  color: #71847b;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+.validity-metric-value {
+  font-size: 15px;
+  color: #104f39;
+  font-weight: 600;
+}
+.extend-btn {
+  font-weight: 700;
+  padding: 10px 20px;
+}
+body.body--dark .subscription-validity-card {
+  background: #1c2621;
+  border-color: #2e3e35;
+}
+body.body--dark .validity-metric-label {
+  color: #9bb0a5;
+}
+body.body--dark .validity-metric-value {
+  color: #eef7f2;
+}
+@media (min-width: 1024px) {
+  .text-right-md {
+    text-align: right;
+  }
+}
+@media (max-width: 1023px) {
+  .text-right-md {
+    text-align: left;
+    margin-top: 8px;
+  }
+  .extend-btn {
+    width: 100%;
+  }
 }
 @media (max-width: 599px) {
   .page-heading,

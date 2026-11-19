@@ -17,6 +17,7 @@
   "scripts": {
     "lint": "prettier --write \"**/*.{js,vue,css,scss,html,md,json}\" --ignore-path .gitignore && eslint --fix -c ./eslint.config.js \"./src*/**/*.{js,cjs,mjs,vue}\"",
     "lint:check": "prettier \"**/*.{js,vue,css,scss,html,md,json}\" --ignore-path .gitignore && eslint -c ./eslint.config.js \"./src*/**/*.{js,cjs,mjs,vue}\"",
+    "test": "node --test test/**/*.test.js",
     "dev": "quasar dev -m pwa",
     "build": "quasar build -m pwa",
     "postinstall": "quasar prepare --silent"
