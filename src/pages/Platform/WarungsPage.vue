@@ -1,21 +1,28 @@
 <template>
   <q-page class="page-shell">
     <div class="page-heading row items-end justify-between q-col-gutter-md">
-      <div class="col"
-        ><div class="eyebrow">PLATFORM</div
-        ><h1 class="page-title">Kelola Warung</h1
-        ><p class="page-subtitle"
-          >Tinjau pendaftaran owner dan kelola masa aktif warung.</p
-        ></div
-      >
+      <div class="col">
+        <div class="eyebrow">PLATFORM</div>
+        <h1 class="page-title">Kelola Warung</h1>
+        <p class="page-subtitle">Tinjau pendaftaran owner dan kelola masa aktif warung.</p>
+      </div>
+      <div class="col-auto">
+        <q-btn
+          outline
+          no-caps
+          color="primary"
+          icon="sync"
+          label="Sinkronkan Semua ke UDEV"
+          :loading="resyncAllBusy"
+          @click="resyncAllToUdev"
+        />
+      </div>
     </div>
-    <q-banner v-if="error" rounded class="q-mb-lg bg-red-1 text-negative">{{
-      error
-    }}</q-banner>
+    <q-banner v-if="error" rounded class="q-mb-lg bg-red-1 text-negative">{{ error }}</q-banner>
     <q-card flat bordered class="panel-card">
       <q-card-section class="warung-filter-header"
-        ><div class="panel-title">Daftar warung</div
-        ><q-tabs
+        ><div class="panel-title">Daftar warung</div>
+        <q-tabs
           v-model="filter"
           dense
           no-caps
@@ -41,46 +48,36 @@
             <q-card flat bordered class="warung-mobile-card">
               <q-card-section>
                 <div class="row items-start justify-between q-gutter-sm">
-                  <div class="col"
-                    ><div class="text-weight-bold">{{
-                      props.row.nama
-                    }}</div></div
-                  >
-                  <q-badge :color="statusColor(props.row)">{{
-                    statusText(props.row)
-                  }}</q-badge>
+                  <div class="col">
+                    <div class="text-weight-bold">{{ props.row.nama }}</div>
+                  </div>
+                  <q-badge :color="statusColor(props.row)">{{ statusText(props.row) }}</q-badge>
                 </div>
-                <div class="warung-mobile-meta"
-                  ><span>Pemilik</span
-                  ><strong>{{ ownerNames(props.row) }}</strong></div
-                >
-                <div class="warung-mobile-meta"
-                  ><span>Aktif sejak</span
-                  ><strong>{{ props.row.tanggal_mulai || '—' }}</strong></div
-                >
-                <div class="warung-mobile-meta"
-                  ><span>Aktif sampai</span
-                  ><strong>{{ props.row.tanggal_berakhir || '—' }}</strong></div
-                >
+                <div class="warung-mobile-meta">
+                  <span>Pemilik</span><strong>{{ ownerNames(props.row) }}</strong>
+                </div>
+                <div class="warung-mobile-meta">
+                  <span>Aktif sejak</span><strong>{{ props.row.tanggal_mulai || '—' }}</strong>
+                </div>
+                <div class="warung-mobile-meta">
+                  <span>Aktif sampai</span><strong>{{ props.row.tanggal_berakhir || '—' }}</strong>
+                </div>
                 <div class="warung-mobile-sync q-mt-md">
                   <div class="row items-center justify-between q-gutter-sm">
                     <span class="text-caption text-grey-7">Sync UDEV</span>
-                    <q-badge
-                      :color="udevSyncColor(props.row.udev_customer_sync)"
-                      >{{ udevSyncText(props.row.udev_customer_sync) }}</q-badge
-                    >
+                    <q-badge :color="udevSyncColor(props.row.udev_customer_sync)">{{
+                      udevSyncText(props.row.udev_customer_sync)
+                    }}</q-badge>
                   </div>
                   <div
                     v-if="udevSyncDetail(props.row.udev_customer_sync)"
                     class="text-caption text-grey-7 q-mt-xs"
-                    >{{ udevSyncDetail(props.row.udev_customer_sync) }}</div
                   >
+                    {{ udevSyncDetail(props.row.udev_customer_sync) }}
+                  </div>
                   <div class="row justify-end q-gutter-xs q-mt-xs">
                     <q-btn
-                      v-if="
-                        !props.row.udev_customer_sync &&
-                        props.row.owners?.length
-                      "
+                      v-if="!props.row.udev_customer_sync && props.row.owners?.length"
                       outline
                       dense
                       no-caps
@@ -147,9 +144,7 @@
         </template>
         <template #body-cell-status="props"
           ><q-td :props="props"
-            ><q-badge :color="statusColor(props.row)">{{
-              statusText(props.row)
-            }}</q-badge></q-td
+            ><q-badge :color="statusColor(props.row)">{{ statusText(props.row) }}</q-badge></q-td
           ></template
         >
         <template #body-cell-udev_sync="props">
@@ -161,13 +156,12 @@
               <div
                 v-if="udevSyncDetail(props.row.udev_customer_sync)"
                 class="text-caption text-grey-7"
-                >{{ udevSyncDetail(props.row.udev_customer_sync) }}</div
               >
+                {{ udevSyncDetail(props.row.udev_customer_sync) }}
+              </div>
               <div class="row q-gutter-xs">
                 <q-btn
-                  v-if="
-                    !props.row.udev_customer_sync && props.row.owners?.length
-                  "
+                  v-if="!props.row.udev_customer_sync && props.row.owners?.length"
                   outline
                   dense
                   no-caps
@@ -242,13 +236,12 @@
       <q-card class="product-form-dialog">
         <q-card-section>
           <div class="text-h6">Sinkronkan warung lama ke UDEV?</div>
-          <div class="q-mt-sm"
-            >Data warung dan owner terpilih akan dikirim ke UDEV Billing untuk
-            pendaftaran customer dan pembuatan invoice paket langganan. Dengan
-            melanjutkan, Anda mencatat bahwa pemberitahuan dan persetujuan owner
-            sudah disampaikan; pemberitahuan verbal diperbolehkan. Aksi dan akun
-            superadmin akan masuk audit.</div
-          >
+          <div class="q-mt-sm">
+            Data warung dan owner terpilih akan dikirim ke UDEV Billing untuk pendaftaran customer
+            dan pembuatan invoice paket langganan. Dengan melanjutkan, Anda mencatat bahwa
+            pemberitahuan dan persetujuan owner sudah disampaikan; pemberitahuan verbal
+            diperbolehkan. Aksi dan akun superadmin akan masuk audit.
+          </div>
           <q-select
             v-model="legacyOwnerId"
             class="q-mt-md"
@@ -311,13 +304,14 @@
     <q-dialog v-model="formOpen">
       <q-card class="product-form-dialog">
         <q-card-section class="dialog-header"
-          ><div class="dialog-header-copy"
-            ><div class="dialog-eyebrow">ADMIN PLATFORM</div
-            ><div class="text-h6 dialog-title">Daftarkan warung</div
-            ><div class="dialog-subtitle"
-              >Warung dan owner awal dibuat bersama pada alur backend.</div
-            ></div
-          ><q-btn
+          ><div class="dialog-header-copy">
+            <div class="dialog-eyebrow">ADMIN PLATFORM</div>
+            <div class="text-h6 dialog-title">Daftarkan warung</div>
+            <div class="dialog-subtitle">
+              Warung dan owner awal dibuat bersama pada alur backend.
+            </div>
+          </div>
+          <q-btn
             class="dialog-header-close"
             flat
             round
@@ -334,14 +328,14 @@
             outlined
             label="Nama warung"
             maxlength="150"
-            :rules="[value => !!value || 'Nama wajib diisi']"
+            :rules="[(value) => !!value || 'Nama wajib diisi']"
           />
           <q-input
             v-model.trim="form.timezone"
             outlined
             label="Zona waktu (IANA)"
             placeholder="Asia/Jakarta"
-            :rules="[value => !!value || 'Zona waktu wajib diisi']"
+            :rules="[(value) => !!value || 'Zona waktu wajib diisi']"
           />
           <q-input
             v-model.trim="form.address"
@@ -350,12 +344,7 @@
             autogrow
             label="Alamat (opsional)"
           />
-          <q-input
-            v-model.trim="form.phone"
-            outlined
-            label="Telepon (opsional)"
-            maxlength="30"
-          />
+          <q-input v-model.trim="form.phone" outlined label="Telepon (opsional)" maxlength="30" />
           <div class="warung-date-grid">
             <q-input
               v-model="form.startDate"
@@ -367,17 +356,15 @@
             >
               <template #append
                 ><q-icon name="event" class="cursor-pointer"
-                  ><q-popup-proxy
-                    cover
-                    transition-show="scale"
-                    transition-hide="scale"
+                  ><q-popup-proxy cover transition-show="scale" transition-hide="scale"
                     ><q-date v-model="form.startDate" mask="YYYY-MM-DD"
-                      ><div class="row items-center justify-end q-gutter-sm"
-                        ><q-btn
+                      ><div class="row items-center justify-end q-gutter-sm">
+                        <q-btn
                           v-close-popup
                           flat
                           no-caps
-                          label="Tutup" /></div></q-date></q-popup-proxy></q-icon
+                          label="Tutup"
+                        /></div></q-date></q-popup-proxy></q-icon
               ></template>
             </q-input>
             <q-input
@@ -390,25 +377,19 @@
             >
               <template #append
                 ><q-icon name="event" class="cursor-pointer"
-                  ><q-popup-proxy
-                    cover
-                    transition-show="scale"
-                    transition-hide="scale"
+                  ><q-popup-proxy cover transition-show="scale" transition-hide="scale"
                     ><q-date v-model="form.endDate" mask="YYYY-MM-DD"
-                      ><div class="row items-center justify-end q-gutter-sm"
-                        ><q-btn
+                      ><div class="row items-center justify-end q-gutter-sm">
+                        <q-btn
                           v-close-popup
                           flat
                           no-caps
-                          label="Tutup" /></div></q-date></q-popup-proxy></q-icon
+                          label="Tutup"
+                        /></div></q-date></q-popup-proxy></q-icon
               ></template>
             </q-input>
           </div>
-          <q-toggle
-            v-model="form.active"
-            color="secondary"
-            label="Warung aktif"
-          />
+          <q-toggle v-model="form.active" color="secondary" label="Warung aktif" />
           <q-separator class="q-my-md" />
           <div class="form-section-label">Owner awal</div>
           <q-input
@@ -416,7 +397,7 @@
             outlined
             label="Nama owner"
             maxlength="150"
-            :rules="[value => !!value || 'Nama owner wajib diisi']"
+            :rules="[(value) => !!value || 'Nama owner wajib diisi']"
           />
           <q-input
             v-model.trim="form.owner.username"
@@ -426,8 +407,8 @@
             label="Username (huruf kecil)"
             maxlength="100"
             :rules="[
-              value => !!value || 'Username wajib diisi',
-              value => !/[A-Z]/.test(value) || 'Username harus huruf kecil'
+              (value) => !!value || 'Username wajib diisi',
+              (value) => !/[A-Z]/.test(value) || 'Username harus huruf kecil',
             ]"
           />
           <q-input
@@ -435,10 +416,7 @@
             outlined
             type="email"
             label="Email owner (opsional, huruf kecil)"
-            :rules="[
-              value =>
-                !value || !/[A-Z]/.test(value) || 'Email harus huruf kecil'
-            ]"
+            :rules="[(value) => !value || !/[A-Z]/.test(value) || 'Email harus huruf kecil']"
           />
           <q-input
             v-model="form.owner.password"
@@ -448,21 +426,18 @@
             type="password"
             label="Password awal"
             hint="Minimal 8 karakter."
-            :rules="[value => value.length >= 8 || 'Minimal 8 karakter']"
+            :rules="[(value) => value.length >= 8 || 'Minimal 8 karakter']"
           />
-          <div class="row justify-end q-gutter-sm q-mt-lg"
-            ><q-btn
-              flat
-              no-caps
-              label="Batal"
-              @click="formOpen = false" /><q-btn
+          <div class="row justify-end q-gutter-sm q-mt-lg">
+            <q-btn flat no-caps label="Batal" @click="formOpen = false" /><q-btn
               unelevated
               no-caps
               color="primary"
               label="Daftarkan warung"
               :loading="saving"
               type="submit"
-          /></div>
+            />
+          </div>
         </q-form>
       </q-card>
     </q-dialog>
@@ -482,14 +457,15 @@ const saving = ref(false)
 const error = ref('')
 const busyId = ref(null)
 const syncBusyId = ref(null)
+const resyncAllBusy = ref(false)
 const legacySyncDialogOpen = ref(false)
 const legacySyncRow = ref(null)
 const legacyOwnerId = ref(null)
 const legacyOwnerOptions = computed(() =>
-  (legacySyncRow.value?.owners || []).map(owner => ({
+  (legacySyncRow.value?.owners || []).map((owner) => ({
     ...owner,
-    label: `${owner.nama} · ID ${owner.id}`
-  }))
+    label: `${owner.nama} · ID ${owner.id}`,
+  })),
 )
 const confirmationOpen = ref(false)
 const confirmation = ref(null)
@@ -497,7 +473,7 @@ const filter = ref('pending')
 const visibleWarungs = computed(() => {
   if (filter.value === 'pending') return warungs.value.filter(isPending)
   if (filter.value === 'active')
-    return warungs.value.filter(row => row.status_langganan === 'aktif')
+    return warungs.value.filter((row) => row.status_langganan === 'aktif')
   return warungs.value
 })
 const blankForm = () => ({
@@ -508,7 +484,7 @@ const blankForm = () => ({
   startDate: '',
   endDate: '',
   active: true,
-  owner: { name: '', username: '', email: '', password: '' }
+  owner: { name: '', username: '', email: '', password: '' },
 })
 const form = reactive(blankForm())
 const columns = [
@@ -517,23 +493,23 @@ const columns = [
   {
     name: 'subscription_start',
     label: 'Aktif sejak',
-    field: row => row.tanggal_mulai || '—',
-    align: 'left'
+    field: (row) => row.tanggal_mulai || '—',
+    align: 'left',
   },
   {
     name: 'subscription_end',
     label: 'Aktif sampai',
-    field: row => row.tanggal_berakhir || '—',
-    align: 'left'
+    field: (row) => row.tanggal_berakhir || '—',
+    align: 'left',
   },
   { name: 'status', label: 'Status', field: statusText, align: 'left' },
   {
     name: 'udev_sync',
     label: 'Sync UDEV',
-    field: row => row.udev_customer_sync?.status || 'none',
-    align: 'left'
+    field: (row) => row.udev_customer_sync?.status || 'none',
+    align: 'left',
   },
-  { name: 'actions', label: '', field: 'id', align: 'right' }
+  { name: 'actions', label: '', field: 'id', align: 'right' },
 ]
 function isPending(row) {
   return row.status_langganan === 'menunggu_persetujuan'
@@ -554,16 +530,12 @@ function statusText(row) {
         : 'Nonaktif'
 }
 function statusColor(row) {
-  return isPending(row)
-    ? 'orange-8'
-    : row.status_langganan === 'aktif'
-      ? 'positive'
-      : 'grey-7'
+  return isPending(row) ? 'orange-8' : row.status_langganan === 'aktif' ? 'positive' : 'grey-7'
 }
 function ownerNames(row) {
   return (
     row.owners
-      ?.map(owner => owner.nama)
+      ?.map((owner) => owner.nama)
       .filter(Boolean)
       .join(', ') || '—'
   )
@@ -573,10 +545,11 @@ function udevSyncText(sync) {
   return (
     {
       pending: 'Menunggu proses',
+      processing: 'Sedang diproses',
       retry_wait: 'Menunggu retry',
       synced: 'Tersinkron',
-      failed: 'Gagal',
-      blocked: 'Terblokir'
+      failed: 'Gagal sinkron',
+      blocked: 'Terblokir',
     }[sync.status] || 'Status tidak dikenal'
   )
 }
@@ -584,10 +557,11 @@ function udevSyncColor(sync) {
   return (
     {
       pending: 'blue-8',
+      processing: 'indigo-7',
       retry_wait: 'orange-8',
       synced: 'positive',
       failed: 'negative',
-      blocked: 'grey-7'
+      blocked: 'grey-7',
     }[sync?.status] || 'grey-6'
   )
 }
@@ -595,7 +569,7 @@ function canRefreshUdevSync(sync) {
   return Boolean(sync) && sync.status !== 'synced'
 }
 function canRetryUdevSync(sync) {
-  return ['failed', 'blocked', 'retry_wait'].includes(sync?.status)
+  return ['failed', 'blocked', 'retry_wait', 'pending'].includes(sync?.status)
 }
 function udevSyncDetail(sync) {
   if (!sync) return ''
@@ -606,8 +580,7 @@ function udevSyncDetail(sync) {
     details.push(`Berhasil ${formatSyncTime(sync.last_success_at)}`)
   else if (sync.status === 'retry_wait' && sync.next_attempt_at)
     details.push(`Retry berikutnya ${formatSyncTime(sync.next_attempt_at)}`)
-  else if (sync.last_attempt_at)
-    details.push(`Percobaan ${formatSyncTime(sync.last_attempt_at)}`)
+  else if (sync.last_attempt_at) details.push(`Percobaan ${formatSyncTime(sync.last_attempt_at)}`)
   if (sync.attempt_count > 0) details.push(`${sync.attempt_count} percobaan`)
   return details.join(' · ')
 }
@@ -618,7 +591,7 @@ function formatSyncTime(value) {
     : new Intl.DateTimeFormat('id-ID', {
         dateStyle: 'medium',
         timeStyle: 'short',
-        timeZone: 'Asia/Jakarta'
+        timeZone: 'Asia/Jakarta',
       }).format(timestamp)
 }
 function syncSummary(sync) {
@@ -629,7 +602,7 @@ function syncSummary(sync) {
     last_error_code: sync.last_error_code,
     last_attempt_at: sync.last_attempt_at,
     last_success_at: sync.last_success_at,
-    next_attempt_at: sync.next_attempt_at
+    next_attempt_at: sync.next_attempt_at,
   }
 }
 async function loadWarungs() {
@@ -648,14 +621,12 @@ onMounted(loadWarungs)
 async function refreshUdevSync(row) {
   syncBusyId.value = row.id
   try {
-    row.udev_customer_sync = syncSummary(
-      await larisamaApi.getWarungUdevCustomerSync(row.id)
-    )
+    row.udev_customer_sync = syncSummary(await larisamaApi.getWarungUdevCustomerSync(row.id))
   } catch (e) {
     $q.notify({
       type: 'negative',
       message: displayApiError(e),
-      position: 'top'
+      position: 'top',
     })
   } finally {
     syncBusyId.value = null
@@ -665,22 +636,41 @@ async function refreshUdevSync(row) {
 async function retryUdevSync(row) {
   syncBusyId.value = row.id
   try {
-    row.udev_customer_sync = syncSummary(
-      await larisamaApi.retryWarungUdevCustomerSync(row.id)
-    )
+    row.udev_customer_sync = syncSummary(await larisamaApi.retryWarungUdevCustomerSync(row.id))
     $q.notify({
       type: 'positive',
       message: `Retry sync ${row.nama} sudah masuk antrean.`,
-      position: 'top'
+      position: 'top',
     })
   } catch (e) {
     $q.notify({
       type: 'negative',
       message: displayApiError(e),
-      position: 'top'
+      position: 'top',
     })
   } finally {
     syncBusyId.value = null
+  }
+}
+
+async function resyncAllToUdev() {
+  resyncAllBusy.value = true
+  try {
+    const res = await larisamaApi.resyncAllWarungUdevCustomerSync()
+    $q.notify({
+      type: 'positive',
+      message: res?.message || 'Sinkronisasi semua warung ke UDEV telah diproses.',
+      position: 'top',
+    })
+    await loadWarungs()
+  } catch (e) {
+    $q.notify({
+      type: 'negative',
+      message: displayApiError(e),
+      position: 'top',
+    })
+  } finally {
+    resyncAllBusy.value = false
   }
 }
 
@@ -688,9 +678,8 @@ function openLegacySync(row) {
   if (!row.owners?.length) {
     $q.notify({
       type: 'negative',
-      message:
-        'Warung ini belum memiliki akun owner untuk didaftarkan ke UDEV.',
-      position: 'top'
+      message: 'Warung ini belum memiliki akun owner untuk didaftarkan ke UDEV.',
+      position: 'top',
     })
     return
   }
@@ -706,20 +695,20 @@ async function initiateLegacySync() {
   try {
     row.udev_customer_sync = syncSummary(
       await larisamaApi.initiateWarungUdevCustomerSync(row.id, {
-        owner_user_id: legacyOwnerId.value
-      })
+        owner_user_id: legacyOwnerId.value,
+      }),
     )
     legacySyncDialogOpen.value = false
     $q.notify({
       type: 'positive',
       message: `Sync ${row.nama} sudah masuk antrean.`,
-      position: 'top'
+      position: 'top',
     })
   } catch (e) {
     $q.notify({
       type: 'negative',
       message: displayApiError(e),
-      position: 'top'
+      position: 'top',
     })
   } finally {
     syncBusyId.value = null
@@ -737,7 +726,7 @@ async function runAction(row, action, successMessage) {
     $q.notify({
       type: 'negative',
       message: displayApiError(e),
-      position: 'top'
+      position: 'top',
     })
     return false
   } finally {
@@ -752,7 +741,7 @@ function approve(row) {
     actionKey: 'approve',
     title: 'Setujui pendaftaran?',
     message: `${row.nama} akan aktif selama 30 hari.`,
-    successMessage: 'Pendaftaran disetujui selama 30 hari.'
+    successMessage: 'Pendaftaran disetujui selama 30 hari.',
   }
   confirmationOpen.value = true
 }
@@ -764,7 +753,7 @@ function extend(row) {
     actionKey: 'extend',
     title: 'Tambah masa aktif?',
     message: `Masa aktif ${row.nama} akan ditambah 30 hari.`,
-    successMessage: 'Masa aktif ditambah 30 hari.'
+    successMessage: 'Masa aktif ditambah 30 hari.',
   }
   confirmationOpen.value = true
 }
@@ -775,15 +764,13 @@ function activateThreeDays(row) {
     row,
     action: larisamaApi.activateWarungForThreeDays,
     actionKey: 'activate-three-days',
-    title: currentlyActive
-      ? 'Tambah masa aktif 3 hari?'
-      : 'Aktifkan warung 3 hari?',
+    title: currentlyActive ? 'Tambah masa aktif 3 hari?' : 'Aktifkan warung 3 hari?',
     message: currentlyActive
       ? `Masa aktif ${row.nama} akan ditambah 3 hari setelah tanggal akhir saat ini.`
       : `${row.nama} akan diaktifkan selama 3 hari mulai tanggal lokal saat ini.`,
     successMessage: currentlyActive
       ? 'Masa aktif ditambah 3 hari.'
-      : 'Warung diaktifkan selama 3 hari.'
+      : 'Warung diaktifkan selama 3 hari.',
   }
   confirmationOpen.value = true
 }
@@ -796,18 +783,14 @@ async function confirmAction() {
 }
 
 async function submitForm() {
-  if (
-    /[A-Z]/.test(form.owner.username) ||
-    (form.owner.email && /[A-Z]/.test(form.owner.email))
-  ) {
+  if (/[A-Z]/.test(form.owner.username) || (form.owner.email && /[A-Z]/.test(form.owner.email))) {
     $q.notify({
       type: 'negative',
-      message: 'Username dan email owner harus huruf kecil.'
+      message: 'Username dan email owner harus huruf kecil.',
     })
     return
   }
-  const { owner, name, timezone, address, phone, startDate, endDate, active } =
-    form
+  const { owner, name, timezone, address, phone, startDate, endDate, active } = form
   const payload = {
     nama: name.trim(),
     timezone: timezone.trim(),
@@ -820,8 +803,8 @@ async function submitForm() {
       nama: owner.name.trim(),
       username: owner.username.trim(),
       email: owner.email || null,
-      password: owner.password
-    }
+      password: owner.password,
+    },
   }
   saving.value = true
   try {
