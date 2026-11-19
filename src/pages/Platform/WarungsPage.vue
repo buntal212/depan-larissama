@@ -648,6 +648,11 @@ async function retryUdevSync(row) {
       message: displayApiError(e),
       position: 'top',
     })
+    try {
+      row.udev_customer_sync = syncSummary(await larisamaApi.getWarungUdevCustomerSync(row.id))
+    } catch {
+      // Abaikan bila refresh gagal agar notifikasi error utama tetap tampil
+    }
   } finally {
     syncBusyId.value = null
   }
